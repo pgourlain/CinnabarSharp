@@ -25,6 +25,8 @@ namespace CinnabarSharp.Core.Extensions
 				[MagickFormat.Tiff, MagickFormat.Tif, MagickFormat.Tiff64]);
 			AddFormat(services, "WebPFormat", "WebP", ["webp"],
 				[MagickFormat.WebP]);
+			AddFormat(services, "HeicFormat", "HEIC", ["heic", "heif"],
+				[MagickFormat.Heic, MagickFormat.Heif], canSave: false);
 			services.AddSingleton<IImageImporter, OraFormat>();
 
 			services.AddTransient<ImageDocument>();
@@ -33,10 +35,10 @@ namespace CinnabarSharp.Core.Extensions
 		}
 
 		private static void AddFormat(IServiceCollection services, string name, string displayName,
-			string[] extensions, MagickFormat[] magickFormats)
+			string[] extensions, MagickFormat[] magickFormats, bool canSave = true)
 		{
 			services.AddSingleton<IImageImporter>(sp => new MagickImageFormat(name, displayName, extensions,
-				magickFormats, sp.GetRequiredService<IWorkspaceService>()));
+				magickFormats, sp.GetRequiredService<IWorkspaceService>(), canSave));
 		}
 	}
 }

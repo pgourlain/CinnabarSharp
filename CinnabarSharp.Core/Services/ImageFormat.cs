@@ -23,6 +23,9 @@ public abstract class ImageFormat : IImageImporter, IImageExporter
 
     public virtual bool SupportsTransparency => true;
 
+    /// <summary>False for formats that can only be opened (e.g. HEIC: no encoder is available).</summary>
+    public virtual bool SupportsSaving => true;
+
     /// <summary>Whether the file's content is in this format, regardless of its extension.</summary>
     public abstract bool MatchesContent(ImageFile file);
 

@@ -92,6 +92,21 @@ public sealed class FileWorkflowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Heic_photo_opens_and_save_asks_for_a_png()
+    {
+        var heic = Path.Combine(AppContext.BaseDirectory, "Data", "sample1.heic");
+        await Vm.OpenFileAsync(heic);
+        Assert.Equal("sample1.heic - CinnabarSharp", _h.Window.Title);
+        _h.Dialogs.SavePaths.Enqueue(_h.TempPath("photo.png"));
+
+        await Vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal("PNG", _h.Dialogs.LastSuggestedSaveFormat!.DisplayName);
+        Assert.True(File.Exists(_h.TempPath("photo.png")));
+        Assert.Equal("photo.png - CinnabarSharp", _h.Window.Title);
+    }
+
+    [AvaloniaFact]
     public async Task Declining_flatten_does_not_save()
     {
         Vm.CreateImage(new NewImageOptions(new ImageSize(30, 20), ColorBgra.White));

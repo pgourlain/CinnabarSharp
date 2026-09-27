@@ -161,17 +161,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var doc = d.Document;
         var file = saveAs ? null : doc.File;
         var format = file is null ? null : _formats.GetFormatByExtension(file.Extension);
+        if (format is { SupportsSaving: false })
+            format = null;
 
         if (file is null || format is null)
         {
             if (Dialogs is null)
                 return false;
-            var suggestedFormat = (doc.FileType is { } t ? _formats.GetFormatByExtension(t) : null)
-                ?? _formats.GetFormatByExtension("png")!;
-            var path = await Dialogs.PickFileToSaveAsync(doc.DisplayName, suggestedFormat, _formats.Formats);
+            var suggestedFormat = (doc.FileType is { } t ? _formats.GetFormatByExtension(t) : null) is { SupportsSaving: true } current
+                ? current
+                : _formats.GetFormatByExtension("png")!;
+            var path = await Dialogs.PickFileToSaveAsync(doc.DisplayName, suggestedFormat, _formats.SaveFormats);
             if (path is null)
                 return false;
-            if (_formats.GetFormatByExtension(Path.GetExtension(path)) is null)
+            if (_formats.GetFormatByExtension(Path.GetExtension(path)) is not { SupportsSaving: true })
                 path += "." + suggestedFormat.SupportedExtensions[0];
             file = new FileInfo(path);
             format = _formats.GetFormatByExtension(file.Extension)!;

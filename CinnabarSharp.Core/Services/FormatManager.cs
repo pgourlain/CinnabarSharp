@@ -6,6 +6,9 @@ public interface IFormatManager
 {
     IReadOnlyList<ImageFormat> Formats { get; }
 
+    /// <summary>Formats that can be written (for Save As).</summary>
+    IReadOnlyList<ImageFormat> SaveFormats { get; }
+
     /// <summary>Extension with or without the leading dot, any case.</summary>
     ImageFormat? GetFormatByExtension(string extension);
 
@@ -30,6 +33,8 @@ public class FormatManager : IFormatManager
     }
 
     public IReadOnlyList<ImageFormat> Formats { get; }
+
+    public IReadOnlyList<ImageFormat> SaveFormats => Formats.Where(f => f.SupportsSaving).ToList();
 
     public ImageFormat? GetFormatByExtension(string extension)
     {

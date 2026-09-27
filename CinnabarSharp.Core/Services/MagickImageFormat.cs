@@ -38,13 +38,18 @@ public class MagickImageFormat : ImageFormat
     private readonly IWorkspaceService _workspaceService;
     private readonly MagickFormat[] _magickFormats;
 
+    private readonly bool _canSave;
+
     public MagickImageFormat(string name, string displayName, string[] extensions,
-        MagickFormat[] magickFormats, IWorkspaceService workspaceService)
+        MagickFormat[] magickFormats, IWorkspaceService workspaceService, bool canSave = true)
         : base(name, displayName, extensions)
     {
         _magickFormats = magickFormats;
         _workspaceService = workspaceService;
+        _canSave = canSave;
     }
+
+    public override bool SupportsSaving => _canSave;
 
     public override bool MatchesContent(ImageFile file)
     {
@@ -62,6 +67,9 @@ public class MagickImageFormat : ImageFormat
     {
         var img = Utility.OpenImage(file);
         img.AutoOrient();
+        // Photos often carry a Display P3 or CMYK profile; the canvas and compositing assume sRGB.
+        if (img.GetColorProfile() is not null)
+            img.TransformColorSpace(ColorProfiles.SRGB);
         var imagesize = new ImageSize((int)img.Width, (int)img.Height);
 
         var doc = _workspaceService.CreateAndActivateDocument(file, SupportedExtensions[0], imagesize);
@@ -75,6 +83,8 @@ public class MagickImageFormat : ImageFormat
 
     public override void Export(ImageDocument document, ImageFile file)
     {
+        if (!SupportsSaving)
+            throw new NotSupportedException($"{DisplayName} files can be opened but not saved.");
         using var image = document.GetFlattenedImage();
         PrepareForSave(image);
         image.Format = _magickFormats[0];

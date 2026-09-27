@@ -66,6 +66,8 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Importers/exporters: PNG, JPEG (quality 85, transparency flattened onto white), BMP, GIF, TIFF, WebP via `MagickImageFormat`, registered in `AddCinnabarSharpServices`. `IFormatManager` picks the format by extension, or by file content when the extension is missing/wrong. Photos are auto-rotated from EXIF on open.
 - [x] Native open/save dialogs (`StorageProvider`) with an "All images" filter plus one per format; Save As appends the extension if the user omits it.
 - [x] Multiple open documents as tabs with a close button; `*` marks unsaved changes in tab and title; File › Close (⌘/Ctrl+W); closing a modified image or quitting asks Save / Don't Save / Cancel. Saving a multi-layer image warns that the file will be flattened (layers stay in CinnabarSharp).
+- [x] HEIC/HEIF photos open (read-only: Magick.NET has no HEVC encoder, so saving asks for another format, PNG by default). Images with an embedded color profile (Display P3, CMYK…) are converted to sRGB on open.
+- [ ] AVIF (Magick.NET can read and write it) — optional.
 - [ ] Tab thumbnails (Paint.NET image strip).
 - [x] Zoom around the mouse with ⌘/Ctrl + wheel, trackpad pinch, menu/toolbar zoom keeps the view centre. Pan with scrollbars, Space + drag, middle mouse drag, or the Pan tool.
 - [x] File › Open Recent (10 entries, stored in the user's local app-data folder) with Clear Recent; drag-and-drop image files onto the window; image paths passed on the command line are opened at startup.

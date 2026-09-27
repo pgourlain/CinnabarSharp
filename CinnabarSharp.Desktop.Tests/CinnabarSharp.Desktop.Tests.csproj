@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <None Update="Data\sample1.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Data\sample1.heic" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
