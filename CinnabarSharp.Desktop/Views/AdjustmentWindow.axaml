@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        x:Class="CinnabarSharp.Desktop.Views.AdjustmentWindow"
+        x:DataType="vm:AdjustmentViewModel"
+        Title="{Binding Title}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="20" Spacing="14" Width="380">
+        <ItemsControl ItemsSource="{Binding Parameters}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AdjustmentParameterViewModel">
+                    <StackPanel Spacing="2" Margin="0,0,0,10">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <DockPanel>
+                            <NumericUpDown DockPanel.Dock="Right" Width="120" Margin="8,0,0,0"
+                                           Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                                           Increment="{Binding Step}" FormatString="{Binding Format}" />
+                            <Slider Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Value="{Binding Value}"
+                                    SmallChange="{Binding Step}" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <DockPanel>
+            <Button DockPanel.Dock="Left" Content="Reset" Command="{Binding ResetCommand}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
+</Window>

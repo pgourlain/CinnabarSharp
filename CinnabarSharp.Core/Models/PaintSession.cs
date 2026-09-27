@@ -38,11 +38,20 @@ public sealed class PaintSession
     /// <summary>Recomputes <paramref name="region"/> from the original pixels and writes it into the layer.</summary>
     public void Apply(RectangleI region, PixelFunction function)
     {
-        if (region.IsEmpty)
-            return;
+        if (!region.IsEmpty)
+            Write(region, Compute(region, function));
+    }
+
+    /// <summary>
+    /// Pixels of <paramref name="region"/> computed from the original pixels (unselected pixels unchanged).
+    /// Reads only immutable state, so it may run on a background thread.
+    /// </summary>
+    public byte[] Compute(RectangleI region, PixelFunction function, CancellationToken cancellation = default)
+    {
         var buffer = PixelRegion.Extract(_base, Width, region);
         for (var y = 0; y < region.Height; y++)
         {
+            cancellation.ThrowIfCancellationRequested();
             for (var x = 0; x < region.Width; x++)
             {
                 var ix = region.X + x;
@@ -52,7 +61,15 @@ public sealed class PaintSession
                 function(ix, iy, buffer.AsSpan((y * region.Width + x) * 4, 4));
             }
         }
-        _layer.Surface.WriteRegion(region, buffer);
+        return buffer;
+    }
+
+    /// <summary>Writes computed pixels of <paramref name="region"/> into the layer and redraws it.</summary>
+    public void Write(RectangleI region, byte[] pixels)
+    {
+        if (region.IsEmpty)
+            return;
+        _layer.Surface.WriteRegion(region, pixels);
         _touched = CoverageMask.Union(_touched, region);
         _document.Workspace.Invalidate(region);
     }

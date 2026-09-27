@@ -34,6 +34,9 @@ public interface IDialogService
     /// <summary>The dialog edits the layer live; returns true for OK, false for Cancel.</summary>
     Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties);
 
+    /// <summary>The dialog previews live; returns true for OK.</summary>
+    Task<bool> ShowAdjustmentAsync(AdjustmentViewModel adjustment);
+
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 

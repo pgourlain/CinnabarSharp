@@ -163,12 +163,15 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 ## Phase 8 — Adjustments
 
-- [ ] Auto-Level, Black and White, Brightness/Contrast, Curves, Hue/Saturation, Invert Colors, Levels, Posterize, Sepia.
-- [ ] Dialog with live preview on canvas; apply to selection only when a selection exists.
+- [x] Adjustments in Core (`CinnabarSharp.Core.Adjustments`, pure C#, pinned by a cross-OS checksum test): Auto-Level, Black and White, Brightness / Contrast, Hue / Saturation, Invert Colors, Levels, Posterize, Sepia. Alpha is always preserved.
+- [x] `AdjustmentSession` reuses `PaintSession`: applies inside the selection only, one history step with just the affected rectangle.
+- [x] Dialog generated from the adjustment's parameters (slider + number, Reset); live preview computed on a background thread, stale previews cancelled; Cancel restores the layer and leaves no history.
+- [x] Adjustments menu with Paint.NET shortcuts (⌘/Ctrl+Shift+L, G, U, I, P, E; ⌘/Ctrl+L for Levels). Parameterless adjustments apply immediately.
+- [ ] Curves (needs a curve-editor control); Levels with histogram and per-channel mode.
 
 **Validation**
-- [ ] Preview updates without UI freeze (work on background thread).
-- [ ] Results byte-identical across OSes.
+- [ ] Preview stays responsive while dragging a slider on a 4000×3000 image (check by hand on each OS).
+- [x] Results identical across OSes (checksum test in CI).
 
 ## Phase 9 — Effects
 

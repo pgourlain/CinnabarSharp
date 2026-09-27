@@ -53,6 +53,17 @@ public class FakeDialogService : IDialogService
     public Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>
         Task.FromResult(LayerPropertiesAnswer(properties));
 
+    /// <summary>Changes made in the adjustment dialog, then whether OK is clicked.</summary>
+    public Func<AdjustmentViewModel, bool> AdjustmentAnswer { get; set; } = _ => true;
+
+    public List<string> AdjustmentsShown { get; } = [];
+
+    public Task<bool> ShowAdjustmentAsync(AdjustmentViewModel adjustment)
+    {
+        AdjustmentsShown.Add(adjustment.Title);
+        return Task.FromResult(AdjustmentAnswer(adjustment));
+    }
+
     public Queue<ResizeImageOptions?> ResizeAnswers { get; } = new();
     public Queue<CanvasSizeOptions?> CanvasSizeAnswers { get; } = new();
 

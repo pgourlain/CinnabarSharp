@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using ImageMagick;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
+using CinnabarSharp.Core.Adjustments;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Desktop.Services;
 
@@ -634,6 +635,53 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Paint.NET pastes at the top-left of the visible part of the canvas.</summary>
     private PointI PasteLocation() => Viewport?.VisibleImageOrigin() ?? PointI.Zero;
 
+    // ---- Adjustments ----
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task AutoLevel() => RunAdjustment(new AutoLevel());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task BlackAndWhite() => RunAdjustment(new BlackAndWhite());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task BrightnessContrast() => RunAdjustment(new BrightnessContrast());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task HueSaturation() => RunAdjustment(new HueSaturation());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task InvertColors() => RunAdjustment(new InvertColors());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task Levels() => RunAdjustment(new Levels());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task Posterize() => RunAdjustment(new Posterize());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task Sepia() => RunAdjustment(new Sepia());
+
+    /// <summary>Adjustments without parameters apply at once; others open a live-preview dialog.</summary>
+    public async Task RunAdjustment(ColorAdjustment adjustment)
+    {
+        if (ActiveDocument is not { } d)
+            return;
+        if (adjustment.Parameters.Count == 0)
+        {
+            AdjustmentSession.ApplyNow(d.Document, adjustment);
+            return;
+        }
+        if (Dialogs is null)
+            return;
+
+        var dialog = new AdjustmentViewModel(new AdjustmentSession(d.Document, adjustment));
+        dialog.RequestPreview();
+        if (await Dialogs.ShowAdjustmentAsync(dialog))
+            dialog.Commit();
+        else
+            dialog.Cancel();
+    }
+
     // ---- Image ----
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
@@ -696,6 +744,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      SaveCommand, SaveAsCommand, CloseCommand,
                      SelectAllCommand, InvertSelectionCommand, EraseSelectionCommand, FillSelectionCommand,
                      CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand,
+                     AutoLevelCommand, BlackAndWhiteCommand, BrightnessContrastCommand, HueSaturationCommand,
+                     InvertColorsCommand, LevelsCommand, PosterizeCommand, SepiaCommand,
                      ResizeImageCommand, CanvasSizeCommand, FlipImageHorizontalCommand, FlipImageVerticalCommand,
                      RotateClockwiseCommand, RotateCounterClockwiseCommand, Rotate180Command,
                  })
