@@ -18,16 +18,19 @@ public sealed class CoverageMask(int width, int height)
 
     public byte this[int x, int y] => _data[y * Width + x];
 
-    /// <summary>A round dab (antialiased: soft 1-pixel edge; aliased: pixel centers inside the circle).</summary>
-    public RectangleI Disc(double cx, double cy, double radius, bool antialias) =>
+    /// <summary>
+    /// A round dab (antialiased: soft 1-pixel edge; aliased: pixel centers inside the circle).
+    /// <paramref name="hardness"/> below 1 fades the outer part of the radius out smoothly.
+    /// </summary>
+    public RectangleI Disc(double cx, double cy, double radius, bool antialias, double hardness = 1) =>
         Paint(cx - radius - 1, cy - radius - 1, cx + radius + 1, cy + radius + 1, (x, y) =>
         {
             var d = Math.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
-            return Edge(radius - d, antialias);
+            return Brush(radius, d, antialias, hardness);
         });
 
     /// <summary>A thick line with round caps.</summary>
-    public RectangleI Segment(PointD a, PointD b, double radius, bool antialias)
+    public RectangleI Segment(PointD a, PointD b, double radius, bool antialias, double hardness = 1)
     {
         var dx = b.X - a.X;
         var dy = b.Y - a.Y;
@@ -38,7 +41,7 @@ public sealed class CoverageMask(int width, int height)
                 var t = len2 == 0 ? 0 : Math.Clamp(((x - a.X) * dx + (y - a.Y) * dy) / len2, 0, 1);
                 var px = a.X + t * dx - x;
                 var py = a.Y + t * dy - y;
-                return Edge(radius - Math.Sqrt(px * px + py * py), antialias);
+                return Brush(radius, Math.Sqrt(px * px + py * py), antialias, hardness);
             });
     }
 
@@ -70,6 +73,39 @@ public sealed class CoverageMask(int width, int height)
             var distance = inside > 0 ? inside : Math.Sqrt(ox * ox + oy * oy);
             return Edge(half - distance, antialias);
         });
+    }
+
+    /// <summary>Filled rectangle with rounded corners (radius clamped to half the shorter side).</summary>
+    public RectangleI FillRoundedRectangle(PointD a, PointD b, double radius, bool antialias)
+    {
+        var (l, t, r, btm) = (Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
+        return Paint(l - 1, t - 1, r + 1, btm + 1, (x, y) =>
+            Edge(-RoundedBoxDistance(x, y, l, t, r, btm, radius), antialias));
+    }
+
+    /// <summary>Rounded rectangle outline; like <see cref="StrokeRectangle"/>, the path runs through pixel centers.</summary>
+    public RectangleI StrokeRoundedRectangle(PointD a, PointD b, double radius, double width, bool antialias)
+    {
+        var l = Math.Round(Math.Min(a.X, b.X)) + 0.5;
+        var t = Math.Round(Math.Min(a.Y, b.Y)) + 0.5;
+        var r = Math.Max(l, Math.Round(Math.Max(a.X, b.X)) - 0.5);
+        var btm = Math.Max(t, Math.Round(Math.Max(a.Y, b.Y)) - 0.5);
+        var half = width / 2;
+        return Paint(l - half - 1, t - half - 1, r + half + 1, btm + half + 1, (x, y) =>
+            Edge(half - Math.Abs(RoundedBoxDistance(x, y, l, t, r, btm, radius)), antialias));
+    }
+
+    // Signed distance to a rounded box (negative inside).
+    private static double RoundedBoxDistance(double x, double y, double l, double t, double r, double b, double radius)
+    {
+        var hx = (r - l) / 2;
+        var hy = (b - t) / 2;
+        radius = Math.Clamp(radius, 0, Math.Min(hx, hy));
+        var qx = Math.Abs(x - (l + r) / 2) - (hx - radius);
+        var qy = Math.Abs(y - (t + b) / 2) - (hy - radius);
+        var ox = Math.Max(qx, 0);
+        var oy = Math.Max(qy, 0);
+        return Math.Sqrt(ox * ox + oy * oy) + Math.Min(Math.Max(qx, qy), 0) - radius;
     }
 
     public RectangleI FillEllipse(PointD a, PointD b, bool antialias)
@@ -141,6 +177,17 @@ public sealed class CoverageMask(int width, int height)
         }
         Bounds = Union(Bounds, rect);
         return rect;
+    }
+
+    // Coverage of a brush of the given radius at distance d from its center. Soft brushes fade from full coverage at
+    // hardness × radius to zero at the radius (smoothstep).
+    private static double Brush(double radius, double d, bool antialias, double hardness)
+    {
+        if (hardness >= 1)
+            return Edge(radius - d, antialias);
+        var fade = Math.Max(1, radius * (1 - Math.Max(0, hardness)));
+        var c = Math.Clamp((radius - d) / fade, 0, 1);
+        return c * c * (3 - 2 * c);
     }
 
     private static double Edge(double signedDistance, bool antialias) =>

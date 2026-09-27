@@ -10,4 +10,9 @@ public interface IClipboardService
 
     /// <summary>The clipboard image, or null if the clipboard holds no image.</summary>
     Task<ClipboardImage?> GetImageAsync();
+
+    Task SetTextAsync(string text);
+
+    /// <summary>The clipboard text, or null if the clipboard holds no text.</summary>
+    Task<string?> GetTextAsync();
 }

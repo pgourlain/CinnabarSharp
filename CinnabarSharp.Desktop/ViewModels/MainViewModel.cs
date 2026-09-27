@@ -33,12 +33,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private bool _syncingSelection;
 
     public MainViewModel(IWorkspaceService workspace, IFormatManager formats, IDocumentEventsService events,
-        RecentFilesStore recentFiles)
+        RecentFilesStore recentFiles, ITextRasterizer textRasterizer)
     {
         _workspace = workspace;
         _formats = formats;
         RecentFiles = recentFiles;
-        Tools = ToolViewModel.CreatePaintDotNetTools(ToolSettings);
+        Tools = ToolViewModel.CreatePaintDotNetTools(ToolSettings, textRasterizer);
         ToolSettings.ColorsChanged += OnColorsChanged;
         SelectedTool = Tools.First(t => t.Name == "Rectangle Select");
         _eventsSubscription = events.DocumentEvents.Subscribe(new EventObserver(OnDocumentEvent));
@@ -89,6 +89,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(SecondaryColor));
         OnPropertyChanged(nameof(PrimaryBrush));
         OnPropertyChanged(nameof(SecondaryBrush));
+        RefreshEditingTool();
     }
 
     [RelayCommand]
@@ -459,13 +460,85 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public int BrushWidth
     {
         get => ToolSettings.BrushWidth;
-        set { ToolSettings.BrushWidth = Math.Clamp(value, 1, 500); OnPropertyChanged(); }
+        set
+        {
+            ToolSettings.BrushWidth = Math.Clamp(value, 1, 500);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(BrushOutlineSize));
+            RefreshEditingTool();
+        }
     }
 
     public bool Antialiasing
     {
         get => ToolSettings.Antialiasing;
-        set { ToolSettings.Antialiasing = value; OnPropertyChanged(); }
+        set { ToolSettings.Antialiasing = value; OnPropertyChanged(); RefreshEditingTool(); }
+    }
+
+    public int Hardness
+    {
+        get => ToolSettings.Hardness;
+        set { ToolSettings.Hardness = Math.Clamp(value, 0, 100); OnPropertyChanged(); }
+    }
+
+    /// <summary>Diameter (image pixels) of the outline drawn under the pointer for round brushes; 0 for none.</summary>
+    public double BrushOutlineSize => SelectedTool?.IsBrush == true ? BrushWidth : 0;
+
+    public int CornerRadius
+    {
+        get => ToolSettings.CornerRadius;
+        set { ToolSettings.CornerRadius = Math.Clamp(value, 0, 1000); OnPropertyChanged(); }
+    }
+
+    public bool GradientTransparency
+    {
+        get => ToolSettings.GradientTransparency;
+        set { ToolSettings.GradientTransparency = value; OnPropertyChanged(); }
+    }
+
+    // ---- Text tool options ----
+
+    private IReadOnlyList<string>? _fontFamilies;
+
+    public IReadOnlyList<string> FontFamilies => _fontFamilies ??= AvaloniaTextRasterizer.FontFamilies;
+
+    public static IReadOnlyList<Core.Models.TextAlignment> TextAlignments { get; } = Enum.GetValues<Core.Models.TextAlignment>();
+
+    /// <summary>Font of the Text tool; the platform default font when none was chosen.</summary>
+    public string FontFamily
+    {
+        get => string.IsNullOrEmpty(ToolSettings.FontFamily) ? AvaloniaTextRasterizer.DefaultFontFamily : ToolSettings.FontFamily;
+        set { ToolSettings.FontFamily = value ?? ""; OnPropertyChanged(); RefreshEditingTool(); }
+    }
+
+    public double FontSize
+    {
+        get => ToolSettings.FontSize;
+        set { ToolSettings.FontSize = Math.Clamp(value, 1, 1000); OnPropertyChanged(); RefreshEditingTool(); }
+    }
+
+    public bool Bold
+    {
+        get => ToolSettings.Bold;
+        set { ToolSettings.Bold = value; OnPropertyChanged(); RefreshEditingTool(); }
+    }
+
+    public bool Italic
+    {
+        get => ToolSettings.Italic;
+        set { ToolSettings.Italic = value; OnPropertyChanged(); RefreshEditingTool(); }
+    }
+
+    public bool Underline
+    {
+        get => ToolSettings.Underline;
+        set { ToolSettings.Underline = value; OnPropertyChanged(); RefreshEditingTool(); }
+    }
+
+    public Core.Models.TextAlignment TextAlignment
+    {
+        get => ToolSettings.TextAlignment;
+        set { ToolSettings.TextAlignment = value; OnPropertyChanged(); RefreshEditingTool(); }
     }
 
     public static IReadOnlyList<ShapeKind> ShapeKinds { get; } = Enum.GetValues<ShapeKind>();
@@ -475,7 +548,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ShapeKind ShapeKind
     {
         get => ToolSettings.ShapeKind;
-        set { ToolSettings.ShapeKind = value; OnPropertyChanged(); }
+        set { ToolSettings.ShapeKind = value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowCornerRadiusOptions)); }
     }
 
     public ShapeStyle ShapeStyle
@@ -503,6 +576,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ToolSettings.SecondaryColor = ColorBgra.FromUInt32(settings.SecondaryColor);
         BrushWidth = settings.BrushWidth;
         Antialiasing = settings.Antialiasing;
+        Hardness = settings.Hardness;
+        CornerRadius = settings.CornerRadius;
+        GradientTransparency = settings.GradientTransparency;
+        ToolSettings.FontFamily = settings.FontFamily ?? "";
+        FontSize = settings.FontSize;
+        Bold = settings.Bold;
+        Italic = settings.Italic;
+        Underline = settings.Underline;
+        TextAlignment = settings.TextAlignment;
         Tolerance = settings.Tolerance;
         GlobalFill = settings.GlobalFill;
         SampleImage = settings.SampleImage;
@@ -521,6 +603,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         SecondaryColor = ToolSettings.SecondaryColor.Bgra,
         BrushWidth = BrushWidth,
         Antialiasing = Antialiasing,
+        Hardness = Hardness,
+        CornerRadius = CornerRadius,
+        GradientTransparency = GradientTransparency,
+        FontFamily = ToolSettings.FontFamily,
+        FontSize = FontSize,
+        Bold = Bold,
+        Italic = Italic,
+        Underline = Underline,
+        TextAlignment = TextAlignment,
         Tolerance = Tolerance,
         GlobalFill = GlobalFill,
         SampleImage = SampleImage,
@@ -542,13 +633,74 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public void ToolPointerDown(ToolPointer pointer) => WithTool(t => t.OnPointerDown, pointer);
     public void ToolPointerMove(ToolPointer pointer) => WithTool(t => t.OnPointerMove, pointer);
-    public void ToolPointerUp(ToolPointer pointer) => WithTool(t => t.OnPointerUp, pointer);
+
+    public void ToolPointerUp(ToolPointer pointer)
+    {
+        WithTool(t => t.OnPointerUp, pointer);
+        if (SelectedTool.Tool is IEditingTool)
+            RefreshThumbnails();
+    }
 
     private void WithTool(Func<ITool, Action<ImageDocument, ToolPointer>> handler, ToolPointer pointer)
     {
         if (ActiveDocument is { } d && SelectedTool.Tool is { } tool)
             handler(tool)(d.Document, pointer);
+        UpdateOverlay();
     }
+
+    /// <summary>True while keys typed belong to the selected tool (the Text tool is editing).</summary>
+    public bool IsTyping => ActiveDocument is { } d && SelectedTool.Tool is IKeyboardTool k && k.IsTyping(d.Document);
+
+    /// <summary>Sends a key to the selected tool; returns true if the tool used it.</summary>
+    public bool ToolKeyDown(ToolKey key, ToolModifiers modifiers)
+    {
+        if (ActiveDocument is not { } d || SelectedTool.Tool is not IKeyboardTool tool)
+            return false;
+        var handled = tool.OnKeyDown(d.Document, key, modifiers);
+        UpdateOverlay();
+        return handled;
+    }
+
+    public void ToolTextInput(string text)
+    {
+        if (ActiveDocument is not { } d || SelectedTool.Tool is not IKeyboardTool tool)
+            return;
+        tool.OnTextInput(d.Document, text);
+        UpdateOverlay();
+    }
+
+    private (TextTool Tool, ImageDocument Document)? EditingText =>
+        ActiveDocument is { } d && SelectedTool.Tool is TextTool t && t.IsEditing(d.Document) ? (t, d.Document) : null;
+
+    /// <summary>What the selected tool draws over the canvas (curve handles, text caret...).</summary>
+    [ObservableProperty]
+    public partial ToolOverlay? Overlay { get; set; }
+
+    private void UpdateOverlay() =>
+        Overlay = ActiveDocument is { } d && SelectedTool?.Tool is IOverlayTool tool ? tool.GetOverlay(d.Document) : null;
+
+    /// <summary>Redraws the curve or text being edited after a color or option change.</summary>
+    private void RefreshEditingTool()
+    {
+        if (ActiveDocument is not { } d || SelectedTool?.Tool is not IEditingTool tool || !tool.IsEditing(d.Document))
+            return;
+        tool.Refresh(d.Document);
+        UpdateOverlay();
+    }
+
+    private void FinishEditing(ITool? tool, ImageDocument? document)
+    {
+        if (document is null || tool is not IEditingTool editing || !editing.IsEditing(document))
+            return;
+        editing.Finish(document);
+        RefreshThumbnails();
+    }
+
+    partial void OnSelectedToolChanged(ToolViewModel? oldValue, ToolViewModel newValue) =>
+        FinishEditing(oldValue?.Tool, ActiveDocument?.Document);
+
+    partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue) =>
+        FinishEditing(SelectedTool?.Tool, oldValue?.Document);
 
     partial void OnSelectedToolChanged(ToolViewModel value)
     {
@@ -556,16 +708,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                  {
                      nameof(ShowSelectionOptions), nameof(ShowToleranceOptions), nameof(ShowBrushOptions),
                      nameof(ShowShapeOptions), nameof(ShowGradientOptions), nameof(ShowColorPickerOptions),
+                     nameof(ShowHardnessOptions), nameof(ShowCornerRadiusOptions), nameof(ShowTextOptions),
+                     nameof(BrushOutlineSize),
                  })
             OnPropertyChanged(name);
+        UpdateOverlay();
     }
 
     public bool ShowSelectionOptions => SelectedTool.IsSelectionTool;
     public bool ShowToleranceOptions => SelectedTool.HasTolerance;
     public bool ShowBrushOptions => SelectedTool.HasBrushWidth;
+    public bool ShowHardnessOptions => SelectedTool.IsBrush;
     public bool ShowShapeOptions => SelectedTool.IsShapes;
+    public bool ShowCornerRadiusOptions => SelectedTool.IsShapes && ShapeKind == ShapeKind.RoundedRectangle;
     public bool ShowGradientOptions => SelectedTool.IsGradient;
     public bool ShowColorPickerOptions => SelectedTool.IsColorPicker;
+    public bool ShowTextOptions => SelectedTool.IsText;
 
     // ---- Selection and clipboard ----
 
@@ -580,7 +738,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         : "";
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void SelectAll() => ActiveDocument?.Document.Actions.SelectAll();
+    private void SelectAll()
+    {
+        if (EditingText is { } text)
+        {
+            text.Tool.SelectAll(text.Document);
+            UpdateOverlay();
+            return;
+        }
+        ActiveDocument?.Document.Actions.SelectAll();
+    }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DeselectAll() => ActiveDocument?.Document.Actions.DeselectAll();
@@ -591,12 +758,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void CropToSelection() => ActiveDocument?.Document.Actions.CropToSelection();
 
+    // Delete and Backspace are also these menu items' shortcuts: while typing text they edit the text instead.
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void EraseSelection() => EditLayers(a => a.EraseSelection());
+    private void EraseSelection()
+    {
+        if (!IsTyping || !ToolKeyDown(ToolKey.Delete, ToolModifiers.None))
+            EditLayers(a => a.EraseSelection());
+    }
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void FillSelection() => EditLayers(a =>
-        a.FillSelection(ColorBgra.FromBgra(PrimaryColor.B, PrimaryColor.G, PrimaryColor.R, PrimaryColor.A)));
+    private void FillSelection()
+    {
+        if (!IsTyping || !ToolKeyDown(ToolKey.Backspace, ToolModifiers.None))
+            EditLayers(a => a.FillSelection(ColorBgra.FromBgra(PrimaryColor.B, PrimaryColor.G, PrimaryColor.R, PrimaryColor.A)));
+    }
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
     private Task Copy() => CopyAsync(merged: false);
@@ -606,6 +781,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private async Task CopyAsync(bool merged)
     {
+        if (EditingText is { } text && Clipboard is not null)
+        {
+            await text.Tool.Copy(Clipboard);
+            return;
+        }
         if (ActiveDocument is { } d && Clipboard is not null)
             await Clipboard.SetImageAsync(d.Document.Actions.Copy(merged));
     }
@@ -615,6 +795,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (ActiveDocument is not { } d || Clipboard is null)
             return;
+        if (EditingText is { } text)
+        {
+            await text.Tool.Cut(text.Document, Clipboard);
+            UpdateOverlay();
+            return;
+        }
         ClipboardImage? image = null;
         EditLayers(a => image = a.Cut());
         await Clipboard.SetImageAsync(image!);
@@ -624,6 +810,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private async Task Paste()
     {
+        if (EditingText is { } text && Clipboard is not null)
+        {
+            await text.Tool.Paste(text.Document, Clipboard);
+            UpdateOverlay();
+            return;
+        }
         if (await ClipboardImageAsync() is not { } image)
             return;
         if (ActiveDocument is not { } d)
@@ -815,6 +1007,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RefreshHistory();
         RefreshSelectionState();
         RefreshViewState();
+        UpdateOverlay();
         foreach (var command in new IRelayCommand[]
                  {
                      ZoomInCommand, ZoomOutCommand, ActualSizeCommand, BestFitCommand,
@@ -901,6 +1094,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 {
                     RefreshHistory();
                     RefreshThumbnails();
+                    UpdateOverlay();
                 }
                 break;
 

@@ -11,9 +11,7 @@ using System;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using ImageMagick;
-using ImageMagick.Drawing;
-using CinnabarSharp.Core.Extensions;
+using CinnabarSharp.Core.Services;
 
 namespace CinnabarSharp.Core.Models
 {
@@ -23,10 +21,6 @@ namespace CinnabarSharp.Core.Models
 
         private TextPosition currentPos;
         private TextPosition selectionStart;
-
-        public DrawableFont Font { get; private set; } = new("Monaco");
-        public TextAlignment Alignment { get; private set; }
-        public bool Underline { get; private set; }
 
         public TextPosition CurrentPosition { get { return currentPos; } }
         public int LineCount { get { return lines.Count; } }
@@ -73,9 +67,6 @@ namespace CinnabarSharp.Core.Models
             clonedTE.State = State;
             clonedTE.currentPos = currentPos;
             clonedTE.selectionStart = selectionStart;
-            clonedTE.Font = new DrawableFont(Font.Family, Font.Style, Font.Weight, Font.Stretch);
-            clonedTE.Alignment = Alignment;
-            clonedTE.Underline = Underline;
             clonedTE.Origin = new PointI(Origin.X, Origin.Y);
 
             //The rest of the variables are calculated on the spot.
@@ -122,12 +113,28 @@ namespace CinnabarSharp.Core.Models
                 ClearSelection();
         }
 
-        public void SetFont(DrawableFont font, TextAlignment alignment, bool underline)
+        public TextPosition SelectionStart => selectionStart;
+
+        public bool HasSelection => selectionStart != currentPos;
+
+        public void SelectAll()
         {
-            Font = font;
-            Alignment = alignment;
-            Underline = underline;
-            OnModified();
+            selectionStart = new TextPosition(0, 0);
+            currentPos = new TextPosition(lines.Count - 1, lines[^1].Length);
+        }
+
+        /// <summary>The selected text, lines separated by '\n'; empty when nothing is selected.</summary>
+        public string SelectedText
+        {
+            get
+            {
+                if (!HasSelection)
+                    return string.Empty;
+                var parts = new List<string>();
+                ForeachLine(TextPosition.Min(currentPos, selectionStart), TextPosition.Max(currentPos, selectionStart),
+                    (line, start, end) => parts.Add(lines[line].Substring(start, end - start)));
+                return string.Join("\n", parts);
+            }
         }
 
         #endregion
@@ -135,7 +142,7 @@ namespace CinnabarSharp.Core.Models
         #region Key Handlers
         public void InsertText(string str)
         {
-            if (HasSelection())
+            if (HasSelection)
                 DeleteSelection();
 
             lines[currentPos.Line] = lines[currentPos.Line].Insert(currentPos.Offset, str);
@@ -148,7 +155,7 @@ namespace CinnabarSharp.Core.Models
 
         public void PerformEnter()
         {
-            if (HasSelection())
+            if (HasSelection)
                 DeleteSelection();
 
             string currentLine = lines[currentPos.Line];
@@ -174,7 +181,7 @@ namespace CinnabarSharp.Core.Models
 
         public void PerformBackspace()
         {
-            if (HasSelection())
+            if (HasSelection)
             {
                 DeleteSelection();
                 return;
@@ -203,7 +210,7 @@ namespace CinnabarSharp.Core.Models
 
         public void PerformDelete()
         {
-            if (HasSelection())
+            if (HasSelection)
             {
                 DeleteSelection();
                 return;
@@ -342,82 +349,53 @@ namespace CinnabarSharp.Core.Models
             }
         }
 
-        public void PerformCopy(object clipboard)
-        {
-            if (HasSelection())
-            {
-                StringBuilder strbld = new StringBuilder();
+        public Task PerformCopy(IClipboardService clipboard) => clipboard.SetTextAsync(SelectedText);
 
-                TextPosition start = TextPosition.Min(currentPos, selectionStart);
-                TextPosition end = TextPosition.Max(currentPos, selectionStart);
-                ForeachLine(start, end, (currentLinePos, strpos, endpos) => {
-                    if (endpos - strpos > 0)
-                        strbld.AppendLine(lines[currentLinePos].Substring(strpos, endpos - strpos));
-                    else if (endpos == strpos)
-                        strbld.AppendLine();
-                });
-                strbld.Remove(strbld.Length - Environment.NewLine.Length, Environment.NewLine.Length);
-                throw new NotImplementedException("clipboard.SetText");
-                //clipboard.SetText(strbld.ToString());
-            }
-            else
-            {
-                throw new NotImplementedException("clipboard.SetText");
-                //clipboard.SetText(string.Empty);
-            }
-        }
-
-        public void PerformCut(object clipboard)
+        public async Task PerformCut(IClipboardService clipboard)
         {
-            PerformCopy(clipboard);
-            if (HasSelection())
-            {
+            await PerformCopy(clipboard);
+            if (HasSelection)
                 DeleteSelection();
-            }
         }
 
-        /// <summary>
-        /// Pastes text from the clipboard.
-        /// </summary>
-        public async Task<bool> PerformPaste(object clipboard)
+        /// <summary>Pastes text from the clipboard; returns false if it holds no text.</summary>
+        public async Task<bool> PerformPaste(IClipboardService clipboard)
         {
-            throw new NotImplementedException("clipboard.SetText");
-            /*
-            string? txt = await clipboard.ReadTextAsync();
-            if (String.IsNullOrEmpty(txt))
+            var text = await clipboard.GetTextAsync();
+            if (string.IsNullOrEmpty(text))
                 return false;
+            InsertLines(text);
+            return true;
+        }
 
-            if (HasSelection())
+        /// <summary>Inserts text that may contain line breaks (\n, \r\n or \r).</summary>
+        public void InsertLines(string text)
+        {
+            if (HasSelection)
                 DeleteSelection();
 
-            string[] ins_lines = txt.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-            string endline = lines[currentPos.Line].Substring(currentPos.Offset);
+            var insLines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            var endline = lines[currentPos.Line].Substring(currentPos.Offset);
             lines[currentPos.Line] = lines[currentPos.Line].Substring(0, currentPos.Offset);
-            bool first = true;
-            foreach (string ins_txt in ins_lines)
+            for (var i = 0; i < insLines.Length; i++)
             {
-                if (!first)
+                if (i > 0)
                 {
                     currentPos.Line++;
-                    lines.Insert(currentPos.Line, ins_txt);
-                    currentPos.Offset = ins_txt.Length;
+                    lines.Insert(currentPos.Line, insLines[i]);
+                    currentPos.Offset = insLines[i].Length;
                 }
                 else
                 {
-                    first = false;
-                    lines[currentPos.Line] += ins_txt;
-                    currentPos.Offset += ins_txt.Length;
+                    lines[currentPos.Line] += insLines[i];
+                    currentPos.Offset += insLines[i].Length;
                 }
             }
             lines[currentPos.Line] += endline;
 
             selectionStart = currentPos;
             State = TextMode.Uncommitted;
-
             OnModified();
-
-            return true;
-            */
         }
         #endregion
 
@@ -524,11 +502,6 @@ namespace CinnabarSharp.Core.Models
 
             State = TextMode.Uncommitted;
             OnModified();
-        }
-
-        private bool HasSelection()
-        {
-            return selectionStart != currentPos;
         }
 
         private void ClearSelection()

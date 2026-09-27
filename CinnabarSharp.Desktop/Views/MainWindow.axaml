@@ -122,6 +122,11 @@
                                    FormatString="0" Width="110" />
                     <CheckBox Content="Antialiasing" IsChecked="{Binding Antialiasing}" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowHardnessOptions}">
+                    <TextBlock Text="Hardness:" />
+                    <Slider Minimum="0" Maximum="100" Value="{Binding Hardness}" Width="100" Margin="0,-8" />
+                    <TextBlock Text="{Binding Hardness, StringFormat={}{0}%}" MinWidth="36" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowShapeOptions}">
                     <TextBlock Text="Shape:" />
                     <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeKinds}" SelectedItem="{Binding ShapeKind}" MinWidth="110">
@@ -140,6 +145,11 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowCornerRadiusOptions}">
+                    <TextBlock Text="Radius:" />
+                    <NumericUpDown Value="{Binding CornerRadius}" Minimum="0" Maximum="1000" Increment="1"
+                                   FormatString="0" Width="110" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowGradientOptions}">
                     <TextBlock Text="Gradient:" />
                     <ComboBox ItemsSource="{x:Static vm:MainViewModel.GradientKinds}" SelectedItem="{Binding GradientKind}" MinWidth="110">
@@ -149,6 +159,29 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
+                    <CheckBox Content="Transparency mode" IsChecked="{Binding GradientTransparency}"
+                              ToolTip.Tip="Fade the layer from opaque to transparent instead of painting colors" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowTextOptions}">
+                    <TextBlock Text="Font:" />
+                    <ComboBox x:Name="FontFamilyCombo" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}"
+                              Width="180" MaxDropDownHeight="400" Focusable="False" />
+                    <NumericUpDown Value="{Binding FontSize}" Minimum="1" Maximum="1000" Increment="1"
+                                   FormatString="0" Width="100" ToolTip.Tip="Font size (pixels)" />
+                    <ToggleButton Content="B" FontWeight="Bold" IsChecked="{Binding Bold}" ToolTip.Tip="Bold" Focusable="False" />
+                    <ToggleButton Content="I" FontStyle="Italic" IsChecked="{Binding Italic}" ToolTip.Tip="Italic" Focusable="False" />
+                    <ToggleButton IsChecked="{Binding Underline}" ToolTip.Tip="Underline" Focusable="False">
+                        <TextBlock Text="U" TextDecorations="Underline" />
+                    </ToggleButton>
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.TextAlignments}" SelectedItem="{Binding TextAlignment}" MinWidth="90"
+                              ToolTip.Tip="Alignment" Focusable="False">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <CheckBox Content="Antialiasing" IsChecked="{Binding Antialiasing}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowToleranceOptions}">
                     <TextBlock Text="Tolerance:" />
@@ -230,7 +263,9 @@
                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
                                       Document="{Binding ActiveDocument.Document, FallbackValue={x:Null}}"
                                       RenderVersion="{Binding RenderVersion}"
-                                      SelectionVersion="{Binding SelectionVersion}" />
+                                      SelectionVersion="{Binding SelectionVersion}"
+                                      Overlay="{Binding Overlay}"
+                                      BrushSize="{Binding BrushOutlineSize}" />
                     </ScrollViewer>
                     <TextBlock x:Name="EmptyHint" IsVisible="{Binding !HasDocument}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"

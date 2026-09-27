@@ -14,16 +14,21 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
     public string ToolTip => IconOpacity < 1 ? $"{Name} ({Shortcut}) — coming soon" : $"{Name} ({Shortcut})";
 
     public bool IsSelectionTool => Tool is ShapeSelectionTool or MagicWandTool;
-    public bool HasTolerance => Tool is MagicWandTool or PaintBucketTool;
+    public bool HasTolerance => Tool is MagicWandTool or PaintBucketTool or RecolorTool;
     public bool HasBrushWidth => Tool is PaintbrushTool and not PencilTool or LineTool or ShapesTool;
+
+    /// <summary>Round brushes: hardness option and a brush-size outline under the pointer.</summary>
+    public bool IsBrush => Tool is PaintbrushTool and not PencilTool;
+
     public bool IsShapes => Tool is ShapesTool;
     public bool IsGradient => Tool is GradientTool;
     public bool IsColorPicker => Tool is ColorPickerTool;
+    public bool IsText => Tool is TextTool;
 
     /// <summary>Tools that paint get a crosshair cursor.</summary>
-    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or PaintBucketTool or ColorPickerTool;
+    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or LineTool or PaintBucketTool or ColorPickerTool;
 
-    public static ToolViewModel[] CreatePaintDotNetTools(ToolSettings settings) =>
+    public static ToolViewModel[] CreatePaintDotNetTools(ToolSettings settings, ITextRasterizer textRasterizer) =>
     [
         new("Move Selected Pixels", "Mv", "M", new MoveSelectedPixelsTool()),
         new("Move Selection", "MS", "M", new MoveSelectionTool()),
@@ -39,9 +44,9 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
         new("Eraser", "Er", "E", new EraserTool(settings)),
         new("Pencil", "Pe", "P", new PencilTool(settings)),
         new("Color Picker", "CP", "K", new ColorPickerTool(settings)),
-        new("Clone Stamp", "CS", "L"),
-        new("Recolor", "Rc", "R"),
-        new("Text", "Tx", "T"),
+        new("Clone Stamp", "CS", "L", new CloneStampTool(settings)),
+        new("Recolor", "Rc", "R", new RecolorTool(settings)),
+        new("Text", "Tx", "T", new TextTool(settings, textRasterizer)),
         new("Line / Curve", "Ln", "O", new LineTool(settings)),
         new("Shapes", "Sh", "O", new ShapesTool(settings)),
     ];

@@ -27,6 +27,18 @@ public class CanvasView : Control
     public static readonly StyledProperty<int> SelectionVersionProperty =
         AvaloniaProperty.Register<CanvasView, int>(nameof(SelectionVersion));
 
+    public static readonly StyledProperty<ToolOverlay?> OverlayProperty =
+        AvaloniaProperty.Register<CanvasView, ToolOverlay?>(nameof(Overlay));
+
+    /// <summary>Diameter in image pixels of the brush outline drawn under the pointer; 0 for none.</summary>
+    public static readonly StyledProperty<double> BrushSizeProperty =
+        AvaloniaProperty.Register<CanvasView, double>(nameof(BrushSize));
+
+    private static readonly IBrush HighlightBrush = new SolidColorBrush(Color.FromArgb(80, 51, 153, 255));
+    private static readonly Pen OverlayLight = new(Brushes.White, 3);
+    private static readonly Pen OverlayDark = new(Brushes.Black, 1);
+    private Point? _pointer;
+
     private static readonly IBrush AntsLight = Brushes.White;
     private static readonly IBrush AntsDark = Brushes.Black;
 
@@ -44,11 +56,13 @@ public class CanvasView : Control
     static CanvasView()
     {
         AffectsMeasure<CanvasView>(DocumentProperty, RenderVersionProperty);
-        AffectsRender<CanvasView>(SelectionVersionProperty);
+        AffectsRender<CanvasView>(SelectionVersionProperty, OverlayProperty, BrushSizeProperty);
     }
 
     public CanvasView()
     {
+        // Takes the keyboard focus when clicked, so typing goes to the Text tool rather than a text box.
+        Focusable = true;
         _antsTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(120), DispatcherPriority.Background, (_, _) =>
         {
             if (Document?.Selection is null)
@@ -56,6 +70,18 @@ public class CanvasView : Control
             _antsOffset = (_antsOffset + 1) % 8;
             InvalidateVisual();
         });
+    }
+
+    public ToolOverlay? Overlay
+    {
+        get => GetValue(OverlayProperty);
+        set => SetValue(OverlayProperty, value);
+    }
+
+    public double BrushSize
+    {
+        get => GetValue(BrushSizeProperty);
+        set => SetValue(BrushSizeProperty, value);
     }
 
     public int SelectionVersion
@@ -138,6 +164,40 @@ public class CanvasView : Control
             context.DrawGeometry(null, new Pen(AntsLight, 1), geometry);
             context.DrawGeometry(null, new Pen(AntsDark, 1, new DashStyle([4, 4], _antsOffset)), geometry);
         }
+
+        if (Overlay is { } overlay)
+            DrawOverlay(context, overlay, doc.Workspace.Scale);
+
+        if (BrushSize > 0 && _pointer is { } p)
+        {
+            var radius = BrushSize * doc.Workspace.Scale / 2;
+            if (radius >= 2)
+            {
+                context.DrawEllipse(null, new Pen(Brushes.White, 1), p, radius + 1, radius + 1);
+                context.DrawEllipse(null, OverlayDark, p, radius, radius);
+            }
+        }
+    }
+
+    private static void DrawOverlay(DrawingContext context, ToolOverlay overlay, double scale)
+    {
+        Point P(Core.Models.PointD p) => new(p.X * scale, p.Y * scale);
+        Rect R(Core.Models.RectangleD r) => new(r.X * scale, r.Y * scale, r.Width * scale, r.Height * scale);
+
+        foreach (var highlight in overlay.Highlights)
+            context.FillRectangle(HighlightBrush, R(highlight));
+        if (overlay.Frame is { } frame)
+        {
+            context.DrawRectangle(new Pen(AntsLight, 1), R(frame));
+            context.DrawRectangle(new Pen(AntsDark, 1, new DashStyle([3, 3], 0)), R(frame));
+        }
+        foreach (var (from, to) in overlay.Lines)
+        {
+            context.DrawLine(OverlayLight, P(from), P(to));
+            context.DrawLine(OverlayDark, P(from), P(to));
+        }
+        foreach (var handle in overlay.Handles)
+            context.DrawEllipse(Brushes.White, OverlayDark, P(handle), 4, 4);
     }
 
     private Geometry OutlineGeometry(SelectionMask selection, double scale)
@@ -170,7 +230,9 @@ public class CanvasView : Control
             mods |= ToolModifiers.Alt;
         if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             mods |= ToolModifiers.Shift;
-        return new ToolPointer(new PointD(pos.X / scale, pos.Y / scale), button, mods);
+        // Mice report a fixed pressure (0.5); only pens have a meaningful one.
+        var pressure = e.Pointer.Type == PointerType.Pen ? e.GetCurrentPoint(this).Properties.Pressure : 1;
+        return new ToolPointer(new PointD(pos.X / scale, pos.Y / scale), button, mods, pressure);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -184,6 +246,7 @@ public class CanvasView : Control
             return;
 
         _pointerPressed = true;
+        Focus();
         _lastPointer = ToToolPointer(e, button);
         e.Pointer.Capture(this);
         e.Handled = true;
@@ -219,6 +282,9 @@ public class CanvasView : Control
         var pos = e.GetPosition(this);
         var scale = doc.Workspace.Scale;
         CanvasPointerMoved?.Invoke(new PointD(pos.X / scale, pos.Y / scale));
+        _pointer = pos;
+        if (BrushSize > 0)
+            InvalidateVisual();
         if (_pointerPressed)
         {
             _lastPointer = ToToolPointer(e, _lastPointer.Button);
@@ -230,6 +296,9 @@ public class CanvasView : Control
     {
         base.OnPointerExited(e);
         CanvasPointerMoved?.Invoke(null);
+        _pointer = null;
+        if (BrushSize > 0)
+            InvalidateVisual();
     }
 
     /// <summary>Re-composites and redraws only <paramref name="region"/> (image coordinates).</summary>

@@ -23,6 +23,10 @@ public sealed class SettingsTests : IDisposable
             first.Vm.BrushWidth = 17;
             first.Vm.GradientKind = GradientKind.Conical;
             first.Vm.PrimaryColor = Colors.Teal;
+            first.Vm.Hardness = 40;
+            first.Vm.FontSize = 36;
+            first.Vm.Italic = true;
+            first.Vm.TextAlignment = CinnabarSharp.Core.Models.TextAlignment.Center;
             first.Window.Width = 1100;
             first.Window.Height = 700;
         }
@@ -34,6 +38,10 @@ public sealed class SettingsTests : IDisposable
         Assert.Equal(17, second.Vm.BrushWidth);
         Assert.Equal(GradientKind.Conical, second.Vm.GradientKind);
         Assert.Equal(Colors.Teal, second.Vm.PrimaryColor);
+        Assert.Equal(40, second.Vm.Hardness);
+        Assert.Equal(36, second.Vm.FontSize);
+        Assert.True(second.Vm.Italic);
+        Assert.Equal(CinnabarSharp.Core.Models.TextAlignment.Center, second.Vm.TextAlignment);
         Assert.Equal(1100, second.Window.Width);
         Assert.Equal(700, second.Window.Height);
     }

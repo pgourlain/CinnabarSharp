@@ -15,7 +15,9 @@ public sealed class PaintSession
     private readonly string _text;
     private readonly byte[] _base;
     private readonly SelectionMask? _selection;
+    private readonly IHistoryItem? _startStep;
     private RectangleI _touched = RectangleI.Zero;
+    private PixelRegionHistoryItem? _step;
 
     public PaintSession(ImageDocument document, string text)
     {
@@ -24,7 +26,25 @@ public sealed class PaintSession
         _text = text;
         _base = _layer.Surface.ToBgra();
         _selection = document.Selection;
+        _startStep = CurrentStep;
     }
+
+    public ImageDocument Document => _document;
+
+    private IHistoryItem? CurrentStep
+    {
+        get
+        {
+            var history = _document.Workspace.History;
+            return history.Pointer >= 0 ? history.Items[history.Pointer] : null;
+        }
+    }
+
+    /// <summary>
+    /// True while nothing else changed the document since this session started (or since its step was recorded):
+    /// its result can still be edited, and <see cref="Commit"/> updates its step instead of adding one.
+    /// </summary>
+    public bool IsLive => CurrentStep == (_step ?? _startStep);
 
     public int Width => _document.ImageSize.Width;
     public int Height => _document.ImageSize.Height;
@@ -112,16 +132,25 @@ public sealed class PaintSession
         _document.Workspace.Invalidate(_touched);
     }
 
-    /// <summary>Records one history step for everything changed; does nothing if nothing changed.</summary>
+    /// <summary>
+    /// Records one history step for everything changed; does nothing if nothing changed. Committing again while
+    /// the session <see cref="IsLive"/> updates that step, so an editable result (curve, text) stays one step.
+    /// </summary>
     public void Commit()
     {
         if (_touched.IsEmpty)
             return;
         var before = PixelRegion.Extract(_base, Width, _touched);
         var after = _layer.Surface.ReadRegion(_touched);
+        if (_step is not null && IsLive)
+        {
+            _step.Update(_touched, before, after);
+            return;
+        }
         if (before.AsSpan().SequenceEqual(after))
             return;
-        _document.Workspace.History.PushNewItem(new PixelRegionHistoryItem(_text, _layer, _touched, before, after));
+        _step = new PixelRegionHistoryItem(_text, _layer, _touched, before, after);
+        _document.Workspace.History.PushNewItem(_step);
     }
 
     public static void BlendCoverage(Span<byte> pixel, ColorBgra color, byte coverage)
@@ -137,6 +166,12 @@ public sealed class PaintSession
 public sealed class PixelRegionHistoryItem(string text, Layer layer, RectangleI rect, byte[] before, byte[] after)
     : HistoryItem(text)
 {
+    public RectangleI Rect => rect;
+
+    /// <summary>Replaces the stored change while the step is still being edited (it must be done, not undone).</summary>
+    internal void Update(RectangleI newRect, byte[] newBefore, byte[] newAfter) =>
+        (rect, before, after) = (newRect, newBefore, newAfter);
+
     protected override void OnUndo() => layer.Surface.WriteRegion(rect, before);
     protected override void OnRedo() => layer.Surface.WriteRegion(rect, after);
 }

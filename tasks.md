@@ -121,7 +121,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [ ] Paste keeps the pixels under the pasted image while it is being moved (Paint.NET's floating paste); today Paste composites onto the layer, so moving it afterwards leaves a transparent hole. Paste Into New Layer doesn't have this issue.
 - [x] Image › Crop to Selection (non-rectangular selections make outside pixels transparent); Edit › Erase Selection (Delete) and Fill Selection with the primary color (Backspace).
 - [x] System clipboard (`IClipboardService` in Core, Avalonia implementation in Desktop): Cut, Copy, Copy Merged, Paste (then switches to Move Selected Pixels), Paste Into New Layer, Paste Into New Image; Paste with no image open creates one. All undoable.
-- [ ] Replace the `object clipboard` parameters in `TextEngine.PerformCopy/Cut/Paste` with `IClipboardService` (with the Text tool, Phase 6).
+- [x] Replace the `object clipboard` parameters in `TextEngine.PerformCopy/Cut/Paste` with `IClipboardService` (done with the Text tool, Phase 6).
 - [ ] Antialiased selection edges (the mask supports 0–255 but shapes produce hard edges).
 
 **Validation**
@@ -137,12 +137,13 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Tools: Paintbrush (width, antialiasing), Eraser, Pencil, Paint Bucket (tolerance, contiguous/global), Color Picker (layer or merged image), Line, Shapes (rectangle/ellipse; outline, fill, or outline + fill with the secondary color), Gradient (linear, radial, diamond, conical). Left button = primary color, right button = secondary.
 - [x] Tool options bar per tool; Paint.NET letter shortcuts (B, E, P, F, G, K, O, S cycles select tools, M, H); crosshair cursor for painting tools.
 - [x] Canvas redraws only the rectangle a stroke touched (a full redraw of a 4000×3000 two-layer image takes ~50 ms; painting itself is <1 ms per move).
-- [ ] Rounded Rectangle; Bézier curves for Line/Curve (Paint.NET's editable handles).
-- [ ] Clone Stamp, Recolor.
-- [ ] Text tool (font, size, bold/italic, alignment; re-editable until committed); wire `TextEngine` clipboard to `IClipboardService`.
-- [ ] Brush-size cursor outline; gradient transparency mode; brush hardness.
-- [ ] Pressure support for pen tablets where Avalonia exposes it (`PointerPoint.Properties.Pressure`).
-- [ ] Letter shortcuts should not fire while typing in the brush-width box.
+- [x] Rounded Rectangle (corner radius option); Line/Curve stays editable after drawing: drag its end points, or its two control points to bend it into a cubic Bézier; Enter, a click away or another tool finishes it. Still one history step.
+- [x] Clone Stamp (⌘/Ctrl-click sets the source, offset kept between strokes), Recolor (replaces colors close to the secondary color with the primary, tolerance option).
+- [x] Text tool: system fonts, size, bold/italic/underline, left/center/right alignment, antialiasing; caret, arrows/Home/End (Shift to select), click to place the caret, Select All/Cut/Copy/Paste through `IClipboardService`. Re-editable (text, font, color) until Escape, a click outside, another tool or any other edit; recorded as one history step. Font rendering is behind `ITextRasterizer` (Core) implemented with Avalonia in Desktop.
+- [x] Brush-size outline under the pointer; gradient transparency mode; brush hardness (Paintbrush, Eraser, Clone Stamp, Recolor).
+- [x] Pen pressure scales the brush width (`PointerPoint.Properties.Pressure`, pens only; mice always paint at full width).
+- [x] Letter shortcuts don't fire while typing in a text box or with the Text tool.
+- [x] Move the text being edited by dragging the handle at its bottom-right corner.
 
 **Validation**
 - [ ] Brush strokes smooth at 60 fps on a 4000×3000 canvas (check by hand on each OS).

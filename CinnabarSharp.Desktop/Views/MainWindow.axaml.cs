@@ -56,6 +56,8 @@ public partial class MainWindow : Window, IViewportService
         CanvasScroller.AddHandler(PointerMovedEvent, OnCanvasPointerMoved, RoutingStrategies.Tunnel);
         CanvasScroller.AddHandler(PointerReleasedEvent, OnCanvasPointerReleased, RoutingStrategies.Tunnel);
         CanvasScroller.AddHandler(PointerCaptureLostEvent, (_, _) => EndPan());
+        AddHandler(KeyDownEvent, OnToolKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(TextInputEvent, OnToolTextInput, RoutingStrategies.Tunnel);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
         LayersList.DoubleTapped += (_, _) => Vm?.LayerPropertiesCommand.Execute(null);
@@ -76,21 +78,26 @@ public partial class MainWindow : Window, IViewportService
         vm.Viewport = this;
         vm.RegionInvalidated += region => Canvas.UpdateRegion(region);
         vm.RecentFiles.Changed += () => RefreshRecentMenu(vm);
-        KeyBindings.Add(new KeyBinding { Gesture = new KeyGesture(Key.X), Command = vm.SwapColorsCommand });
-        KeyBindings.Add(new KeyBinding { Gesture = new KeyGesture(Key.D), Command = vm.ResetColorsCommand });
+        // Single-letter shortcuts are disabled while typing (text boxes, the Text tool), so they don't fire and
+        // don't swallow the key: a handled key produces no text input on some platforms.
+        void AddLetterShortcut(Key key, Action action) => KeyBindings.Add(new KeyBinding
+        {
+            Gesture = new KeyGesture(key),
+            Command = new RelayCommand(action, () => !IsTyping),
+        });
+        AddLetterShortcut(Key.X, () => vm.SwapColorsCommand.Execute(null));
+        AddLetterShortcut(Key.D, () => vm.ResetColorsCommand.Execute(null));
         foreach (var letter in vm.Tools.Select(t => t.Shortcut).Distinct())
         {
             if (Enum.TryParse<Key>(letter, out var key))
-                KeyBindings.Add(new KeyBinding
-                {
-                    Gesture = new KeyGesture(key),
-                    Command = new RelayCommand(() => vm.SelectToolByShortcut(letter)),
-                });
+                AddLetterShortcut(key, () => vm.SelectToolByShortcut(letter));
         }
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainViewModel.SelectedTool))
-                Canvas.Cursor = vm.SelectedTool.IsPaintingTool ? new Cursor(StandardCursorType.Cross) : null;
+                Canvas.Cursor = vm.SelectedTool.IsText ? new Cursor(StandardCursorType.Ibeam)
+                    : vm.SelectedTool.IsPaintingTool ? new Cursor(StandardCursorType.Cross)
+                    : null;
         };
         BuildMenu(vm);
     }
@@ -218,11 +225,56 @@ public partial class MainWindow : Window, IViewportService
         ZoomTo(doc.Workspace.Scale * (1 + e.Delta.X), e.GetPosition(CanvasScroller));
     }
 
+    // ---- Keys for tools (Text tool typing, Enter/Escape to finish a curve) ----
+
+    private bool TextBoxHasFocus => FocusManager?.GetFocusedElement() is TextBox;
+
+    /// <summary>Keys are text: in a text box, or while the Text tool is editing.</summary>
+    public bool IsTyping => TextBoxHasFocus || Vm?.IsTyping == true;
+
+    private void OnToolKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (Vm is not { } vm || TextBoxHasFocus || ToToolKey(e.Key) is not { } key)
+            return;
+        var modifiers = CinnabarSharp.Core.Tools.ToolModifiers.None;
+        if ((e.KeyModifiers & (KeyModifiers.Meta | KeyModifiers.Control)) != 0)
+            modifiers |= CinnabarSharp.Core.Tools.ToolModifiers.Command;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+            modifiers |= CinnabarSharp.Core.Tools.ToolModifiers.Alt;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            modifiers |= CinnabarSharp.Core.Tools.ToolModifiers.Shift;
+        if (vm.ToolKeyDown(key, modifiers))
+            e.Handled = true;
+    }
+
+    private void OnToolTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (Vm is not { IsTyping: true } vm || TextBoxHasFocus || string.IsNullOrEmpty(e.Text))
+            return;
+        vm.ToolTextInput(e.Text);
+        e.Handled = true;
+    }
+
+    private static CinnabarSharp.Core.Tools.ToolKey? ToToolKey(Key key) => key switch
+    {
+        Key.Enter => CinnabarSharp.Core.Tools.ToolKey.Enter,
+        Key.Escape => CinnabarSharp.Core.Tools.ToolKey.Escape,
+        Key.Back => CinnabarSharp.Core.Tools.ToolKey.Backspace,
+        Key.Delete => CinnabarSharp.Core.Tools.ToolKey.Delete,
+        Key.Left => CinnabarSharp.Core.Tools.ToolKey.Left,
+        Key.Right => CinnabarSharp.Core.Tools.ToolKey.Right,
+        Key.Up => CinnabarSharp.Core.Tools.ToolKey.Up,
+        Key.Down => CinnabarSharp.Core.Tools.ToolKey.Down,
+        Key.Home => CinnabarSharp.Core.Tools.ToolKey.Home,
+        Key.End => CinnabarSharp.Core.Tools.ToolKey.End,
+        _ => null,
+    };
+
     // ---- Pan: middle button, Space + drag, or the Pan tool ----
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Space && Vm?.HasDocument == true)
+        if (e.Key == Key.Space && Vm?.HasDocument == true && !IsTyping)
         {
             _spaceHeld = true;
             CanvasScroller.Cursor = new Cursor(StandardCursorType.Hand);

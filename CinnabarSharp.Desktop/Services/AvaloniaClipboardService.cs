@@ -34,6 +34,15 @@ public class AvaloniaClipboardService(TopLevel topLevel) : IClipboardService
         return ToClipboardImage(bitmap);
     }
 
+    public async Task SetTextAsync(string text)
+    {
+        if (topLevel.Clipboard is { } clipboard)
+            await clipboard.SetTextAsync(text);
+    }
+
+    public async Task<string?> GetTextAsync() =>
+        topLevel.Clipboard is { } clipboard ? await clipboard.TryGetTextAsync() : null;
+
     /// <summary>Copies any Avalonia bitmap into straight-alpha BGRA by drawing it into a known format.</summary>
     public static ClipboardImage ToClipboardImage(Bitmap bitmap)
     {

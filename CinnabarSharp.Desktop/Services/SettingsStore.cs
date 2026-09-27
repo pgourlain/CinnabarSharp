@@ -20,6 +20,15 @@ public record AppSettings
     public uint SecondaryColor { get; init; } = ColorBgra.White.Bgra;
     public int BrushWidth { get; init; } = 2;
     public bool Antialiasing { get; init; } = true;
+    public int Hardness { get; init; } = 100;
+    public int CornerRadius { get; init; } = 20;
+    public bool GradientTransparency { get; init; }
+    public string? FontFamily { get; init; }
+    public double FontSize { get; init; } = 24;
+    public bool Bold { get; init; }
+    public bool Italic { get; init; }
+    public bool Underline { get; init; }
+    public TextAlignment TextAlignment { get; init; }
     public int Tolerance { get; init; } = 50;
     public bool GlobalFill { get; init; }
     public bool SampleImage { get; init; }
