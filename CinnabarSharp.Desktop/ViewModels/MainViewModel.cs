@@ -496,6 +496,40 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         set { ToolSettings.SampleImage = value; OnPropertyChanged(); }
     }
 
+    /// <summary>Restores tool options, colors and the selected tool saved by <see cref="CaptureSettings"/>.</summary>
+    public void ApplySettings(AppSettings settings)
+    {
+        ToolSettings.PrimaryColor = ColorBgra.FromUInt32(settings.PrimaryColor);
+        ToolSettings.SecondaryColor = ColorBgra.FromUInt32(settings.SecondaryColor);
+        BrushWidth = settings.BrushWidth;
+        Antialiasing = settings.Antialiasing;
+        Tolerance = settings.Tolerance;
+        GlobalFill = settings.GlobalFill;
+        SampleImage = settings.SampleImage;
+        SelectionMode = settings.SelectionMode;
+        ShapeKind = settings.ShapeKind;
+        ShapeStyle = settings.ShapeStyle;
+        GradientKind = settings.GradientKind;
+        if (Tools.FirstOrDefault(t => t.Name == settings.SelectedTool) is { } tool)
+            SelectedTool = tool;
+    }
+
+    public AppSettings CaptureSettings(AppSettings window) => window with
+    {
+        SelectedTool = SelectedTool.Name,
+        PrimaryColor = ToolSettings.PrimaryColor.Bgra,
+        SecondaryColor = ToolSettings.SecondaryColor.Bgra,
+        BrushWidth = BrushWidth,
+        Antialiasing = Antialiasing,
+        Tolerance = Tolerance,
+        GlobalFill = GlobalFill,
+        SampleImage = SampleImage,
+        SelectionMode = SelectionMode,
+        ShapeKind = ShapeKind,
+        ShapeStyle = ShapeStyle,
+        GradientKind = GradientKind,
+    };
+
     /// <summary>Selects the next tool with this Paint.NET shortcut letter (pressing S again cycles the select tools).</summary>
     public void SelectToolByShortcut(string letter)
     {

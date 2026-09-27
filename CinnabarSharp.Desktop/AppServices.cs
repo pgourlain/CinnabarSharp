@@ -15,6 +15,7 @@ public static class AppServices
         services.AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Information));
         services.AddCinnabarSharpServices();
         services.AddSingleton(_ => new RecentFilesStore(RecentFilesStore.DefaultPath));
+        services.AddSingleton(_ => new SettingsStore(SettingsStore.DefaultPath));
         services.AddSingleton<MainViewModel>();
         configure?.Invoke(services);
         return services.BuildServiceProvider();

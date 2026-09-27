@@ -192,8 +192,9 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] App icon (`packaging/icon.svg` → `Assets/icon.ico`, `icon.png`, `packaging/CinnabarSharp.icns`); executable named `CinnabarSharp`, version 0.1.0.
 - [x] `packaging/package.sh <rid> <version>`: self-contained builds — Windows zip, macOS `.app` (ad-hoc signed, image file types declared) zipped, Linux tarball with `.desktop` file and icon.
 - [x] Release workflow (`.github/workflows/release.yml`): pushing a `v*` tag tests, packages win-x64, linux-x64, osx-arm64, osx-x64 and publishes a GitHub release (or a draft via "Run workflow").
-- [ ] Settings persistence (window size/position, last tool and tool options, palette colors, JPEG quality) in the per-OS app-data folder. Recent files are already persisted.
-- [ ] Open files passed by the OS (macOS "Open With"/double-click uses Apple Events, not command-line arguments).
+- [x] Settings persistence (`SettingsStore`, JSON in the per-OS app-data folder): window size/position/maximized, selected tool, tool options, palette colors. Recent files are persisted separately.
+- [ ] JPEG quality dialog on save (quality is fixed at 85 today).
+- [x] Open files passed by the OS: command-line arguments (Windows/Linux) and macOS file activation events ("Open With", double-click, drop on Dock icon).
 - [ ] Localization (`Translations`), check the dark theme (the app follows the OS theme; canvas/panel colors need a pass).
 - [ ] Crash log + "unsaved work recovery".
 - [ ] Tool and button icons (text labels today).

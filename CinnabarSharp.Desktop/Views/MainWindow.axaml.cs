@@ -95,6 +95,45 @@ public partial class MainWindow : Window, IViewportService
         BuildMenu(vm);
     }
 
+    // ---- Settings ----
+
+    private SettingsStore? _settings;
+
+    /// <summary>Restores window placement and tool options, and saves them again when the window closes.</summary>
+    public void RestoreSettings(SettingsStore store)
+    {
+        _settings = store;
+        var saved = store.Load();
+        if (saved.WindowWidth is { } w && saved.WindowHeight is { } h && w >= MinWidth && h >= MinHeight)
+            (Width, Height) = (w, h);
+        if (saved.WindowX is { } x && saved.WindowY is { } y)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Position = new PixelPoint(x, y);
+        }
+        if (saved.WindowMaximized)
+            WindowState = WindowState.Maximized;
+        Vm?.ApplySettings(saved);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (_settings is not null && Vm is { } vm)
+        {
+            var normal = WindowState == WindowState.Normal;
+            var previous = _settings.Load();
+            _settings.Save(vm.CaptureSettings(previous with
+            {
+                WindowWidth = normal ? Width : previous.WindowWidth,
+                WindowHeight = normal ? Height : previous.WindowHeight,
+                WindowX = normal ? Position.X : previous.WindowX,
+                WindowY = normal ? Position.Y : previous.WindowY,
+                WindowMaximized = WindowState == WindowState.Maximized,
+            }));
+        }
+        base.OnClosed(e);
+    }
+
     // ---- Closing with unsaved changes ----
 
     protected override async void OnClosing(WindowClosingEventArgs e)
