@@ -199,6 +199,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [ ] Crash log + "unsaved work recovery".
 - [x] Tool icons (vector line icons; selection tools dashed; unimplemented tools dimmed). Zoom tool (left click in, right click out, around the click).
 - [ ] Icons for toolbar and layer-panel buttons (text labels today).
+- [ ] Review the About dialog: app icon, version and build date, short description, MIT license text, credits (Pinta, Magick.NET, Avalonia), links to the GitHub repository and issue tracker, "Copy system info" button for bug reports.
 - [ ] Packaging, signed:
   - [ ] Windows: MSIX or Inno Setup installer, file associations, code signing.
   - [ ] macOS: universal (arm64+x64) `.app`, Developer ID signing + notarization, `.dmg`.
@@ -208,3 +209,50 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [ ] Download the release packages on fresh machines of each OS; the app starts, opens and saves images.
 - [ ] Clean install on fresh VM of each OS; double-click a `.png` opens CinnabarSharp.
 - [ ] Uninstall removes app; settings survive upgrade.
+
+## Phase 11 — Photo tools
+
+**Photo enhancement (like the iPhone Photos app)**
+- [ ] Auto-Enhance: one click analyzes the photo (histogram, exposure, white balance, saturation) and applies balanced corrections; undoable as one step.
+- [ ] Adjust panel with the iPhone's sliders, all live-previewed and combinable in one dialog: Exposure, Brilliance, Highlights, Shadows, Contrast, Brightness, Black Point, Saturation, Vibrance, Warmth, Tint, Sharpness, Definition (local contrast), Noise Reduction, Vignette. Reset per slider and for all.
+- [ ] Filter presets (Vivid, Vivid Warm, Vivid Cool, Dramatic, Mono, Silvertone, Noir…) with an intensity slider; thumbnails previewing each preset on the current photo.
+- [ ] Before/after comparison (hold a key or split view).
+- [ ] Straighten / rotate by a small angle with automatic crop.
+- [ ] All implemented in Core as effects/adjustments (pure C#, checksum-tested like the others).
+
+**Crop and resize for 16:9 TVs (e.g. Samsung TV / The Frame art mode)**
+- [ ] Crop tool with a locked aspect ratio (16:9, plus 4:3, 3:2, 1:1, free) and handles; drag to position the frame on the photo; rule-of-thirds overlay.
+- [ ] "Prepare for TV" dialog: target 2K / Full HD (1920×1080), 4K UHD (3840×2160) or 8K UHD (7680×4320); fit mode Crop to fill (with the crop frame above), Fit with borders (color or blurred background) or Stretch; high-quality resampling; warning when upscaling beyond the photo's resolution.
+- [ ] Export as JPEG with quality setting (and sRGB profile), file name suffix (e.g. `_4K`); batch mode to process a folder of photos with the same settings.
+- [ ] Portrait photos: options to fill with a blurred copy of the photo behind it or to place two portraits side by side.
+
+**Validation**
+- [ ] Auto-Enhance results reviewed on a set of real photos (under/over-exposed, indoor, night, portrait).
+- [ ] Exported 4K/8K JPEGs display correctly on a Samsung TV (USB and SmartThings upload).
+
+## Phase 12 — UI and UX review
+
+- [ ] Ask Claude Design for a full UI review and a visual design system: color palette (light and dark), typography, spacing, icon set, component styles (toolbar, panels, dialogs, tabs, status bar), app icon refinements.
+- [ ] Mockups of the main window, dialogs (New, Resize, Canvas Size, Layer Properties, Adjustments/Effects, Prepare for TV) and empty states; iterate before implementing.
+- [ ] Implement the design system as Avalonia styles/resources (one theme file), replacing ad-hoc colors and sizes; icons for every toolbar/panel button.
+- [ ] Dock-able / collapsible panels, compact and full toolbar modes, remember panel layout.
+- [ ] Accessibility: keyboard navigation everywhere, focus visuals, contrast ratios, screen-reader names (AutomationProperties), scalable UI at 150–200 %.
+- [ ] First-run experience: welcome screen with recent files, "Open photo", "New image", shortcuts cheat sheet.
+- [ ] Usability pass with a few real users; list friction points and fix the top ones.
+
+**Validation**
+- [ ] Screenshots of every screen in light and dark themes on the 3 OSes reviewed against the mockups.
+
+## Phase 13 — MCP server (drive CinnabarSharp from Claude and other agents)
+
+- [ ] `CinnabarSharp.Mcp` project exposing a Model Context Protocol server (official C# MCP SDK), built on `CinnabarSharp.Core` only (no UI).
+- [ ] Two modes: **headless** (stdio server: agents open, edit and save files without a window) and **attached** (the desktop app hosts the server so an agent drives the open documents and the user watches the changes live).
+- [ ] Tools: open/new/save/export (formats, JPEG quality), list documents and layers, add/delete/reorder layers and set properties, select (rectangle/ellipse/all/magic wand), run any adjustment or effect by name with parameters, resize/crop/canvas size/rotate, "prepare for TV", undo/redo, get image info (size, histogram), and render a preview (PNG, downscaled) so the agent can see the result.
+- [ ] Resources: document list, effect catalog with parameter schemas (generated from `Effect.Parameters`), history.
+- [ ] Safety: file access limited to allowed folders, destructive operations (overwrite, close without saving) require explicit parameters; everything goes through `DocumentActions` so it is undoable in attached mode.
+- [ ] Packaging and docs: `claude mcp add` instructions for Claude Code / Claude Desktop, examples ("make this photo 4K for my TV", "apply sepia to every photo in this folder").
+- [ ] Tests: MCP integration tests driving the server over stdio.
+
+**Validation**
+- [ ] Claude Code edits a photo end-to-end through the MCP server (open → enhance → crop 16:9 → export 4K) on each OS.
+
