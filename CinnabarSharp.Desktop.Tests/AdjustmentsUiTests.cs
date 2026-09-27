@@ -108,11 +108,11 @@ public sealed class AdjustmentsUiTests : IDisposable
         NewImage();
         var dialog = new EffectWindow
         {
-            DataContext = new EffectDialogViewModel(new EffectSession(Doc, new Levels())),
+            DataContext = new EffectDialogViewModel(new EffectSession(Doc, new BrightnessContrast())),
         };
         dialog.Show();
-        TestHarness.CaptureWindow(dialog, "71-levels-dialog");
-        Assert.True(dialog.Bounds.Height > 300);
+        TestHarness.CaptureWindow(dialog, "71-adjustment-dialog");
+        Assert.True(dialog.Bounds.Height > 150);
         dialog.Close();
     }
 }

@@ -168,7 +168,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] `AdjustmentSession` reuses `PaintSession`: applies inside the selection only, one history step with just the affected rectangle.
 - [x] Dialog generated from the adjustment's parameters (slider + number, Reset); live preview computed on a background thread, stale previews cancelled; Cancel restores the layer and leaves no history.
 - [x] Adjustments menu with Paint.NET shortcuts (⌘/Ctrl+Shift+L, G, U, I, P, E; ⌘/Ctrl+L for Levels). Parameterless adjustments apply immediately.
-- [ ] Curves (needs a curve-editor control); Levels with histogram and per-channel mode.
+- [x] Curves: luminosity or RGB transfer map (edit red/green/blue together or separately), curve editor over the histogram (click to add a point, drag, right-click to remove), monotone cubic spline. Levels dialog with input and output histograms, per-channel mode and Auto. Both preview live and are pinned by a cross-OS checksum test.
 
 **Validation**
 - [ ] Preview stays responsive while dragging a slider on a 4000×3000 image (check by hand on each OS).

@@ -64,6 +64,22 @@ public class FakeDialogService : IDialogService
         return Task.FromResult(EffectAnswer(adjustment));
     }
 
+    public Func<CurvesDialogViewModel, bool> CurvesAnswer { get; set; } = _ => true;
+
+    public Task<bool> ShowCurvesAsync(CurvesDialogViewModel curves)
+    {
+        EffectsShown.Add(curves.Title);
+        return Task.FromResult(CurvesAnswer(curves));
+    }
+
+    public Func<LevelsDialogViewModel, bool> LevelsAnswer { get; set; } = _ => true;
+
+    public Task<bool> ShowLevelsAsync(LevelsDialogViewModel levels)
+    {
+        EffectsShown.Add(levels.Title);
+        return Task.FromResult(LevelsAnswer(levels));
+    }
+
     public Queue<ResizeImageOptions?> ResizeAnswers { get; } = new();
     public Queue<CanvasSizeOptions?> CanvasSizeAnswers { get; } = new();
 

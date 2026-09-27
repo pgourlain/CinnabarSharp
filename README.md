@@ -2,7 +2,7 @@
 
 A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/), written in C# with .NET 10 and [Avalonia](https://avaloniaui.net/). It runs on Windows, macOS and Linux with the same rendering on all three.
 
-> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments and effects work; Curves and photo tools are next. See the [roadmap](tasks.md).
+> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments and effects work; photo tools are next. See the [roadmap](tasks.md).
 
 ![CinnabarSharp main window](docs/screenshot.png)
 
@@ -15,7 +15,7 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Selections**: rectangle, ellipse, lasso and magic wand with Paint.NET's modes (replace, union, exclude, xor, intersect), marching ants, move selection / selected pixels, crop to selection, erase, fill; cut/copy/paste with the system clipboard.
 - **Painting**: paintbrush (hardness, pen pressure), pencil, eraser, clone stamp, recolor, paint bucket, color picker, line/curve with editable Bézier handles, rectangle/rounded rectangle/ellipse shapes and gradients (linear, radial, diamond, conical; color or transparency mode), with primary/secondary colors and a color dialog.
 - **Text**: system fonts, size, bold, italic, underline, alignment; the text stays editable (caret, selection, clipboard, style changes) until you finish it.
-- **Adjustments**: auto-level, black and white, brightness/contrast, hue/saturation, invert, levels, posterize, sepia — with live preview.
+- **Adjustments**: auto-level, black and white, brightness/contrast, curves, hue/saturation, invert, levels (with histograms and per-channel mode), posterize, sepia — with live preview.
 - **Effects**: Gaussian/motion/radial/zoom blur, glow, sharpen, vignette, add noise, median, bulge, frosted glass, pixelate, twist, edge detect, emboss, relief, clouds, Mandelbrot — with live preview and Repeat Last Effect.
 - **Image menu**: resize image (resampling choice), canvas size with anchor, rotate, flip, crop to selection.
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.

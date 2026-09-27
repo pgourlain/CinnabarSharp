@@ -451,7 +451,7 @@ public partial class MainWindow : Window, IViewportService
                 new("_Auto-Level", vm.AutoLevelCommand, G(Key.L, KeyModifiers.Shift)),
                 new("_Black and White", vm.BlackAndWhiteCommand, G(Key.G, KeyModifiers.Shift)),
                 new("Brightness / _Contrast…", vm.BrightnessContrastCommand),
-                new("C_urves…", notYet, G(Key.M, KeyModifiers.Shift)),
+                new("C_urves…", vm.CurvesCommand, G(Key.M, KeyModifiers.Shift)),
                 new("_Hue / Saturation…", vm.HueSaturationCommand, G(Key.U, KeyModifiers.Shift)),
                 new("_Invert Colors", vm.InvertColorsCommand, G(Key.I, KeyModifiers.Shift)),
                 new("_Levels…", vm.LevelsCommand, G(Key.L)),

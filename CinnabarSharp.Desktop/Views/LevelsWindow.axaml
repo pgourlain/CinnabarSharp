@@ -1,0 +1,73 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        xmlns:c="using:CinnabarSharp.Desktop.Controls"
+        xmlns:conv="using:CinnabarSharp.Desktop.Converters"
+        x:Class="CinnabarSharp.Desktop.Views.LevelsWindow"
+        x:DataType="vm:LevelsDialogViewModel"
+        Title="{Binding Title}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <Window.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,4,0,2" />
+        </Style>
+        <Style Selector="NumericUpDown">
+            <Setter Property="Width" Value="120" />
+        </Style>
+    </Window.Styles>
+    <StackPanel Margin="20" Spacing="8" Width="440">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Channel:" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{x:Static vm:LevelsDialogViewModel.Targets}" SelectedItem="{Binding Target}" MinWidth="110">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </StackPanel>
+
+        <TextBlock Classes="label" Text="Input" />
+        <c:HistogramView Height="90" Histogram="{Binding InputHistogram}" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Black" FontSize="11" />
+                <NumericUpDown Value="{Binding InputBlack}" Minimum="0" Maximum="254" Increment="1" FormatString="0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Gamma" FontSize="11" />
+                <NumericUpDown Value="{Binding Gamma}" Minimum="0.1" Maximum="10" Increment="0.05" FormatString="0.00" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="White" FontSize="11" />
+                <NumericUpDown Value="{Binding InputWhite}" Minimum="1" Maximum="255" Increment="1" FormatString="0" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Classes="label" Text="Output" />
+        <c:HistogramView Height="90" Histogram="{Binding OutputHistogram}" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Black" FontSize="11" />
+                <NumericUpDown Value="{Binding OutputBlack}" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="White" FontSize="11" />
+                <NumericUpDown Value="{Binding OutputWhite}" Minimum="0" Maximum="255" Increment="1" FormatString="0" />
+            </StackPanel>
+        </Grid>
+
+        <DockPanel Margin="0,8,0,0">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
+                <Button Content="Auto" Command="{Binding AutoCommand}" ToolTip.Tip="Stretch the input range (Auto-Level)" />
+                <Button Content="Reset" Command="{Binding ResetCommand}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
+</Window>

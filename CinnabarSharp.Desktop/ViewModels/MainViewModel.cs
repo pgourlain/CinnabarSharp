@@ -696,7 +696,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RefreshThumbnails();
     }
 
-    partial void OnSelectedToolChanged(ToolViewModel? oldValue, ToolViewModel newValue) =>
+    // The generator declares oldValue non-nullable, but it is null on the first assignment.
+    partial void OnSelectedToolChanged(ToolViewModel oldValue, ToolViewModel newValue) =>
         FinishEditing(oldValue?.Tool, ActiveDocument?.Document);
 
     partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue) =>
@@ -884,6 +885,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private Task Levels() => RunAdjustment(new Levels());
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task Curves() => RunAdjustment(new Core.Adjustments.Curves());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
     private Task Posterize() => RunAdjustment(new Posterize());
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
@@ -906,7 +910,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (ActiveDocument is not { } d)
             return;
         var session = new EffectSession(d.Document, effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor);
-        if (effect.Parameters.Count == 0)
+        if (effect.Parameters.Count == 0 && !effect.HasCustomDialog)
         {
             await ApplyAsync(session, effect.Defaults);
             return;
@@ -914,9 +918,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (Dialogs is null)
             return;
 
-        var dialog = new EffectDialogViewModel(session);
+        PreviewDialogViewModel dialog = effect switch
+        {
+            Core.Adjustments.Curves => new CurvesDialogViewModel(session),
+            Core.Adjustments.Levels => new LevelsDialogViewModel(session),
+            _ => new EffectDialogViewModel(session),
+        };
         dialog.RequestPreview();
-        if (await Dialogs.ShowEffectAsync(dialog))
+        var ok = dialog switch
+        {
+            CurvesDialogViewModel curves => await Dialogs.ShowCurvesAsync(curves),
+            LevelsDialogViewModel levels => await Dialogs.ShowLevelsAsync(levels),
+            _ => await Dialogs.ShowEffectAsync((EffectDialogViewModel)dialog),
+        };
+        if (ok)
             await dialog.CommitAsync();
         else
             dialog.Cancel();
@@ -1015,7 +1030,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      SelectAllCommand, InvertSelectionCommand, EraseSelectionCommand, FillSelectionCommand,
                      CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand,
                      AutoLevelCommand, BlackAndWhiteCommand, BrightnessContrastCommand, HueSaturationCommand,
-                     InvertColorsCommand, LevelsCommand, PosterizeCommand, SepiaCommand,
+                     InvertColorsCommand, LevelsCommand, CurvesCommand, PosterizeCommand, SepiaCommand,
                      RepeatEffectCommand, ApplyEffectCommand,
                      ResizeImageCommand, CanvasSizeCommand, FlipImageHorizontalCommand, FlipImageVerticalCommand,
                      RotateClockwiseCommand, RotateCounterClockwiseCommand, Rotate180Command,

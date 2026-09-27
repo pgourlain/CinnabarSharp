@@ -13,6 +13,7 @@ public sealed class EffectSession
     private readonly PaintSession _session;
     private readonly EffectContext _context;
     private readonly RectangleI _area;
+    private readonly SelectionMask? _selection;
 
     public EffectSession(ImageDocument document, Effect effect, ColorBgra primary, ColorBgra secondary)
     {
@@ -20,7 +21,11 @@ public sealed class EffectSession
         _session = new PaintSession(document, effect.Name);
         _context = new EffectContext(_session.BasePixels, document.ImageSize.Width, document.ImageSize.Height, primary, secondary);
         _area = document.Selection?.Bounds ?? new RectangleI(0, 0, document.ImageSize.Width, document.ImageSize.Height);
+        _selection = document.Selection;
     }
+
+    /// <summary>Histogram of the pixels the effect applies to (the selection, or the whole layer), before the effect.</summary>
+    public Adjustments.Histogram Histogram() => Adjustments.Histogram.Compute(_session.BasePixels, _selection);
 
     public EffectSession(ImageDocument document, Effect effect)
         : this(document, effect, ColorBgra.Black, ColorBgra.White)

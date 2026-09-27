@@ -37,6 +37,10 @@ public interface IDialogService
     /// <summary>The dialog previews live; returns true for OK.</summary>
     Task<bool> ShowEffectAsync(EffectDialogViewModel adjustment);
 
+    Task<bool> ShowCurvesAsync(CurvesDialogViewModel curves);
+
+    Task<bool> ShowLevelsAsync(LevelsDialogViewModel levels);
+
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 

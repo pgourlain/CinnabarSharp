@@ -7,7 +7,6 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CinnabarSharp.Core.Effects;
-using CinnabarSharp.Core.Effects;
 
 namespace CinnabarSharp.Desktop.ViewModels;
 
@@ -28,44 +27,33 @@ public partial class EffectParameterViewModel(EffectParameter parameter, Action 
 }
 
 /// <summary>
-/// Adjustment dialog state. Every parameter change recomputes the preview on a background thread
-/// (an older, still-running preview is cancelled) and shows it on the canvas when done.
+/// State of a dialog that previews an effect or adjustment. Every change recomputes the preview on a background
+/// thread (an older, still-running preview is cancelled) and shows it on the canvas when done.
 /// </summary>
-public partial class EffectDialogViewModel : ViewModelBase
+public abstract class PreviewDialogViewModel(EffectSession session) : ViewModelBase
 {
-    private readonly EffectSession _session;
     private CancellationTokenSource? _pending;
 
-    public EffectDialogViewModel(EffectSession session)
-    {
-        _session = session;
-        Parameters = session.Effect.Parameters.Select(p => new EffectParameterViewModel(p, RequestPreview)).ToList();
-    }
+    protected EffectSession Session => session;
 
-    public string Title => _session.Effect.Name;
-    public IReadOnlyList<EffectParameterViewModel> Parameters { get; }
-    public IReadOnlyList<double> Values => Parameters.Select(p => p.Value).ToList();
+    public string Title => session.Effect.Name;
+
+    /// <summary>The effect's parameter values for the current state of the dialog.</summary>
+    public abstract IReadOnlyList<double> Values { get; }
 
     /// <summary>The latest preview computation; tests await it.</summary>
     public Task PreviewTask { get; private set; } = Task.CompletedTask;
-
-    [RelayCommand]
-    private void Reset()
-    {
-        foreach (var p in Parameters)
-            p.Reset();
-    }
 
     public void RequestPreview()
     {
         _pending?.Cancel();
         var cancellation = _pending = new CancellationTokenSource();
         var values = Values;
-        PreviewTask = Task.Run(() => _session.Compute(values, cancellation.Token), cancellation.Token)
+        PreviewTask = Task.Run(() => session.Compute(values, cancellation.Token), cancellation.Token)
             .ContinueWith(t =>
             {
                 if (t.IsCompletedSuccessfully && !cancellation.IsCancellationRequested)
-                    _session.Show(t.Result);
+                    session.Show(t.Result);
             }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
@@ -76,15 +64,34 @@ public partial class EffectDialogViewModel : ViewModelBase
     {
         _pending?.Cancel();
         var values = Values;
-        var pixels = await Task.Run(() => _session.Compute(values));
-        _session.Show(pixels);
-        _session.Commit();
+        var pixels = await Task.Run(() => session.Compute(values));
+        session.Show(pixels);
+        session.Commit();
         Committed = true;
     }
 
     public void Cancel()
     {
         _pending?.Cancel();
-        _session.Cancel();
+        session.Cancel();
+    }
+}
+
+/// <summary>Dialog generated from the effect's numeric parameters.</summary>
+public partial class EffectDialogViewModel : PreviewDialogViewModel
+{
+    public EffectDialogViewModel(EffectSession session) : base(session)
+    {
+        Parameters = session.Effect.Parameters.Select(p => new EffectParameterViewModel(p, RequestPreview)).ToList();
+    }
+
+    public IReadOnlyList<EffectParameterViewModel> Parameters { get; }
+    public override IReadOnlyList<double> Values => Parameters.Select(p => p.Value).ToList();
+
+    [RelayCommand]
+    private void Reset()
+    {
+        foreach (var p in Parameters)
+            p.Reset();
     }
 }

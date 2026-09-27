@@ -32,7 +32,13 @@ public abstract class Effect
     /// <summary>Empty for operations applied immediately, without a dialog.</summary>
     public virtual IReadOnlyList<EffectParameter> Parameters => [];
 
-    public IReadOnlyList<double> Defaults => Parameters.Select(p => p.Default).ToList();
+    public virtual IReadOnlyList<double> Defaults => Parameters.Select(p => p.Default).ToList();
+
+    /// <summary>
+    /// The UI shows a dedicated dialog (curve editor, histograms) instead of one generated from <see cref="Parameters"/>;
+    /// the values are still a list of numbers, encoded by the effect.
+    /// </summary>
+    public virtual bool HasCustomDialog => false;
 
     public abstract void Render(EffectContext context, RectangleI region, byte[] destination,
         IReadOnlyList<double> values, CancellationToken cancellation);
