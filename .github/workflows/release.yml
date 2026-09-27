@@ -1,0 +1,76 @@
+name: Release
+
+# Push a tag like v0.1.0 to build unsigned packages for every OS and attach them to a GitHub release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build (e.g. 0.1.0); creates a draft release
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64, os: windows-latest }
+          - { rid: linux-x64, os: ubuntu-latest }
+          - { rid: osx-arm64, os: macos-latest }
+          - { rid: osx-x64, os: macos-latest }
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      DOTNET_NOLOGO: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Version
+        id: version
+        shell: bash
+        run: echo "value=${{ inputs.version || github.ref_name }}" | sed 's/=v/=/' >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: dotnet test CinnabarSharp.slnx --configuration Release
+
+      - name: Package
+        shell: bash
+        run: packaging/package.sh ${{ matrix.rid }} ${{ steps.version.outputs.value }} artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.rid }}
+          path: |
+            artifacts/*.zip
+            artifacts/*.tar.gz
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}"
+          draft="${{ inputs.version && '--draft' || '' }}"
+          gh release create "$tag" dist/* --repo "${{ github.repository }}" --title "CinnabarSharp ${tag#v}" \
+            --target "${{ github.sha }}" $draft --notes "Unsigned builds for Windows, macOS (Apple Silicon and Intel) and Linux.
+
+          - **Windows**: unzip and run \`CinnabarSharp.exe\` (SmartScreen may warn: More info → Run anyway).
+          - **macOS**: unzip and open \`CinnabarSharp.app\`. The app is not notarized: the first time, right-click → Open, or run \`xattr -dr com.apple.quarantine CinnabarSharp.app\`.
+          - **Linux**: extract and run \`./CinnabarSharp\`; \`cinnabarsharp.desktop\` and \`cinnabarsharp.png\` can be installed for a menu entry."

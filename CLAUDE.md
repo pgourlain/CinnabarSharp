@@ -45,7 +45,12 @@ dotnet test CinnabarSharp.Desktop.Tests --filter "FullyQualifiedName~MainWindowT
 
 # Run the app
 dotnet run --project CinnabarSharp.Desktop
+
+# Self-contained package (win-x64 | linux-x64 | osx-arm64 | osx-x64) into artifacts/
+packaging/package.sh osx-arm64 0.1.0
 ```
+
+The desktop assembly/executable is named `CinnabarSharp` (not `CinnabarSharp.Desktop`). Releases: push a `v*` tag; `.github/workflows/release.yml` packages every OS and creates the GitHub release. Icons are generated from `packaging/icon.svg` (see Phase 10 in tasks.md).
 
 To check UI changes visually without a display, run `CinnabarSharp.Desktop.Tests` and look at the screenshots it writes.
 

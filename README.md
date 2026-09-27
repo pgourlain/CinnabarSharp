@@ -20,6 +20,14 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
 - **Native feel on each OS**: macOS menu bar and ⌘ shortcuts, in-window menu and Ctrl shortcuts on Windows and Linux, native file dialogs, drag and drop, recent files.
 
+## Download
+
+Pre-built packages for Windows, macOS (Apple Silicon and Intel) and Linux are attached to each [release](https://github.com/pgourlain/CinnabarSharp/releases). They are self-contained (no .NET install needed) but not yet signed:
+
+- **Windows**: unzip and run `CinnabarSharp.exe` (SmartScreen may warn: *More info → Run anyway*).
+- **macOS**: unzip and open `CinnabarSharp.app`; the first time, right-click → *Open* (or `xattr -dr com.apple.quarantine CinnabarSharp.app`).
+- **Linux**: extract and run `./CinnabarSharp`.
+
 ## Build and run
 
 Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
@@ -28,7 +36,10 @@ Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 dotnet run --project CinnabarSharp.Desktop            # start the app
 dotnet run --project CinnabarSharp.Desktop -- a.png   # open files at startup
 dotnet test CinnabarSharp.slnx                        # run all tests
+packaging/package.sh osx-arm64 0.1.0                  # build a package (win-x64, linux-x64, osx-arm64, osx-x64)
 ```
+
+Pushing a tag such as `v0.1.0` builds the packages for every OS and publishes a GitHub release.
 
 ## Project layout
 

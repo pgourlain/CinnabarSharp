@@ -57,3 +57,6 @@ x86/
 
 # macOS
 .DS_Store
+
+# Packaging output
+artifacts/
