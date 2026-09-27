@@ -233,11 +233,11 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 ## Phase 12 — UI and UX review
 
-- [ ] Ask Claude Design for a full UI review and a visual design system: color palette (light and dark), typography, spacing, icon set, component styles (toolbar, panels, dialogs, tabs, status bar), app icon refinements.
-- [ ] Mockups of the main window, dialogs (New, Resize, Canvas Size, Layer Properties, Adjustments/Effects, Prepare for TV) and empty states; iterate before implementing.
+- [x] UI review and design system proposal ("Cinnabar": warm graphite neutrals, one cinnabar accent, IBM Plex Sans/Mono, 4-pt spacing, light and dark tokens, components, icon set, app icon refinement) — design canvas: https://claude.ai/artifact/8WQk6mytP9LxjX9iuZk7aR
+- [ ] Mockups: main window light and dark, welcome screen, Adjust Photo and Prepare for TV are on the canvas; still to draw: New, Resize, Canvas Size, Layer Properties. **Waiting for review/iteration before implementing.**
 - [ ] Implement the design system as Avalonia styles/resources (one theme file), replacing ad-hoc colors and sizes; icons for every toolbar/panel button.
 - [ ] Dock-able / collapsible panels, compact and full toolbar modes, remember panel layout.
-- [ ] Accessibility: keyboard navigation everywhere, focus visuals, contrast ratios, screen-reader names (AutomationProperties), scalable UI at 150–200 %.
+- [ ] Accessibility: keyboard navigation everywhere, focus visuals, contrast ratios, scalable UI at 150–200 % (with the theme). Screen-reader names done: every button, field and list in the main window has one (`AccessibilityTests` checks all tools' option bars).
 - [ ] First-run experience: welcome screen with recent files, "Open photo", "New image", shortcuts cheat sheet.
 - [ ] Usability pass with a few real users; list friction points and fix the top ones.
 

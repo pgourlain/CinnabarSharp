@@ -93,9 +93,9 @@
                 <Button Content="Undo" Command="{Binding UndoCommand}" ToolTip.Tip="Undo" />
                 <Button Content="Redo" Command="{Binding RedoCommand}" ToolTip.Tip="Redo" />
                 <Border Classes="toolbarSeparator" />
-                <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out" />
+                <Button Content="−" Command="{Binding ZoomOutCommand}" AutomationProperties.Name="Zoom out" ToolTip.Tip="Zoom out" />
                 <TextBlock Text="{Binding ZoomText}" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center" />
-                <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in" />
+                <Button Content="+" Command="{Binding ZoomInCommand}" AutomationProperties.Name="Zoom in" ToolTip.Tip="Zoom in" />
                 <Button Content="Fit" Command="{Binding BestFitCommand}" ToolTip.Tip="Best fit" />
                 <Button Content="1:1" Command="{Binding ActualSizeCommand}" ToolTip.Tip="Actual size" />
             </StackPanel>
@@ -106,7 +106,7 @@
             <StackPanel Classes="toolOptions" Orientation="Horizontal" Spacing="16">
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowSelectionOptions}">
                     <TextBlock Text="Selection mode:" />
-                    <ComboBox x:Name="SelectionModeCombo" ItemsSource="{x:Static vm:MainViewModel.SelectionModes}"
+                    <ComboBox x:Name="SelectionModeCombo" AutomationProperties.Name="Selection mode" ItemsSource="{x:Static vm:MainViewModel.SelectionModes}"
                               SelectedItem="{Binding SelectionMode}" MinWidth="120"
                               ToolTip.Tip="⌘/Ctrl: union · Alt: exclude · ⌘/Ctrl+Alt: intersect · right-click: exclude">
                         <ComboBox.ItemTemplate>
@@ -118,25 +118,25 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowBrushOptions}">
                     <TextBlock Text="Brush width:" />
-                    <NumericUpDown Value="{Binding BrushWidth}" Minimum="1" Maximum="500" Increment="1"
+                    <NumericUpDown Value="{Binding BrushWidth}" AutomationProperties.Name="Brush width" Minimum="1" Maximum="500" Increment="1"
                                    FormatString="0" Width="110" />
                     <CheckBox Content="Antialiasing" IsChecked="{Binding Antialiasing}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowHardnessOptions}">
                     <TextBlock Text="Hardness:" />
-                    <Slider Minimum="0" Maximum="100" Value="{Binding Hardness}" Width="100" Margin="0,-8" />
+                    <Slider Minimum="0" Maximum="100" Value="{Binding Hardness}" AutomationProperties.Name="Hardness" Width="100" Margin="0,-8" />
                     <TextBlock Text="{Binding Hardness, StringFormat={}{0}%}" MinWidth="36" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowShapeOptions}">
                     <TextBlock Text="Shape:" />
-                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeKinds}" SelectedItem="{Binding ShapeKind}" MinWidth="110">
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeKinds}" AutomationProperties.Name="Shape" SelectedItem="{Binding ShapeKind}" MinWidth="110">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeStyles}" SelectedItem="{Binding ShapeStyle}" MinWidth="140"
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeStyles}" AutomationProperties.Name="Shape style" SelectedItem="{Binding ShapeStyle}" MinWidth="140"
                               ToolTip.Tip="Outline and fill: outline in the primary color, filled with the secondary color">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
@@ -147,12 +147,12 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowCornerRadiusOptions}">
                     <TextBlock Text="Radius:" />
-                    <NumericUpDown Value="{Binding CornerRadius}" Minimum="0" Maximum="1000" Increment="1"
+                    <NumericUpDown Value="{Binding CornerRadius}" AutomationProperties.Name="Corner radius" Minimum="0" Maximum="1000" Increment="1"
                                    FormatString="0" Width="110" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowGradientOptions}">
                     <TextBlock Text="Gradient:" />
-                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.GradientKinds}" SelectedItem="{Binding GradientKind}" MinWidth="110">
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.GradientKinds}" AutomationProperties.Name="Gradient" SelectedItem="{Binding GradientKind}" MinWidth="110">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
@@ -164,7 +164,7 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowCropOptions}">
                     <TextBlock Text="Aspect ratio:" />
-                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.CropAspects}" SelectedItem="{Binding SelectedCropAspect}"
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.CropAspects}" AutomationProperties.Name="Aspect ratio" SelectedItem="{Binding SelectedCropAspect}"
                               MinWidth="110" Focusable="False">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:MainViewModel+CropAspectOption">
@@ -177,16 +177,16 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowTextOptions}">
                     <TextBlock Text="Font:" />
-                    <ComboBox x:Name="FontFamilyCombo" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}"
+                    <ComboBox x:Name="FontFamilyCombo" AutomationProperties.Name="Font" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}"
                               Width="180" MaxDropDownHeight="400" Focusable="False" />
-                    <NumericUpDown Value="{Binding FontSize}" Minimum="1" Maximum="1000" Increment="1"
+                    <NumericUpDown Value="{Binding FontSize}" AutomationProperties.Name="Font size" Minimum="1" Maximum="1000" Increment="1"
                                    FormatString="0" Width="100" ToolTip.Tip="Font size (pixels)" />
-                    <ToggleButton Content="B" FontWeight="Bold" IsChecked="{Binding Bold}" ToolTip.Tip="Bold" Focusable="False" />
-                    <ToggleButton Content="I" FontStyle="Italic" IsChecked="{Binding Italic}" ToolTip.Tip="Italic" Focusable="False" />
-                    <ToggleButton IsChecked="{Binding Underline}" ToolTip.Tip="Underline" Focusable="False">
+                    <ToggleButton Content="B" FontWeight="Bold" AutomationProperties.Name="Bold" IsChecked="{Binding Bold}" ToolTip.Tip="Bold" Focusable="False" />
+                    <ToggleButton Content="I" FontStyle="Italic" AutomationProperties.Name="Italic" IsChecked="{Binding Italic}" ToolTip.Tip="Italic" Focusable="False" />
+                    <ToggleButton IsChecked="{Binding Underline}" ToolTip.Tip="Underline" Focusable="False" AutomationProperties.Name="Underline">
                         <TextBlock Text="U" TextDecorations="Underline" />
                     </ToggleButton>
-                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.TextAlignments}" SelectedItem="{Binding TextAlignment}" MinWidth="90"
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.TextAlignments}" AutomationProperties.Name="Alignment" SelectedItem="{Binding TextAlignment}" MinWidth="90"
                               ToolTip.Tip="Alignment" Focusable="False">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
@@ -198,7 +198,7 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowToleranceOptions}">
                     <TextBlock Text="Tolerance:" />
-                    <Slider Minimum="0" Maximum="100" Value="{Binding Tolerance}" Width="140" Margin="0,-8" />
+                    <Slider Minimum="0" Maximum="100" Value="{Binding Tolerance}" AutomationProperties.Name="Tolerance" Width="140" Margin="0,-8" />
                     <TextBlock Text="{Binding Tolerance, StringFormat={}{0}%}" MinWidth="36" />
                     <CheckBox Content="Global" IsChecked="{Binding GlobalFill}"
                               ToolTip.Tip="Match colors anywhere, not only connected ones (or hold Shift)" />
@@ -227,6 +227,7 @@
             <Border Grid.Column="0" BorderThickness="0,0,1,0" Padding="4"
                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
                 <ListBox Classes="tools" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}"
+                         AutomationProperties.Name="Tools"
                          Width="70" Background="Transparent">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -235,7 +236,8 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:ToolViewModel">
-                            <Viewbox Width="20" Height="20" ToolTip.Tip="{Binding ToolTip}" Opacity="{Binding IconOpacity}">
+                            <Viewbox Width="20" Height="20" ToolTip.Tip="{Binding ToolTip}" Opacity="{Binding IconOpacity}"
+                                     AutomationProperties.Name="{Binding ToolTip}">
                                 <Canvas Width="24" Height="24">
                                     <Path Data="{Binding Icon}" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}"
                                           StrokeThickness="1.6" StrokeLineCap="Round" StrokeJoin="Round"
@@ -249,7 +251,7 @@
 
             <!-- Image tabs + canvas -->
             <DockPanel Grid.Column="1">
-                <ListBox DockPanel.Dock="Top" Classes="tabs" ItemsSource="{Binding Documents}"
+                <ListBox DockPanel.Dock="Top" Classes="tabs" ItemsSource="{Binding Documents}" AutomationProperties.Name="Open images"
                          SelectedItem="{Binding ActiveDocument}" Background="Transparent"
                          IsVisible="{Binding HasDocument}">
                     <ListBox.ItemsPanel>
@@ -262,6 +264,7 @@
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
                                 <Button Classes="closeTab" Content="×" ToolTip.Tip="Close"
+                                        AutomationProperties.Name="{Binding Title, StringFormat=Close {0}}"
                                         Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseTabCommand}"
                                         CommandParameter="{Binding}" />
                             </StackPanel>
@@ -272,7 +275,7 @@
                 <Panel Background="#FF808080">
                     <ScrollViewer x:Name="CanvasScroller"
                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                        <c:CanvasView x:Name="Canvas"
+                        <c:CanvasView x:Name="Canvas" AutomationProperties.Name="Image canvas"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
                                       Document="{Binding ActiveDocument.Document, FallbackValue={x:Null}}"
                                       RenderVersion="{Binding RenderVersion}"
@@ -297,9 +300,11 @@
                             <Panel Width="56" Height="56">
                                 <Button Classes="swatch" Width="36" Height="36" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                         Background="{Binding SecondaryBrush}" Command="{Binding PickSecondaryColorCommand}"
+                                        AutomationProperties.Name="Secondary color"
                                         ToolTip.Tip="Secondary color (right button) — click to change" />
                                 <Button Classes="swatch" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Background="{Binding PrimaryBrush}" Command="{Binding PickPrimaryColorCommand}"
+                                        AutomationProperties.Name="Primary color"
                                         ToolTip.Tip="Primary color (left button) — click to change" />
                             </Panel>
                             <StackPanel VerticalAlignment="Center" Spacing="4">
@@ -315,7 +320,7 @@
                 <Border DockPanel.Dock="Bottom" Classes="panel" BorderThickness="0,1,0,0" Height="160">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="History" />
-                        <ListBox x:Name="HistoryList" Classes="history" ItemsSource="{Binding History}"
+                        <ListBox x:Name="HistoryList" Classes="history" AutomationProperties.Name="History" ItemsSource="{Binding History}"
                                  SelectedItem="{Binding SelectedHistoryItem}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:HistoryItemViewModel">
@@ -339,11 +344,12 @@
                             <Button Content="Merge" Command="{Binding MergeLayerDownCommand}" ToolTip.Tip="Merge layer down" />
                             <Button Content="Properties" Command="{Binding LayerPropertiesCommand}" ToolTip.Tip="Layer properties (F4)" />
                         </WrapPanel>
-                        <ListBox x:Name="LayersList" ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer}">
+                        <ListBox x:Name="LayersList" AutomationProperties.Name="Layers" ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:LayerViewModel">
                                     <DockPanel>
                                         <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsVisible}"
+                                                  AutomationProperties.Name="{Binding Name, StringFormat=Show {0}}"
                                                   ToolTip.Tip="Visible" MinWidth="0" />
                                         <Border DockPanel.Dock="Left" Width="44" Height="44" Margin="0,0,8,0"
                                                 Background="#FFCCCCCC" BorderBrush="Gray" BorderThickness="1">
