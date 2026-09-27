@@ -267,6 +267,7 @@ namespace CinnabarSharp.Core.Models
 
         /// <summary>
         /// Flattens all user layers into the bottom layer, applying opacity and blend modes.
+        /// Replaced and removed surfaces are not disposed: the undo history owns them.
         /// </summary>
         public void FlattenLayers()
         {
@@ -274,9 +275,7 @@ namespace CinnabarSharp.Core.Models
                 throw new InvalidOperationException("Cannot flatten image because there is only one layer.");
 
             var bottom_layer = user_layers[0];
-            var flattened = GetFlattenedImage();
-            bottom_layer.Surface.Dispose();
-            bottom_layer.Surface = flattened;
+            bottom_layer.Surface = GetFlattenedImage();
             bottom_layer.Hidden = false;
             bottom_layer.Opacity = 1;
             bottom_layer.BlendMode = BlendMode.Normal;
@@ -401,6 +400,7 @@ namespace CinnabarSharp.Core.Models
 
         /// <summary>
         /// Merges the current layer into the one below it, using its opacity and blend mode.
+        /// The replaced surface is not disposed: the undo history owns it.
         /// </summary>
         public void MergeCurrentLayerDown()
         {
@@ -414,9 +414,7 @@ namespace CinnabarSharp.Core.Models
             {
                 var pixels = dest.Surface.ToBgra();
                 BlendOps.Composite(pixels, source.Surface.ToBgra(), source.BlendMode, source.Opacity);
-                var merged = Utility.FromBgra(pixels, (int)dest.Surface.Width, (int)dest.Surface.Height);
-                dest.Surface.Dispose();
-                dest.Surface = merged;
+                dest.Surface = Utility.FromBgra(pixels, (int)dest.Surface.Width, (int)dest.Surface.Height);
             }
 
             DeleteCurrentLayer();

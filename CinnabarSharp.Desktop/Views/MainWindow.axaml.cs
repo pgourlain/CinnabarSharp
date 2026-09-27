@@ -38,6 +38,9 @@ public partial class MainWindow : Window, IViewportService
     {
         InitializeComponent();
         Canvas.CanvasPointerMoved += p => Vm?.UpdateCursorPosition(p);
+        Canvas.ToolPointerPressed += p => Vm?.ToolPointerDown(p);
+        Canvas.ToolPointerMoved += p => Vm?.ToolPointerMove(p);
+        Canvas.ToolPointerReleased += p => Vm?.ToolPointerUp(p);
         CanvasScroller.SizeChanged += (_, e) =>
         {
             if (Vm is { } vm)
@@ -68,6 +71,7 @@ public partial class MainWindow : Window, IViewportService
         if (Vm is not { } vm)
             return;
         vm.Dialogs = new DialogService(this);
+        vm.Clipboard = new AvaloniaClipboardService(this);
         vm.Viewport = this;
         vm.RecentFiles.Changed += () => RefreshRecentMenu(vm);
         KeyBindings.Add(new KeyBinding { Gesture = new KeyGesture(Key.X), Command = vm.SwapColorsCommand });
@@ -117,6 +121,16 @@ public partial class MainWindow : Window, IViewportService
             Math.Clamp(desired.X, 0, Math.Max(0, extent.Width - viewport.Width)),
             Math.Clamp(desired.Y, 0, Math.Max(0, extent.Height - viewport.Height)));
         CanvasScroller.UpdateLayout();
+    }
+
+    public CinnabarSharp.Core.Models.PointI VisibleImageOrigin()
+    {
+        if (Vm?.ActiveDocument?.Document is not { } doc)
+            return default;
+        var topLeft = CanvasScroller.TranslatePoint(default, Canvas) ?? default;
+        var scale = doc.Workspace.Scale;
+        return new CinnabarSharp.Core.Models.PointI(
+            Math.Max(0, (int)Math.Ceiling(topLeft.X / scale)), Math.Max(0, (int)Math.Ceiling(topLeft.Y / scale)));
     }
 
     private void OnCanvasWheel(object? sender, PointerWheelEventArgs e)
@@ -257,15 +271,21 @@ public partial class MainWindow : Window, IViewportService
             new("_File", Children: fileItems),
             new("_Edit", Children:
             [
-                new("_Undo", notYet, G(Key.Z)),
-                new("_Redo", notYet, isMac ? G(Key.Z, KeyModifiers.Shift) : G(Key.Y)),
+                new("_Undo", vm.UndoCommand, G(Key.Z)),
+                new("_Redo", vm.RedoCommand, isMac ? G(Key.Z, KeyModifiers.Shift) : G(Key.Y)),
                 MenuSpec.Separator,
-                new("Cu_t", notYet, G(Key.X)),
-                new("_Copy", notYet, G(Key.C)),
-                new("_Paste", notYet, G(Key.V)),
+                new("Cu_t", vm.CutCommand, G(Key.X)),
+                new("_Copy", vm.CopyCommand, G(Key.C)),
+                new("Copy _Merged", vm.CopyMergedCommand, G(Key.C, KeyModifiers.Shift)),
+                new("_Paste", vm.PasteCommand, G(Key.V)),
+                new("Paste Into New _Layer", vm.PasteIntoNewLayerCommand, G(Key.V, KeyModifiers.Shift)),
+                new("Paste Into New _Image", vm.PasteIntoNewImageCommand, G(Key.V, KeyModifiers.Alt)),
                 MenuSpec.Separator,
-                new("Select _All", notYet, G(Key.A)),
-                new("_Deselect All", notYet, G(Key.D)),
+                new("_Erase Selection", vm.EraseSelectionCommand, new KeyGesture(Key.Delete)),
+                new("_Fill Selection", vm.FillSelectionCommand, new KeyGesture(Key.Back)),
+                new("_Invert Selection", vm.InvertSelectionCommand, G(Key.I)),
+                new("Select _All", vm.SelectAllCommand, G(Key.A)),
+                new("_Deselect All", vm.DeselectAllCommand, G(Key.D)),
             ]),
             new("_View", Children:
             [
@@ -276,7 +296,7 @@ public partial class MainWindow : Window, IViewportService
             ]),
             new("_Image", Children:
             [
-                new("_Crop to Selection", notYet, G(Key.X, KeyModifiers.Shift)),
+                new("_Crop to Selection", vm.CropToSelectionCommand, G(Key.X, KeyModifiers.Shift)),
                 new("_Resize…", notYet, G(Key.R)),
                 new("Canvas _Size…", notYet, G(Key.R, KeyModifiers.Shift)),
                 MenuSpec.Separator,

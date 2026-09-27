@@ -3,7 +3,6 @@ using ImageMagick;
 using Microsoft.Extensions.Logging;
 using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Services;
-using static System.Collections.Specialized.BitVector32;
 
 namespace CinnabarSharp.Core.Models
 {
@@ -22,14 +21,41 @@ namespace CinnabarSharp.Core.Models
             _documentEventsService = documentEventsService;
             this.logger = logger;
             Layers = new (this, _documentEventsService, logger);
-            Workspace = new(this, new ImageDocumentHistory(this), _documentEventsService, logger);
-            Selection = new ImageDocumentSelection();
+            Workspace = new(this, new ImageDocumentHistory(this, _documentEventsService), _documentEventsService, logger);
+            Actions = new DocumentActions(this);
         }
 
         public ImageSize ImageSize { get; set; }
         public ImageDocumentLayers Layers { get; }
         public ImageDocumentWorkspace Workspace { get; }
-        public ImageDocumentSelection Selection { get; set; }
+
+        /// <summary>Selected pixels, or null when nothing is selected (tools then act on the whole layer).</summary>
+        public SelectionMask? Selection { get; private set; }
+
+        public bool HasSelection => Selection is not null;
+
+        /// <summary>Replaces the selection without recording history; an empty mask means no selection.</summary>
+        public void SetSelection(SelectionMask? selection)
+        {
+            selection = selection is { IsEmpty: true } ? null : selection;
+            if (ReferenceEquals(selection, Selection))
+                return;
+            Selection = selection;
+            _documentEventsService.PushEvent(new DocumentEventItem(this, DocumentEventEnum.SelectionChanged));
+        }
+
+        /// <summary>Changes the image size (layers must be resized by the caller), keeping the zoom level.</summary>
+        public void Resize(ImageSize size)
+        {
+            var scale = Workspace.Scale;
+            ImageSize = size;
+            Workspace.ViewSize = new ImageSize(
+                Math.Max(1, (int)(size.Width * scale)), Math.Max(1, (int)(size.Height * scale)));
+            Workspace.Invalidate();
+        }
+
+        /// <summary>User-level edits that are recorded in the undo history.</summary>
+        public DocumentActions Actions { get; }
 
         public ImageFile File
         {

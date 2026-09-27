@@ -7,6 +7,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using CinnabarSharp.Core.Models;
+using CinnabarSharp.Core.Tools;
+using Avalonia.Threading;
 using PointD = CinnabarSharp.Core.Models.PointD;
 
 namespace CinnabarSharp.Desktop.Controls;
@@ -22,6 +24,18 @@ public class CanvasView : Control
     public static readonly StyledProperty<int> RenderVersionProperty =
         AvaloniaProperty.Register<CanvasView, int>(nameof(RenderVersion));
 
+    public static readonly StyledProperty<int> SelectionVersionProperty =
+        AvaloniaProperty.Register<CanvasView, int>(nameof(SelectionVersion));
+
+    private static readonly IBrush AntsLight = Brushes.White;
+    private static readonly IBrush AntsDark = Brushes.Black;
+
+    private readonly DispatcherTimer _antsTimer;
+    private double _antsOffset;
+    private (SelectionMask Mask, double Scale, Geometry Geometry)? _outline;
+    private bool _pointerPressed;
+    private ToolPointer _lastPointer;
+
     private const int CheckerSize = 8;
     private static readonly IBrush CheckerBrush = CreateCheckerBrush();
 
@@ -30,6 +44,41 @@ public class CanvasView : Control
     static CanvasView()
     {
         AffectsMeasure<CanvasView>(DocumentProperty, RenderVersionProperty);
+        AffectsRender<CanvasView>(SelectionVersionProperty);
+    }
+
+    public CanvasView()
+    {
+        _antsTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(120), DispatcherPriority.Background, (_, _) =>
+        {
+            if (Document?.Selection is null)
+                return;
+            _antsOffset = (_antsOffset + 1) % 8;
+            InvalidateVisual();
+        });
+    }
+
+    public int SelectionVersion
+    {
+        get => GetValue(SelectionVersionProperty);
+        set => SetValue(SelectionVersionProperty, value);
+    }
+
+    /// <summary>Tool input in image coordinates: pressed, moved while pressed, released.</summary>
+    public event Action<ToolPointer>? ToolPointerPressed;
+    public event Action<ToolPointer>? ToolPointerMoved;
+    public event Action<ToolPointer>? ToolPointerReleased;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _antsTimer.Start();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _antsTimer.Stop();
+        base.OnDetachedFromVisualTree(e);
     }
 
     public ImageDocument? Document
@@ -82,6 +131,84 @@ public class CanvasView : Control
         {
             context.DrawImage(_bitmap, new Rect(_bitmap.Size), dest);
         }
+
+        if (doc.Selection is { } selection)
+        {
+            var geometry = OutlineGeometry(selection, doc.Workspace.Scale);
+            context.DrawGeometry(null, new Pen(AntsLight, 1), geometry);
+            context.DrawGeometry(null, new Pen(AntsDark, 1, new DashStyle([4, 4], _antsOffset)), geometry);
+        }
+    }
+
+    private Geometry OutlineGeometry(SelectionMask selection, double scale)
+    {
+        if (_outline is { } cached && cached.Mask == selection && cached.Scale == scale)
+            return cached.Geometry;
+
+        var geometry = new StreamGeometry();
+        using (var ctx = geometry.Open())
+        {
+            foreach (var (x1, y1, x2, y2) in selection.GetOutline())
+            {
+                ctx.BeginFigure(new Point(x1 * scale, y1 * scale), isFilled: false);
+                ctx.LineTo(new Point(x2 * scale, y2 * scale));
+                ctx.EndFigure(isClosed: false);
+            }
+        }
+        _outline = (selection, scale, geometry);
+        return geometry;
+    }
+
+    private ToolPointer ToToolPointer(PointerEventArgs e, ToolButton button)
+    {
+        var pos = e.GetPosition(this);
+        var scale = Document?.Workspace.Scale ?? 1;
+        var mods = ToolModifiers.None;
+        if ((e.KeyModifiers & (KeyModifiers.Meta | KeyModifiers.Control)) != 0)
+            mods |= ToolModifiers.Command;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+            mods |= ToolModifiers.Alt;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            mods |= ToolModifiers.Shift;
+        return new ToolPointer(new PointD(pos.X / scale, pos.Y / scale), button, mods);
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+        if (e.Handled || Document is null || _pointerPressed)
+            return;
+        var props = e.GetCurrentPoint(this).Properties;
+        var button = props.IsRightButtonPressed ? ToolButton.Right : ToolButton.Left;
+        if (!props.IsLeftButtonPressed && !props.IsRightButtonPressed)
+            return;
+
+        _pointerPressed = true;
+        _lastPointer = ToToolPointer(e, button);
+        e.Pointer.Capture(this);
+        e.Handled = true;
+        ToolPointerPressed?.Invoke(_lastPointer);
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (!_pointerPressed)
+            return;
+        _pointerPressed = false;
+        _lastPointer = ToToolPointer(e, _lastPointer.Button);
+        e.Pointer.Capture(null);
+        e.Handled = true;
+        ToolPointerReleased?.Invoke(_lastPointer);
+    }
+
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        if (!_pointerPressed)
+            return;
+        _pointerPressed = false;
+        ToolPointerReleased?.Invoke(_lastPointer);
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -92,6 +219,11 @@ public class CanvasView : Control
         var pos = e.GetPosition(this);
         var scale = doc.Workspace.Scale;
         CanvasPointerMoved?.Invoke(new PointD(pos.X / scale, pos.Y / scale));
+        if (_pointerPressed)
+        {
+            _lastPointer = ToToolPointer(e, _lastPointer.Button);
+            ToolPointerMoved?.Invoke(_lastPointer);
+        }
     }
 
     protected override void OnPointerExited(PointerEventArgs e)

@@ -59,6 +59,17 @@ namespace CinnabarSharp.Core.Services
             return doc;
         }
 
+        public ImageDocument NewDocumentFromImage(ClipboardImage image)
+        {
+            var doc = NewDocument(new ImageSize(image.Width, image.Height), ColorBgra.Transparent);
+            var layer = doc.Layers[0];
+            var transparent = layer.Surface;
+            layer.Surface = Utility.FromBgra(image.Bgra, image.Width, image.Height);
+            transparent.Dispose();
+            doc.Workspace.Invalidate();
+            return doc;
+        }
+
         public ImageDocument CreateAndActivateDocument(ImageFile? file, string? file_type, ImageSize size)
         {
             ImageDocument doc = serviceProvider.GetService<ImageDocument>()!;
@@ -73,6 +84,7 @@ namespace CinnabarSharp.Core.Services
             else
                 doc.DisplayName = Translations.GetString("Unsaved Image {0}", new_file_name++);
 
+            doc.Workspace.History.PushNewItem(new BaseHistoryItem(file is null ? "New Image" : "Open Image"));
             OpenDocuments.Add(doc);
             var ev = new DocumentEventItem(doc, DocumentEventEnum.DocumentCreated);
             _documentEventsService.PushEvent(ev);
@@ -107,6 +119,7 @@ namespace CinnabarSharp.Core.Services
 
             var wasActive = index == active_document_index;
             OpenDocuments.RemoveAt(index);
+            document.Workspace.History.Clear();
             document.Layers.Close();
             _documentEventsService.PushEvent(new DocumentEventItem(document, DocumentEventEnum.DocumentClosed));
 

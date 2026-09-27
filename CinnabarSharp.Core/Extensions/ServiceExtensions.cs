@@ -11,7 +11,6 @@ namespace CinnabarSharp.Core.Extensions
 		public static IServiceCollection AddCinnabarSharpServices(this IServiceCollection services)
 		{
 			services.TryAddSingleton<IDocumentEventsService, DocumentEventsService>();
-			services.TryAddSingleton<IDocumentsHistoryService, DocumentsHistoryService>();
 			services.TryAddSingleton<IWorkspaceService, WorkspaceManager>();
 			services.TryAddSingleton<IFormatManager, FormatManager>();
 

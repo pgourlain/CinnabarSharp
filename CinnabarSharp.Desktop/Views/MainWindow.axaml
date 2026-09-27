@@ -54,6 +54,9 @@
         <Style Selector="ListBox#LayersList ListBoxItem">
             <Setter Property="Padding" Value="6,4" />
         </Style>
+        <Style Selector="ListBox.history ListBoxItem">
+            <Setter Property="Padding" Value="8,3" />
+        </Style>
         <Style Selector="Button.closeTab">
             <Setter Property="Padding" Value="4,0" />
             <Setter Property="MinHeight" Value="0" />
@@ -73,8 +76,8 @@
                 <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open" />
                 <Button Content="Save" Command="{Binding SaveCommand}" ToolTip.Tip="Save" />
                 <Border Classes="toolbarSeparator" />
-                <Button Content="Undo" Command="{Binding NotYetImplemented}" ToolTip.Tip="Undo (Phase 4)" />
-                <Button Content="Redo" Command="{Binding NotYetImplemented}" ToolTip.Tip="Redo (Phase 4)" />
+                <Button Content="Undo" Command="{Binding UndoCommand}" ToolTip.Tip="Undo" />
+                <Button Content="Redo" Command="{Binding RedoCommand}" ToolTip.Tip="Redo" />
                 <Border Classes="toolbarSeparator" />
                 <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out" />
                 <TextBlock Text="{Binding ZoomText}" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center" />
@@ -84,14 +87,33 @@
             </StackPanel>
         </Border>
 
+        <!-- Tool options (Paint.NET shows these under the toolbar) -->
+        <Border DockPanel.Dock="Top" Classes="panel" Padding="8,0" Height="40">
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowSelectionOptions}">
+                <TextBlock Text="Selection mode:" VerticalAlignment="Center" />
+                <ComboBox x:Name="SelectionModeCombo" ItemsSource="{x:Static vm:MainViewModel.SelectionModes}"
+                          SelectedItem="{Binding SelectionMode}" MinWidth="120"
+                          ToolTip.Tip="⌘/Ctrl: union · Alt: exclude · ⌘/Ctrl+Alt: intersect · right-click: exclude" />
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowMagicWandOptions}">
+                    <TextBlock Text="Tolerance:" VerticalAlignment="Center" Margin="12,0,0,0" />
+                    <Slider Minimum="0" Maximum="100" Value="{Binding Tolerance}" Width="140" VerticalAlignment="Center"
+                            Margin="0,-8" />
+                    <TextBlock Text="{Binding Tolerance, StringFormat={}{0}%}" VerticalAlignment="Center" MinWidth="36" />
+                    <CheckBox Content="Global" IsChecked="{Binding GlobalFill}"
+                              ToolTip.Tip="Select matching colors anywhere, not only connected ones (or hold Shift)" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <!-- Status bar -->
         <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" Padding="8,4"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-            <Grid ColumnDefinitions="*,140,140,80">
+            <Grid ColumnDefinitions="*,180,140,140,80">
                 <TextBlock Grid.Column="0" Text="{Binding SelectedTool.Name}" />
-                <TextBlock Grid.Column="1" Text="{Binding CursorPositionText}" />
-                <TextBlock Grid.Column="2" Text="{Binding ImageSizeText}" />
-                <TextBlock Grid.Column="3" Text="{Binding ZoomText}" TextAlignment="Right" />
+                <TextBlock Grid.Column="1" Text="{Binding SelectionSizeText}" />
+                <TextBlock Grid.Column="2" Text="{Binding CursorPositionText}" />
+                <TextBlock Grid.Column="3" Text="{Binding ImageSizeText}" />
+                <TextBlock Grid.Column="4" Text="{Binding ZoomText}" TextAlignment="Right" />
             </Grid>
         </Border>
 
@@ -142,7 +164,8 @@
                         <c:CanvasView x:Name="Canvas"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
                                       Document="{Binding ActiveDocument.Document, FallbackValue={x:Null}}"
-                                      RenderVersion="{Binding RenderVersion}" />
+                                      RenderVersion="{Binding RenderVersion}"
+                                      SelectionVersion="{Binding SelectionVersion}" />
                     </ScrollViewer>
                     <TextBlock x:Name="EmptyHint" IsVisible="{Binding !HasDocument}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -175,7 +198,14 @@
                 <Border DockPanel.Dock="Bottom" Classes="panel" BorderThickness="0,1,0,0" Height="160">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="History" />
-                        <TextBlock Text="Undo history arrives in Phase 4." Foreground="Gray" TextWrapping="Wrap" />
+                        <ListBox x:Name="HistoryList" Classes="history" ItemsSource="{Binding History}"
+                                 SelectedItem="{Binding SelectedHistoryItem}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:HistoryItemViewModel">
+                                    <TextBlock Text="{Binding Text}" Opacity="{Binding Opacity}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </DockPanel>
                 </Border>
 

@@ -25,12 +25,12 @@ public class ImageDocumentEventTests : BaseTests
         var expectedStates = new []
         {
             DocumentEventEnum.DocumentRenamed,
+            DocumentEventEnum.HistoryChanged,
             DocumentEventEnum.DocumentCreated,
             DocumentEventEnum.ActiveDocumentChanged,
             DocumentEventEnum.ViewSizeChanged,
             DocumentEventEnum.LayerAdded
         };
-        Assert.Equal(5, received.Count);
         Assert.Equal(expectedStates, received);
     }
 }

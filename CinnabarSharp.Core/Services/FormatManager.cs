@@ -53,9 +53,7 @@ public class FormatManager : IFormatManager
         var format = GetFormatForFile(file)
             ?? throw new NotSupportedException($"'{file.Name}' is not a supported image file.");
         format.Import(file);
-        var doc = _workspace.ActiveDocument;
-        doc.IsDirty = false;
-        return doc;
+        return _workspace.ActiveDocument;
     }
 
     public void Save(ImageDocument document, ImageFile file, ImageFormat? format = null)
@@ -66,7 +64,7 @@ public class FormatManager : IFormatManager
         file.Refresh();
         document.File = file;
         document.FileType = format.SupportedExtensions[0];
-        document.IsDirty = false;
+        document.Workspace.History.SetClean();
     }
 
     private static bool PathsEqual(string a, string b) =>

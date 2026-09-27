@@ -9,7 +9,7 @@ using CinnabarSharp.Core.Models;
 
 namespace CinnabarSharp.Desktop.ViewModels;
 
-public class LayerViewModel(UserLayer layer) : ViewModelBase
+public class LayerViewModel(UserLayer layer, DocumentActions actions) : ViewModelBase
 {
     public const int ThumbnailSize = 40;
 
@@ -22,7 +22,7 @@ public class LayerViewModel(UserLayer layer) : ViewModelBase
     public bool IsVisible
     {
         get => !Layer.Hidden;
-        set => Layer.Hidden = !value;
+        set => actions.SetLayerVisibility(Layer, value);
     }
 
     /// <summary>E.g. "Multiply · 50%"; empty for Normal at 100%.</summary>

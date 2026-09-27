@@ -98,25 +98,34 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 ## Phase 4 — History (undo/redo)
 
-- [ ] Every document mutation goes through `IHistoryItem`; History panel lists steps, click to jump.
-- [ ] Undo/Redo shortcuts (`Cmd+Z`/`Cmd+Shift+Z` on macOS, `Ctrl+Z`/`Ctrl+Y` on Windows/Linux).
-- [ ] Memory bound: store only the changed region per step.
+- [x] Every user edit goes through `DocumentActions`, which records a history step (`IHistoryItem`): add/delete/duplicate/move/merge/flip layer, flatten, import from file, visibility, layer properties. History panel lists the steps, dims undone ones, and clicking a step jumps to it. Each document has its own history.
+- [x] Undo/Redo in the Edit menu and toolbar (⌘Z / ⌘⇧Z on macOS, Ctrl+Z / Ctrl+Y on Windows/Linux).
+- [x] "Modified" state now comes from Core: the document is dirty when the history position differs from the last save (undoing back to the saved state clears the `*`). The UI no longer sets `IsDirty`.
+- [x] Pixel data owned by the history is released when steps are discarded or the document closes.
+- [ ] Memory bound: store only the changed region per step. Today pixel steps (merge down, flatten) keep whole layer copies; painting tools (Phase 6) need region-based steps.
+- [ ] Limit on history size / memory (Paint.NET has none by default; decide with Phase 6).
 
 **Validation**
 - [ ] 200 undo/redo cycles on a 4000×3000 image stay responsive; memory stable.
 
 ## Phase 5 — Selection and clipboard
 
-- [ ] Tools: Rectangle Select, Ellipse Select, Lasso, Magic Wand (tolerance, global/contiguous); modes replace/union/exclude/xor/intersect.
-- [ ] Marching ants; Select All / Deselect / Invert Selection.
-- [ ] Move Selected Pixels / Move Selection tools with handles.
-- [ ] Crop to Selection; Erase Selection; Fill Selection.
-- [ ] System clipboard: copy, cut, paste, paste into new layer / new image (Avalonia clipboard, bitmap formats).
-- [ ] Replace the `object clipboard` parameters in `TextEngine.PerformCopy/Cut/Paste` with an `IClipboardService` interface defined in Core and implemented in Desktop.
+- [x] Selection model in Core: `SelectionMask` (one byte per pixel) with rectangle, ellipse, polygon and magic-wand shapes; combine modes Replace / Union / Exclude / Xor / Intersect; invert, offset, crop, outline.
+- [x] Tool framework: tools live in Core (`CinnabarSharp.Core.Tools`) and get UI-independent input (`ToolPointer`: image position, button, modifiers). The canvas forwards pointer events to the selected tool.
+- [x] Tools: Rectangle Select, Ellipse Select, Lasso Select, Magic Wand (tolerance, contiguous/global, Shift = global). Modifiers: ⌘/Ctrl union, Alt exclude, ⌘/Ctrl+Alt intersect, right button exclude; click without drag deselects. Tool options bar (selection mode, tolerance, global).
+- [x] Animated marching ants; status bar shows the selection size. Edit › Select All / Deselect All / Invert Selection.
+- [x] Move Selected Pixels (area left behind becomes transparent) and Move Selection (outline only), by dragging.
+- [ ] Move handles (scale/rotate the selection or selected pixels, as in Paint.NET).
+- [ ] Paste keeps the pixels under the pasted image while it is being moved (Paint.NET's floating paste); today Paste composites onto the layer, so moving it afterwards leaves a transparent hole. Paste Into New Layer doesn't have this issue.
+- [x] Image › Crop to Selection (non-rectangular selections make outside pixels transparent); Edit › Erase Selection (Delete) and Fill Selection with the primary color (Backspace).
+- [x] System clipboard (`IClipboardService` in Core, Avalonia implementation in Desktop): Cut, Copy, Copy Merged, Paste (then switches to Move Selected Pixels), Paste Into New Layer, Paste Into New Image; Paste with no image open creates one. All undoable.
+- [ ] Replace the `object clipboard` parameters in `TextEngine.PerformCopy/Cut/Paste` with `IClipboardService` (with the Text tool, Phase 6).
+- [ ] Antialiased selection edges (the mask supports 0–255 but shapes produce hard edges).
 
 **Validation**
-- [ ] Copy from CinnabarSharp → paste into Preview/Paint/GIMP and back, on each OS.
-- [ ] Magic wand result identical across OSes.
+- [ ] Copy from CinnabarSharp → paste into Preview/Paint/GIMP and back, on each OS (transparency preserved where the other app supports it).
+- [ ] Magic wand result identical across OSes (pure C#, same code path as the blend-mode checksum test).
+- [ ] Marching ants animate smoothly on a large (4000×3000) magic-wand selection.
 
 ## Phase 6 — Painting tools
 

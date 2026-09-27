@@ -17,7 +17,7 @@ public class ImageDocumentTests : BaseTests
         var doc = sp.GetService<ImageDocument>();
         Assert.Null(doc.File);
         Assert.NotNull(doc.Layers);
-        Assert.NotNull(doc.Selection);
+        Assert.Null(doc.Selection);
         Assert.NotNull(doc.Workspace);
     }
     
@@ -28,7 +28,7 @@ public class ImageDocumentTests : BaseTests
         var doc = sp.GetService<ImageDocument>();
         Assert.Null(doc.File);
         Assert.NotNull(doc.Layers);
-        Assert.NotNull(doc.Selection);
+        Assert.Null(doc.Selection);
         Assert.NotNull(doc.Workspace);
 
         var importer = sp.GetServices<IImageImporter>().SingleOrDefault(x => x.Name == nameof(JpegFormat));

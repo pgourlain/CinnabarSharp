@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using ImageMagick;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
+using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Desktop.Services;
 
 namespace CinnabarSharp.Desktop.ViewModels;
@@ -34,7 +35,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _workspace = workspace;
         _formats = formats;
         RecentFiles = recentFiles;
-        SelectedTool = Tools[10];
+        Tools = ToolViewModel.CreatePaintDotNetTools(ToolSettings);
+        SelectedTool = Tools.First(t => t.Name == "Rectangle Select");
         _eventsSubscription = events.DocumentEvents.Subscribe(new EventObserver(OnDocumentEvent));
     }
 
@@ -47,7 +49,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Top-most layer first, like Paint.NET's Layers panel.</summary>
     public ObservableCollection<LayerViewModel> Layers { get; } = [];
 
-    public ToolViewModel[] Tools { get; } = ToolViewModel.PaintDotNetTools;
+    public ToolSettings ToolSettings { get; } = new();
+
+    public ToolViewModel[] Tools { get; }
+
+    public IClipboardService? Clipboard { get; set; }
 
     [ObservableProperty]
     public partial DocumentViewModel? ActiveDocument { get; set; }
@@ -277,42 +283,41 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool CanMoveLayerDown => CurrentLayers?.CurrentUserLayerIndex > 0;
     public bool CanFlatten => CurrentLayers?.Count() > 1;
 
-    private void EditLayers(Action<ImageDocumentLayers> edit)
+    private void EditLayers(Action<DocumentActions> edit)
     {
         if (ActiveDocument is not { } d)
             return;
-        edit(d.Document.Layers);
-        d.Document.IsDirty = true;
+        edit(d.Document.Actions);
         RefreshLayers();
         RefreshThumbnails();
     }
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void AddNewLayer() => EditLayers(l => l.SetCurrentUserLayer(l.AddNewLayer(string.Empty)));
+    private void AddNewLayer() => EditLayers(a => a.AddNewLayer());
 
     [RelayCommand(CanExecute = nameof(CanDeleteLayer))]
-    private void DeleteLayer() => EditLayers(l => l.DeleteCurrentLayer());
+    private void DeleteLayer() => EditLayers(a => a.DeleteCurrentLayer());
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void DuplicateLayer() => EditLayers(l => l.DuplicateCurrentLayer());
+    private void DuplicateLayer() => EditLayers(a => a.DuplicateCurrentLayer());
 
     [RelayCommand(CanExecute = nameof(CanMergeLayerDown))]
-    private void MergeLayerDown() => EditLayers(l => l.MergeCurrentLayerDown());
+    private void MergeLayerDown() => EditLayers(a => a.MergeCurrentLayerDown());
 
     [RelayCommand(CanExecute = nameof(CanMoveLayerUp))]
-    private void MoveLayerUp() => EditLayers(l => l.MoveCurrentLayerUp());
+    private void MoveLayerUp() => EditLayers(a => a.MoveCurrentLayerUp());
 
     [RelayCommand(CanExecute = nameof(CanMoveLayerDown))]
-    private void MoveLayerDown() => EditLayers(l => l.MoveCurrentLayerDown());
+    private void MoveLayerDown() => EditLayers(a => a.MoveCurrentLayerDown());
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void FlipLayerHorizontal() => EditLayers(l => l.FlipCurrentLayerHorizontal());
+    private void FlipLayerHorizontal() => EditLayers(a => a.FlipCurrentLayerHorizontal());
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void FlipLayerVertical() => EditLayers(l => l.FlipCurrentLayerVertical());
+    private void FlipLayerVertical() => EditLayers(a => a.FlipCurrentLayerVertical());
 
     [RelayCommand(CanExecute = nameof(CanFlatten))]
-    private void Flatten() => EditLayers(l => l.FlattenLayers());
+    private void Flatten() => EditLayers(a => a.Flatten());
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
     private async Task ImportFromFile()
@@ -323,7 +328,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             try
             {
-                EditLayers(l => l.ImportFromFile(new FileInfo(path)));
+                EditLayers(a => a.ImportFromFile(new FileInfo(path)));
             }
             catch (Exception e) when (e is MagickException or IOException or UnauthorizedAccessException)
             {
@@ -337,14 +342,200 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (Dialogs is null || ActiveDocument is not { } d)
             return;
-        var wasDirty = d.Document.IsDirty;
-        var properties = new LayerPropertiesViewModel(d.Document.Layers.CurrentUserLayer);
-        if (!await Dialogs.ShowLayerPropertiesAsync(properties))
-        {
+        var layer = d.Document.Layers.CurrentUserLayer;
+        var before = Core.Models.LayerProperties.From(layer);
+        var properties = new LayerPropertiesViewModel(layer);
+        if (await Dialogs.ShowLayerPropertiesAsync(properties))
+            d.Document.Actions.CommitLayerProperties(layer, before);
+        else
             properties.Revert();
-            d.Document.IsDirty = wasDirty;
-        }
     }
+
+    // ---- History ----
+
+    /// <summary>Steps of the active document; the selected one is the current state.</summary>
+    public ObservableCollection<HistoryItemViewModel> History { get; } = [];
+
+    [ObservableProperty]
+    public partial HistoryItemViewModel? SelectedHistoryItem { get; set; }
+
+    private IImageDocumentHistory? CurrentHistory => ActiveDocument?.Document.Workspace.History;
+
+    public bool CanUndo => CurrentHistory?.CanUndo == true;
+    public bool CanRedo => CurrentHistory?.CanRedo == true;
+
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    private void Undo() => CurrentHistory?.Undo();
+
+    [RelayCommand(CanExecute = nameof(CanRedo))]
+    private void Redo() => CurrentHistory?.Redo();
+
+    partial void OnSelectedHistoryItemChanged(HistoryItemViewModel? value)
+    {
+        if (value is not null && !_syncingSelection && CurrentHistory is { } history && history.Pointer != value.Index)
+            history.JumpTo(value.Index);
+    }
+
+    private void RefreshHistory()
+    {
+        var history = CurrentHistory;
+        _syncingSelection = true;
+        History.Clear();
+        if (history is not null)
+        {
+            for (var i = 0; i < history.Items.Count; i++)
+                History.Add(new HistoryItemViewModel(i, history.Items[i].Text, i > history.Pointer));
+            SelectedHistoryItem = history.Pointer >= 0 ? History[history.Pointer] : null;
+        }
+        _syncingSelection = false;
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
+    }
+
+    // ---- Tools ----
+
+    public static IReadOnlyList<SelectionMode> SelectionModes { get; } = Enum.GetValues<SelectionMode>();
+
+    public SelectionMode SelectionMode
+    {
+        get => ToolSettings.SelectionMode;
+        set { ToolSettings.SelectionMode = value; OnPropertyChanged(); }
+    }
+
+    public int Tolerance
+    {
+        get => ToolSettings.Tolerance;
+        set { ToolSettings.Tolerance = Math.Clamp(value, 0, 100); OnPropertyChanged(); }
+    }
+
+    public bool GlobalFill
+    {
+        get => ToolSettings.GlobalFill;
+        set { ToolSettings.GlobalFill = value; OnPropertyChanged(); }
+    }
+
+    public void ToolPointerDown(ToolPointer pointer) => WithTool(t => t.OnPointerDown, pointer);
+    public void ToolPointerMove(ToolPointer pointer) => WithTool(t => t.OnPointerMove, pointer);
+    public void ToolPointerUp(ToolPointer pointer) => WithTool(t => t.OnPointerUp, pointer);
+
+    private void WithTool(Func<ITool, Action<ImageDocument, ToolPointer>> handler, ToolPointer pointer)
+    {
+        if (ActiveDocument is { } d && SelectedTool.Tool is { } tool)
+            handler(tool)(d.Document, pointer);
+    }
+
+    partial void OnSelectedToolChanged(ToolViewModel value)
+    {
+        OnPropertyChanged(nameof(ShowSelectionOptions));
+        OnPropertyChanged(nameof(ShowMagicWandOptions));
+    }
+
+    public bool ShowSelectionOptions => SelectedTool.IsSelectionTool;
+    public bool ShowMagicWandOptions => SelectedTool.IsMagicWand;
+
+    // ---- Selection and clipboard ----
+
+    /// <summary>Incremented when the selection changes, to redraw the marching ants.</summary>
+    [ObservableProperty]
+    public partial int SelectionVersion { get; set; }
+
+    public bool HasSelection => ActiveDocument?.Document.HasSelection == true;
+
+    public string SelectionSizeText => ActiveDocument?.Document.Selection is { } s
+        ? $"Selection {s.Bounds.Width} × {s.Bounds.Height}"
+        : "";
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void SelectAll() => ActiveDocument?.Document.Actions.SelectAll();
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void DeselectAll() => ActiveDocument?.Document.Actions.DeselectAll();
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void InvertSelection() => ActiveDocument?.Document.Actions.InvertSelection();
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void CropToSelection() => ActiveDocument?.Document.Actions.CropToSelection();
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void EraseSelection() => EditLayers(a => a.EraseSelection());
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void FillSelection() => EditLayers(a =>
+        a.FillSelection(ColorBgra.FromBgra(PrimaryColor.B, PrimaryColor.G, PrimaryColor.R, PrimaryColor.A)));
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task Copy() => CopyAsync(merged: false);
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private Task CopyMerged() => CopyAsync(merged: true);
+
+    private async Task CopyAsync(bool merged)
+    {
+        if (ActiveDocument is { } d && Clipboard is not null)
+            await Clipboard.SetImageAsync(d.Document.Actions.Copy(merged));
+    }
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private async Task Cut()
+    {
+        if (ActiveDocument is not { } d || Clipboard is null)
+            return;
+        ClipboardImage? image = null;
+        EditLayers(a => image = a.Cut());
+        await Clipboard.SetImageAsync(image!);
+    }
+
+    /// <summary>Pastes onto the current layer and switches to Move Selected Pixels; with no image open, pastes into a new image.</summary>
+    [RelayCommand]
+    private async Task Paste()
+    {
+        if (await ClipboardImageAsync() is not { } image)
+            return;
+        if (ActiveDocument is not { } d)
+        {
+            PasteImage(image);
+            return;
+        }
+        d.Document.Actions.Paste(image, PasteLocation());
+        SelectedTool = Tools.First(t => t.Tool is MoveSelectedPixelsTool);
+        RefreshThumbnails();
+    }
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private async Task PasteIntoNewLayer()
+    {
+        if (ActiveDocument is not { } d || await ClipboardImageAsync() is not { } image)
+            return;
+        EditLayers(a => a.PasteIntoNewLayer(image, PasteLocation()));
+        SelectedTool = Tools.First(t => t.Tool is MoveSelectedPixelsTool);
+    }
+
+    [RelayCommand]
+    private async Task PasteIntoNewImage()
+    {
+        if (await ClipboardImageAsync() is { } image)
+            PasteImage(image);
+    }
+
+    private void PasteImage(ClipboardImage image)
+    {
+        var doc = _workspace.NewDocumentFromImage(image);
+        FitIfLargerThanViewport(doc);
+    }
+
+    private async Task<ClipboardImage?> ClipboardImageAsync()
+    {
+        if (Clipboard is null)
+            return null;
+        var image = await Clipboard.GetImageAsync();
+        if (image is null && Dialogs is not null)
+            await Dialogs.ShowErrorAsync("Nothing to paste", "The clipboard doesn't contain an image.");
+        return image;
+    }
+
+    /// <summary>Paint.NET pastes at the top-left of the visible part of the canvas.</summary>
+    private PointI PasteLocation() => Viewport?.VisibleImageOrigin() ?? PointI.Zero;
 
     // ---- Colors ----
 
@@ -364,11 +555,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (value is not null && !_syncingSelection)
             _workspace.SetActiveDocument(value.Document);
         RefreshLayers();
+        RefreshHistory();
+        RefreshSelectionState();
         RefreshViewState();
         foreach (var command in new IRelayCommand[]
                  {
                      ZoomInCommand, ZoomOutCommand, ActualSizeCommand, BestFitCommand,
                      SaveCommand, SaveAsCommand, CloseCommand,
+                     SelectAllCommand, InvertSelectionCommand, EraseSelectionCommand, FillSelectionCommand,
+                     CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand,
                  })
             command.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasDocument));
@@ -434,10 +629,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 OnPropertyChanged(nameof(HasUnsavedChanges));
                 break;
 
-            case DocumentEventEnum.LayerPropertyChanged:
-                e.Document.IsDirty = true;
-                goto case DocumentEventEnum.LayerAdded;
+            case DocumentEventEnum.SelectionChanged:
+                if (e.Document == ActiveDocument?.Document)
+                    RefreshSelectionState();
+                break;
 
+            case DocumentEventEnum.HistoryChanged:
+                if (e.Document == ActiveDocument?.Document)
+                    RefreshHistory();
+                break;
+
+            case DocumentEventEnum.LayerPropertyChanged:
             case DocumentEventEnum.LayerAdded:
             case DocumentEventEnum.LayerRemoved:
             case DocumentEventEnum.SelectedLayerChanged:
@@ -486,7 +688,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             Layers.Clear();
             foreach (var layer in current)
-                Layers.Add(new LayerViewModel(layer));
+                Layers.Add(new LayerViewModel(layer, ActiveDocument!.Document.Actions));
         }
 
         SelectedLayer = layers is { } l && l.CurrentUserLayerIndex >= 0
@@ -501,6 +703,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      FlattenCommand, ImportFromFileCommand, LayerPropertiesCommand,
                  })
             command.NotifyCanExecuteChanged();
+    }
+
+    private void RefreshSelectionState()
+    {
+        SelectionVersion++;
+        OnPropertyChanged(nameof(HasSelection));
+        OnPropertyChanged(nameof(SelectionSizeText));
+        DeselectAllCommand.NotifyCanExecuteChanged();
+        CropToSelectionCommand.NotifyCanExecuteChanged();
     }
 
     private void RefreshThumbnails()

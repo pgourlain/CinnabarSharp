@@ -26,6 +26,7 @@ public sealed class TestHarness : IDisposable
         Window = new MainWindow { DataContext = Vm, Width = 1280, Height = 800 };
         Window.Show();
         Vm.Dialogs = Dialogs;
+        Vm.Clipboard = Clipboard;
         Dispatcher.UIThread.RunJobs();
     }
 
@@ -34,6 +35,7 @@ public sealed class TestHarness : IDisposable
     public MainViewModel Vm { get; }
     public MainWindow Window { get; }
     public FakeDialogService Dialogs { get; } = new();
+    public FakeClipboardService Clipboard { get; } = new();
 
     public CanvasView Canvas => Window.FindControl<CanvasView>("Canvas")!;
     public ScrollViewer Scroller => Window.FindControl<ScrollViewer>("CanvasScroller")!;

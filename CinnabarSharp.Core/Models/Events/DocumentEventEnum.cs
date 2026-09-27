@@ -14,7 +14,8 @@
         CanvasInvalidated,
         ViewSizeChanged,
         DocumentCreated,
-        DocumentClosed
+        DocumentClosed,
+        HistoryChanged
     }
 
 }
