@@ -320,6 +320,20 @@ namespace CinnabarSharp.Core.Models
         }
 
         /// <summary>
+        /// Straight-alpha BGRA pixels of all visible layers composited, for one rectangle of the image.
+        /// </summary>
+        public byte[] GetFlattenedBgra(RectangleI region, bool includeToolLayer = true)
+        {
+            var result = new byte[region.Width * region.Height * 4];
+            foreach (var layer in GetLayersToPaint(includeToolLayer))
+            {
+                if (layer.Opacity > 0)
+                    BlendOps.Composite(result, layer.Surface.ReadRegion(region), layer.BlendMode, layer.Opacity);
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Straight-alpha BGRA pixels of all visible layers composited, image-sized.
         /// </summary>
         public byte[] GetFlattenedBgra(bool includeToolLayer = true)

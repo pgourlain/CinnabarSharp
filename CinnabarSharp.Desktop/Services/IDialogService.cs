@@ -33,4 +33,7 @@ public interface IDialogService
 
     /// <summary>The dialog edits the layer live; returns true for OK, false for Cancel.</summary>
     Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties);
+
+    /// <summary>Returns the chosen color, or null when cancelled.</summary>
+    Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial);
 }

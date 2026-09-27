@@ -36,6 +36,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _formats = formats;
         RecentFiles = recentFiles;
         Tools = ToolViewModel.CreatePaintDotNetTools(ToolSettings);
+        ToolSettings.ColorsChanged += OnColorsChanged;
         SelectedTool = Tools.First(t => t.Name == "Rectangle Select");
         _eventsSubscription = events.DocumentEvents.Subscribe(new EventObserver(OnDocumentEvent));
     }
@@ -64,16 +65,51 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial ToolViewModel SelectedTool { get; set; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PrimaryBrush))]
-    public partial Color PrimaryColor { get; set; } = Colors.Black;
+    public Color PrimaryColor
+    {
+        get => ToAvalonia(ToolSettings.PrimaryColor);
+        set => ToolSettings.PrimaryColor = ToBgra(value);
+    }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SecondaryBrush))]
-    public partial Color SecondaryColor { get; set; } = Colors.White;
+    public Color SecondaryColor
+    {
+        get => ToAvalonia(ToolSettings.SecondaryColor);
+        set => ToolSettings.SecondaryColor = ToBgra(value);
+    }
+
+    private static Color ToAvalonia(ColorBgra c) => Color.FromArgb(c.A, c.R, c.G, c.B);
+    private static ColorBgra ToBgra(Color c) => ColorBgra.FromBgra(c.B, c.G, c.R, c.A);
+
+    private void OnColorsChanged()
+    {
+        OnPropertyChanged(nameof(PrimaryColor));
+        OnPropertyChanged(nameof(SecondaryColor));
+        OnPropertyChanged(nameof(PrimaryBrush));
+        OnPropertyChanged(nameof(SecondaryBrush));
+    }
+
+    [RelayCommand]
+    private async Task PickPrimaryColor()
+    {
+        if (Dialogs is not null && await Dialogs.PickColorAsync("Primary Color", PrimaryColor) is { } c)
+            PrimaryColor = c;
+    }
+
+    [RelayCommand]
+    private async Task PickSecondaryColor()
+    {
+        if (Dialogs is not null && await Dialogs.PickColorAsync("Secondary Color", SecondaryColor) is { } c)
+            SecondaryColor = c;
+    }
+
+    [RelayCommand]
+    private void ResetColors() => (PrimaryColor, SecondaryColor) = (Colors.Black, Colors.White);
 
     public IBrush PrimaryBrush => new SolidColorBrush(PrimaryColor);
     public IBrush SecondaryBrush => new SolidColorBrush(SecondaryColor);
+
+    /// <summary>Only this rectangle of the image changed (e.g. during a brush stroke); the view redraws just that.</summary>
+    public event Action<RectangleI>? RegionInvalidated;
 
     /// <summary>Incremented whenever the canvas must be redrawn.</summary>
     [ObservableProperty]
@@ -417,6 +453,56 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         set { ToolSettings.GlobalFill = value; OnPropertyChanged(); }
     }
 
+    public int BrushWidth
+    {
+        get => ToolSettings.BrushWidth;
+        set { ToolSettings.BrushWidth = Math.Clamp(value, 1, 500); OnPropertyChanged(); }
+    }
+
+    public bool Antialiasing
+    {
+        get => ToolSettings.Antialiasing;
+        set { ToolSettings.Antialiasing = value; OnPropertyChanged(); }
+    }
+
+    public static IReadOnlyList<ShapeKind> ShapeKinds { get; } = Enum.GetValues<ShapeKind>();
+    public static IReadOnlyList<ShapeStyle> ShapeStyles { get; } = Enum.GetValues<ShapeStyle>();
+    public static IReadOnlyList<GradientKind> GradientKinds { get; } = Enum.GetValues<GradientKind>();
+
+    public ShapeKind ShapeKind
+    {
+        get => ToolSettings.ShapeKind;
+        set { ToolSettings.ShapeKind = value; OnPropertyChanged(); }
+    }
+
+    public ShapeStyle ShapeStyle
+    {
+        get => ToolSettings.ShapeStyle;
+        set { ToolSettings.ShapeStyle = value; OnPropertyChanged(); }
+    }
+
+    public GradientKind GradientKind
+    {
+        get => ToolSettings.GradientKind;
+        set { ToolSettings.GradientKind = value; OnPropertyChanged(); }
+    }
+
+    public bool SampleImage
+    {
+        get => ToolSettings.SampleImage;
+        set { ToolSettings.SampleImage = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>Selects the next tool with this Paint.NET shortcut letter (pressing S again cycles the select tools).</summary>
+    public void SelectToolByShortcut(string letter)
+    {
+        var matches = Tools.Where(t => t.Shortcut.Equals(letter, StringComparison.OrdinalIgnoreCase) && (t.Tool is not null || t.Name == "Pan")).ToList();
+        if (matches.Count == 0)
+            return;
+        var index = matches.IndexOf(SelectedTool);
+        SelectedTool = matches[(index + 1) % matches.Count];
+    }
+
     public void ToolPointerDown(ToolPointer pointer) => WithTool(t => t.OnPointerDown, pointer);
     public void ToolPointerMove(ToolPointer pointer) => WithTool(t => t.OnPointerMove, pointer);
     public void ToolPointerUp(ToolPointer pointer) => WithTool(t => t.OnPointerUp, pointer);
@@ -429,12 +515,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedToolChanged(ToolViewModel value)
     {
-        OnPropertyChanged(nameof(ShowSelectionOptions));
-        OnPropertyChanged(nameof(ShowMagicWandOptions));
+        foreach (var name in new[]
+                 {
+                     nameof(ShowSelectionOptions), nameof(ShowToleranceOptions), nameof(ShowBrushOptions),
+                     nameof(ShowShapeOptions), nameof(ShowGradientOptions), nameof(ShowColorPickerOptions),
+                 })
+            OnPropertyChanged(name);
     }
 
     public bool ShowSelectionOptions => SelectedTool.IsSelectionTool;
-    public bool ShowMagicWandOptions => SelectedTool.IsMagicWand;
+    public bool ShowToleranceOptions => SelectedTool.HasTolerance;
+    public bool ShowBrushOptions => SelectedTool.HasBrushWidth;
+    public bool ShowShapeOptions => SelectedTool.IsShapes;
+    public bool ShowGradientOptions => SelectedTool.IsGradient;
+    public bool ShowColorPickerOptions => SelectedTool.IsColorPicker;
 
     // ---- Selection and clipboard ----
 
@@ -639,7 +733,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
             case DocumentEventEnum.HistoryChanged:
                 if (e.Document == ActiveDocument?.Document)
+                {
                     RefreshHistory();
+                    RefreshThumbnails();
+                }
                 break;
 
             case DocumentEventEnum.LayerPropertyChanged:
@@ -654,11 +751,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 break;
 
             case DocumentEventEnum.CanvasInvalidated:
-                if (e.Document == ActiveDocument?.Document)
-                {
+                if (e.Document != ActiveDocument?.Document)
+                    break;
+                if (e is CanvasEventItem { Rect.IsEmpty: false } region)
+                    RegionInvalidated?.Invoke(region.Rect);
+                else
                     RefreshViewState();
-                    RefreshThumbnails();
-                }
                 break;
 
             case DocumentEventEnum.ViewSizeChanged:

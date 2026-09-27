@@ -73,8 +73,24 @@ public partial class MainWindow : Window, IViewportService
         vm.Dialogs = new DialogService(this);
         vm.Clipboard = new AvaloniaClipboardService(this);
         vm.Viewport = this;
+        vm.RegionInvalidated += region => Canvas.UpdateRegion(region);
         vm.RecentFiles.Changed += () => RefreshRecentMenu(vm);
         KeyBindings.Add(new KeyBinding { Gesture = new KeyGesture(Key.X), Command = vm.SwapColorsCommand });
+        KeyBindings.Add(new KeyBinding { Gesture = new KeyGesture(Key.D), Command = vm.ResetColorsCommand });
+        foreach (var letter in vm.Tools.Select(t => t.Shortcut).Distinct())
+        {
+            if (Enum.TryParse<Key>(letter, out var key))
+                KeyBindings.Add(new KeyBinding
+                {
+                    Gesture = new KeyGesture(key),
+                    Command = new RelayCommand(() => vm.SelectToolByShortcut(letter)),
+                });
+        }
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.SelectedTool))
+                Canvas.Cursor = vm.SelectedTool.IsPaintingTool ? new Cursor(StandardCursorType.Cross) : null;
+        };
         BuildMenu(vm);
     }
 

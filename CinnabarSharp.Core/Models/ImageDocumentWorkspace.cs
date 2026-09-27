@@ -166,22 +166,12 @@ namespace CinnabarSharp.Core.Models
         }
 
         /// <summary>
-        /// Repaints a rectangle region on the canvas.
+        /// Repaints only <paramref name="imageRect"/> (image pixel coordinates); the event's Rect carries it.
+        /// A zero rectangle (from <see cref="Invalidate()"/>) means the whole image.
         /// </summary>
-        /// <param name='canvasRect'>
-        /// The rectangle region of the canvas requiring repainting
-        /// </param>
-        public void Invalidate(RectangleI canvasRect)
+        public void Invalidate(RectangleI imageRect)
         {
-            var canvasTopLeft = new PointD(canvasRect.Left, canvasRect.Top);
-            var canvasBtmRight = new PointD(canvasRect.Right + 1, canvasRect.Bottom + 1);
-
-            var winTopLeft = CanvasPointToView(canvasTopLeft.X, canvasTopLeft.Y);
-            var winBtmRight = CanvasPointToView(canvasBtmRight.X, canvasBtmRight.Y);
-
-            RectangleI winRect = new RectangleD(winTopLeft, winBtmRight).ToInt();
-
-            OnCanvasInvalidated(new CanvasEventItem(document, DocumentEventEnum.CanvasInvalidated, this,winRect));
+            OnCanvasInvalidated(new CanvasEventItem(document, DocumentEventEnum.CanvasInvalidated, this, imageRect));
         }
 
         /// <summary>

@@ -232,6 +232,27 @@ public class CanvasView : Control
         CanvasPointerMoved?.Invoke(null);
     }
 
+    /// <summary>Re-composites and redraws only <paramref name="region"/> (image coordinates).</summary>
+    public void UpdateRegion(RectangleI region)
+    {
+        if (Document is not { } doc || _bitmap is null
+            || _bitmap.PixelSize.Width != doc.ImageSize.Width || _bitmap.PixelSize.Height != doc.ImageSize.Height)
+        {
+            RebuildBitmap();
+            InvalidateVisual();
+            return;
+        }
+
+        var pixels = doc.Layers.GetFlattenedBgra(region);
+        using (var fb = _bitmap.Lock())
+        {
+            var rowBytes = region.Width * 4;
+            for (var y = 0; y < region.Height; y++)
+                Marshal.Copy(pixels, y * rowBytes, fb.Address + (region.Y + y) * fb.RowBytes + region.X * 4, rowBytes);
+        }
+        InvalidateVisual();
+    }
+
     private void RebuildBitmap()
     {
         _bitmap?.Dispose();

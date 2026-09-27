@@ -71,6 +71,9 @@ public class DialogService(Window owner) : IDialogService
     public async Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>
         await new LayerPropertiesWindow { DataContext = properties }.ShowDialog<bool?>(owner) == true;
 
+    public Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial) =>
+        new ColorPickerWindow(title, initial).ShowDialog<Avalonia.Media.Color?>(owner);
+
     private static IEnumerable<string> Patterns(ImageFormat format) =>
         format.SupportedExtensions.Select(e => "*." + e);
 

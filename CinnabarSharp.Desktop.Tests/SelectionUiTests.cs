@@ -100,7 +100,7 @@ public sealed class SelectionUiTests : IDisposable
         NewImage();
         Doc.Actions.SelectAll();
         Vm.SelectedTool = Vm.Tools.First(t => t.Name == "Magic Wand");
-        Assert.True(Vm.ShowMagicWandOptions);
+        Assert.True(Vm.ShowToleranceOptions);
         Doc.SetSelection(SelectionMask.Rectangle(300, 200, new PointD(0, 0), new PointD(100, 200)));
         Vm.FillSelectionCommand.Execute(null);
         Doc.SetSelection(null);

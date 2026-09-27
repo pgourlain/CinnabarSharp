@@ -23,9 +23,66 @@ public enum ToolModifiers
 /// <summary>Pointer input in image coordinates (pixels, fractional); independent of any UI framework.</summary>
 public readonly record struct ToolPointer(PointD Position, ToolButton Button, ToolModifiers Modifiers);
 
-/// <summary>Options shared by tools, edited in the tool options bar.</summary>
+public enum ShapeKind
+{
+    Rectangle,
+    Ellipse,
+}
+
+public enum ShapeStyle
+{
+    Outline,
+    Fill,
+
+    /// <summary>Outline in the primary color, filled with the secondary color (Paint.NET).</summary>
+    OutlineAndFill,
+}
+
+public enum GradientKind
+{
+    Linear,
+    Radial,
+    Diamond,
+    Conical,
+}
+
+/// <summary>Options shared by tools, edited in the tool options bar and the palette.</summary>
 public class ToolSettings
 {
+    private ColorBgra _primary = ColorBgra.Black;
+    private ColorBgra _secondary = ColorBgra.White;
+
+    /// <summary>Raised when a tool (the Color Picker) changes a color.</summary>
+    public event Action? ColorsChanged;
+
+    /// <summary>Left button paints with it.</summary>
+    public ColorBgra PrimaryColor
+    {
+        get => _primary;
+        set { _primary = value; ColorsChanged?.Invoke(); }
+    }
+
+    /// <summary>Right button paints with it.</summary>
+    public ColorBgra SecondaryColor
+    {
+        get => _secondary;
+        set { _secondary = value; ColorsChanged?.Invoke(); }
+    }
+
+    public ColorBgra ColorFor(ToolButton button) => button == ToolButton.Right ? SecondaryColor : PrimaryColor;
+
+    /// <summary>Brush, eraser, line and shape outline width, in pixels.</summary>
+    public int BrushWidth { get; set; } = 2;
+
+    public bool Antialiasing { get; set; } = true;
+
+    public ShapeKind ShapeKind { get; set; } = ShapeKind.Rectangle;
+    public ShapeStyle ShapeStyle { get; set; } = ShapeStyle.Outline;
+    public GradientKind GradientKind { get; set; } = GradientKind.Linear;
+
+    /// <summary>Color Picker samples the merged image instead of the current layer.</summary>
+    public bool SampleImage { get; set; }
+
     public SelectionMode SelectionMode { get; set; } = SelectionMode.Replace;
 
     /// <summary>Magic wand tolerance, 0–100 %.</summary>

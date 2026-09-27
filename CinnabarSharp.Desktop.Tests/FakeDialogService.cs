@@ -53,6 +53,11 @@ public class FakeDialogService : IDialogService
     public Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>
         Task.FromResult(LayerPropertiesAnswer(properties));
 
+    public Queue<Avalonia.Media.Color?> ColorAnswers { get; } = new();
+
+    public Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial) =>
+        Task.FromResult(ColorAnswers.TryDequeue(out var c) ? c : null);
+
     public Task ShowErrorAsync(string title, string message)
     {
         Errors.Add(title);

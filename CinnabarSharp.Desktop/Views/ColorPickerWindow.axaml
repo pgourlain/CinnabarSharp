@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CinnabarSharp.Desktop.Views.ColorPickerWindow"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="16" Spacing="12">
+        <ColorView x:Name="Picker" IsAlphaEnabled="True" IsAlphaVisible="True"
+                   IsColorPaletteVisible="True" IsHexInputVisible="True" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>

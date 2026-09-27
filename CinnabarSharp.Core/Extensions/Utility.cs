@@ -33,6 +33,21 @@ namespace CinnabarSharp.Core.Extensions
             return pixels.ToByteArray(PixelMapping.BGRA)!;
         }
 
+        public static byte[] ReadRegion(this IImageBuf image, RectangleI rect)
+        {
+            using var pixels = image.GetPixelsUnsafe();
+            return pixels.ToByteArray(rect.X, rect.Y, (uint)rect.Width, (uint)rect.Height, PixelMapping.BGRA)!;
+        }
+
+        /// <summary>Overwrites a rectangle of the image in place (the image object stays the same).</summary>
+        public static void WriteRegion(this IImageBuf image, RectangleI rect, byte[] bgra)
+        {
+            if (!image.HasAlpha)
+                image.Alpha(AlphaOption.Set);
+            image.ImportPixels(bgra, new PixelImportSettings(rect.X, rect.Y, (uint)rect.Width, (uint)rect.Height,
+                StorageType.Char, PixelMapping.BGRA));
+        }
+
         public static IImageBuf FromBgra(byte[] bgra, int width, int height)
         {
             var image = new MagickImage();

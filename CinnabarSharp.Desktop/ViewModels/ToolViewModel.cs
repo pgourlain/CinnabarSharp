@@ -8,7 +8,14 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
     public string ToolTip => Tool is null ? $"{Name} ({Shortcut}) — coming soon" : $"{Name} ({Shortcut})";
 
     public bool IsSelectionTool => Tool is ShapeSelectionTool or MagicWandTool;
-    public bool IsMagicWand => Tool is MagicWandTool;
+    public bool HasTolerance => Tool is MagicWandTool or PaintBucketTool;
+    public bool HasBrushWidth => Tool is PaintbrushTool and not PencilTool or LineTool or ShapesTool;
+    public bool IsShapes => Tool is ShapesTool;
+    public bool IsGradient => Tool is GradientTool;
+    public bool IsColorPicker => Tool is ColorPickerTool;
+
+    /// <summary>Tools that paint get a crosshair cursor.</summary>
+    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or PaintBucketTool or ColorPickerTool;
 
     public static ToolViewModel[] CreatePaintDotNetTools(ToolSettings settings) =>
     [
@@ -20,16 +27,16 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
         new("Ellipse Select", "ES", "S", new EllipseSelectTool(settings)),
         new("Lasso Select", "LS", "S", new LassoSelectTool(settings)),
         new("Magic Wand", "MW", "S", new MagicWandTool(settings)),
-        new("Paint Bucket", "Fi", "F"),
-        new("Gradient", "Gr", "G"),
-        new("Paintbrush", "Br", "B"),
-        new("Eraser", "Er", "E"),
-        new("Pencil", "Pe", "P"),
-        new("Color Picker", "CP", "K"),
+        new("Paint Bucket", "Fi", "F", new PaintBucketTool(settings)),
+        new("Gradient", "Gr", "G", new GradientTool(settings)),
+        new("Paintbrush", "Br", "B", new PaintbrushTool(settings)),
+        new("Eraser", "Er", "E", new EraserTool(settings)),
+        new("Pencil", "Pe", "P", new PencilTool(settings)),
+        new("Color Picker", "CP", "K", new ColorPickerTool(settings)),
         new("Clone Stamp", "CS", "L"),
         new("Recolor", "Rc", "R"),
         new("Text", "Tx", "T"),
-        new("Line / Curve", "Ln", "O"),
-        new("Shapes", "Sh", "O"),
+        new("Line / Curve", "Ln", "O", new LineTool(settings)),
+        new("Shapes", "Sh", "O", new ShapesTool(settings)),
     ];
 }

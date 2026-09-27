@@ -1,0 +1,104 @@
+using CinnabarSharp.Core.Extensions;
+
+namespace CinnabarSharp.Core.Models;
+
+/// <summary>
+/// One painting operation on a layer (a brush stroke, a shape, a gradient...). Keeps a copy of the layer as it was,
+/// recomputes touched rectangles from that copy (so previews can be redrawn freely), writes them into the layer
+/// in place, and records a single history step holding only the changed rectangle.
+/// Pixels outside the selection are never changed.
+/// </summary>
+public sealed class PaintSession
+{
+    private readonly ImageDocument _document;
+    private readonly Layer _layer;
+    private readonly string _text;
+    private readonly byte[] _base;
+    private readonly SelectionMask? _selection;
+    private RectangleI _touched = RectangleI.Zero;
+
+    public PaintSession(ImageDocument document, string text)
+    {
+        _document = document;
+        _layer = document.Layers.CurrentUserLayer;
+        _text = text;
+        _base = _layer.Surface.ToBgra();
+        _selection = document.Selection;
+    }
+
+    public int Width => _document.ImageSize.Width;
+    public int Height => _document.ImageSize.Height;
+
+    /// <summary>The layer pixels as they were when the session started.</summary>
+    public ReadOnlySpan<byte> Base => _base;
+
+    /// <summary>Computes a pixel from its value before the session (<paramref name="pixel"/>, BGRA, edited in place).</summary>
+    public delegate void PixelFunction(int x, int y, Span<byte> pixel);
+
+    /// <summary>Recomputes <paramref name="region"/> from the original pixels and writes it into the layer.</summary>
+    public void Apply(RectangleI region, PixelFunction function)
+    {
+        if (region.IsEmpty)
+            return;
+        var buffer = PixelRegion.Extract(_base, Width, region);
+        for (var y = 0; y < region.Height; y++)
+        {
+            for (var x = 0; x < region.Width; x++)
+            {
+                var ix = region.X + x;
+                var iy = region.Y + y;
+                if (_selection is { } s && !s.Contains(ix, iy))
+                    continue;
+                function(ix, iy, buffer.AsSpan((y * region.Width + x) * 4, 4));
+            }
+        }
+        _layer.Surface.WriteRegion(region, buffer);
+        _touched = CoverageMask.Union(_touched, region);
+        _document.Workspace.Invalidate(region);
+    }
+
+    /// <summary>Paints <paramref name="color"/> where the mask covers <paramref name="region"/>.</summary>
+    public void ApplyColor(RectangleI region, CoverageMask coverage, ColorBgra color) =>
+        Apply(region, (x, y, pixel) => BlendCoverage(pixel, color, coverage[x, y]));
+
+    /// <summary>Makes pixels transparent where the mask covers <paramref name="region"/>.</summary>
+    public void ApplyErase(RectangleI region, CoverageMask coverage) =>
+        Apply(region, (x, y, pixel) => pixel[3] = (byte)(pixel[3] * (255 - coverage[x, y]) / 255));
+
+    /// <summary>Restores everything changed so far (used before redrawing a shape preview).</summary>
+    public void Reset()
+    {
+        if (_touched.IsEmpty)
+            return;
+        _layer.Surface.WriteRegion(_touched, PixelRegion.Extract(_base, Width, _touched));
+        _document.Workspace.Invalidate(_touched);
+    }
+
+    /// <summary>Records one history step for everything changed; does nothing if nothing changed.</summary>
+    public void Commit()
+    {
+        if (_touched.IsEmpty)
+            return;
+        var before = PixelRegion.Extract(_base, Width, _touched);
+        var after = _layer.Surface.ReadRegion(_touched);
+        if (before.AsSpan().SequenceEqual(after))
+            return;
+        _document.Workspace.History.PushNewItem(new PixelRegionHistoryItem(_text, _layer, _touched, before, after));
+    }
+
+    public static void BlendCoverage(Span<byte> pixel, ColorBgra color, byte coverage)
+    {
+        if (coverage == 0)
+            return;
+        Span<byte> top = [color.B, color.G, color.R, color.A];
+        BlendOps.Composite(pixel, top, BlendMode.Normal, coverage / 255.0);
+    }
+}
+
+/// <summary>Pixels of a rectangle of a layer changed; only that rectangle is stored.</summary>
+public sealed class PixelRegionHistoryItem(string text, Layer layer, RectangleI rect, byte[] before, byte[] after)
+    : HistoryItem(text)
+{
+    protected override void OnUndo() => layer.Surface.WriteRegion(rect, before);
+    protected override void OnRedo() => layer.Surface.WriteRegion(rect, after);
+}

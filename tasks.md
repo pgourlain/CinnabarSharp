@@ -131,13 +131,21 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 ## Phase 6 — Painting tools
 
-- [ ] Palette widget: primary/secondary color, swap, color picker dialog (HSV/RGB/hex, alpha).
-- [ ] Tools: Pencil, Paintbrush (width, antialiasing), Eraser, Paint Bucket (tolerance, fill modes), Color Picker, Line/Curve, Rectangle, Ellipse, Rounded Rectangle, Gradient (linear, radial, diamond, conical), Clone Stamp, Recolor, Text (font, size, bold/italic, alignment; re-editable until committed).
-- [ ] Tool options toolbar per tool.
+- [x] Palette: primary/secondary swatches open a color dialog (Avalonia ColorView: spectrum, RGB/HSV, hex, alpha, palette); Swap (X), Reset to black/white (D). Colors live in Core `ToolSettings` so tools and the Color Picker share them.
+- [x] Rasterizer in Core (`CoverageMask`, pure C#): antialiased/aliased discs, thick lines with round caps, rectangles and ellipses (fill/outline), 1-px Bresenham lines. Checksum test keeps strokes identical on every OS.
+- [x] `PaintSession`: previews recomputed from the original pixels, written into the layer in place, clipped to the selection; one history step per operation storing only the touched rectangle (closes Phase 4's "store only the changed region" for painting).
+- [x] Tools: Paintbrush (width, antialiasing), Eraser, Pencil, Paint Bucket (tolerance, contiguous/global), Color Picker (layer or merged image), Line, Shapes (rectangle/ellipse; outline, fill, or outline + fill with the secondary color), Gradient (linear, radial, diamond, conical). Left button = primary color, right button = secondary.
+- [x] Tool options bar per tool; Paint.NET letter shortcuts (B, E, P, F, G, K, O, S cycles select tools, M, H); crosshair cursor for painting tools.
+- [x] Canvas redraws only the rectangle a stroke touched (a full redraw of a 4000×3000 two-layer image takes ~50 ms; painting itself is <1 ms per move).
+- [ ] Rounded Rectangle; Bézier curves for Line/Curve (Paint.NET's editable handles).
+- [ ] Clone Stamp, Recolor.
+- [ ] Text tool (font, size, bold/italic, alignment; re-editable until committed); wire `TextEngine` clipboard to `IClipboardService`.
+- [ ] Brush-size cursor outline; gradient transparency mode; brush hardness.
 - [ ] Pressure support for pen tablets where Avalonia exposes it (`PointerPoint.Properties.Pressure`).
+- [ ] Letter shortcuts should not fire while typing in the brush-width box.
 
 **Validation**
-- [ ] Brush strokes smooth at 60 fps on a 4000×3000 canvas.
+- [ ] Brush strokes smooth at 60 fps on a 4000×3000 canvas (check by hand on each OS).
 - [ ] Text renders with system fonts on each OS (fallback when font missing).
 - [ ] Wacom/tablet pressure on at least Windows and macOS.
 
