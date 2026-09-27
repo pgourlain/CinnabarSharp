@@ -262,6 +262,65 @@ public class DocumentActions(ImageDocument document)
             document.ImageSize, surfaces, selection, null));
     }
 
+    // ---- Image (all layers) ----
+
+    public void FlipImageHorizontal() => TransformImage("Flip Image Horizontal", document.ImageSize,
+        (px, s) => ImageTransforms.FlipHorizontal(px, s.Width, s.Height));
+
+    public void FlipImageVertical() => TransformImage("Flip Image Vertical", document.ImageSize,
+        (px, s) => ImageTransforms.FlipVertical(px, s.Width, s.Height));
+
+    public void RotateImage90(bool clockwise) => TransformImage(
+        clockwise ? "Rotate 90° Clockwise" : "Rotate 90° Counter-Clockwise",
+        new ImageSize(Height, Width), (px, s) => ImageTransforms.Rotate90(px, s.Width, s.Height, clockwise));
+
+    public void RotateImage180() => TransformImage("Rotate 180°", document.ImageSize,
+        (px, s) => ImageTransforms.Rotate180(px, s.Width, s.Height));
+
+    /// <summary>
+    /// Changes the canvas size without scaling pixels. New area of the bottom layer gets <paramref name="background"/>
+    /// (Paint.NET uses the secondary color); other layers get transparency.
+    /// </summary>
+    public void ResizeCanvas(ImageSize size, Anchor anchor, ColorBgra background)
+    {
+        if (size == document.ImageSize)
+            return;
+        var bottom = Layers[0];
+        var from = document.ImageSize;
+        ReplaceAllLayers("Canvas Size", size, layer => Utility.FromBgra(
+            ImageTransforms.ResizeCanvas(layer.Surface.ToBgra(), from, size, anchor,
+                layer == bottom ? background : ColorBgra.Transparent),
+            size.Width, size.Height));
+    }
+
+    public void ResizeImage(ImageSize size, ResamplingMode mode)
+    {
+        if (size == document.ImageSize)
+            return;
+        ReplaceAllLayers("Resize Image", size, layer => ImageTransforms.Resample(layer.Surface, size, mode));
+    }
+
+    private void TransformImage(string text, ImageSize newSize, Func<byte[], ImageSize, byte[]> transform)
+    {
+        var size = document.ImageSize;
+        ReplaceAllLayers(text, newSize, layer =>
+            Utility.FromBgra(transform(layer.Surface.ToBgra(), size), newSize.Width, newSize.Height));
+    }
+
+    /// <summary>Replaces every layer's surface, sets the new size, deselects, and records one undoable step.</summary>
+    private void ReplaceAllLayers(string text, ImageSize newSize, Func<Layer, IImageBuf> create)
+    {
+        var sizeBefore = document.ImageSize;
+        var selectionBefore = document.Selection;
+        var surfaces = Layers.UserLayers.Select(l => ((Layer)l, l.Surface, create(l))).ToList();
+
+        document.SetSelection(null);
+        foreach (var (layer, _, after) in surfaces)
+            layer.Surface = after;
+        document.Resize(newSize);
+        History.PushNewItem(new ResizeImageHistoryItem(text, document, sizeBefore, newSize, surfaces, selectionBefore, null));
+    }
+
     private SelectionMask RectangleSelection(RectangleI area) =>
         SelectionMask.Rectangle(Width, Height, new PointD(area.X, area.Y), new PointD(area.X + area.Width, area.Y + area.Height));
 

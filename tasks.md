@@ -151,11 +151,15 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 ## Phase 7 — Image menu
 
-- [ ] Resize Image (by %, by size, keep aspect, resampling), Resize Canvas (anchor — `Anchor` model), Crop.
-- [ ] Rotate 90°/180°, Flip horizontal/vertical (image and layer), arbitrary layer rotation.
+- [x] Resize Image dialog: by percentage or absolute size, keep aspect ratio, resampling (Best Quality/Lanczos, Bicubic, Bilinear, Nearest Neighbor via Magick.NET).
+- [x] Canvas Size dialog: by percentage or size, 3×3 anchor; new area of the bottom layer uses the secondary color, other layers stay transparent (Paint.NET behavior).
+- [x] Rotate 90° clockwise / counter-clockwise / 180°, Flip Horizontal / Vertical for the whole image (pure C#); Crop to Selection (Phase 5). Layer flips were done in Phase 3. All undoable in one step, zoom level kept.
+- [ ] Arbitrary layer rotation / zoom (Paint.NET's Layers › Rotate / Zoom).
+- [ ] Transform the selection with rotate/flip instead of deselecting.
 
 **Validation**
-- [ ] Resize/rotate outputs identical across OSes; undo restores exactly.
+- [ ] Rotate/flip/canvas size identical across OSes (pure C#; covered by `ImageTransformsTests` in CI). Resize uses Magick.NET resampling: compare exported files across OSes.
+- [x] Undo restores exactly (every image operation is in `HistoryTests.Actions`).
 
 ## Phase 8 — Adjustments
 

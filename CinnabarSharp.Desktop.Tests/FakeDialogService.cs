@@ -53,6 +53,15 @@ public class FakeDialogService : IDialogService
     public Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>
         Task.FromResult(LayerPropertiesAnswer(properties));
 
+    public Queue<ResizeImageOptions?> ResizeAnswers { get; } = new();
+    public Queue<CanvasSizeOptions?> CanvasSizeAnswers { get; } = new();
+
+    public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
+        Task.FromResult(ResizeAnswers.TryDequeue(out var a) ? a : null);
+
+    public Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current) =>
+        Task.FromResult(CanvasSizeAnswers.TryDequeue(out var a) ? a : null);
+
     public Queue<Avalonia.Media.Color?> ColorAnswers { get; } = new();
 
     public Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial) =>

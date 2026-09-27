@@ -71,6 +71,12 @@ public class DialogService(Window owner) : IDialogService
     public async Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>
         await new LayerPropertiesWindow { DataContext = properties }.ShowDialog<bool?>(owner) == true;
 
+    public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
+        new ResizeImageWindow { DataContext = new ResizeImageViewModel(current) }.ShowDialog<ResizeImageOptions?>(owner);
+
+    public Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current) =>
+        new CanvasSizeWindow { DataContext = new CanvasSizeViewModel(current) }.ShowDialog<CanvasSizeOptions?>(owner);
+
     public Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial) =>
         new ColorPickerWindow(title, initial).ShowDialog<Avalonia.Media.Color?>(owner);
 

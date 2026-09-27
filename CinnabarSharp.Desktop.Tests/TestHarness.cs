@@ -44,10 +44,13 @@ public sealed class TestHarness : IDisposable
 
     public static string SampleImage => Path.Combine(AppContext.BaseDirectory, "Data", "sample1.png");
 
-    public WriteableBitmap Capture(string name)
+    public WriteableBitmap Capture(string name) => CaptureWindow(Window, name);
+
+    /// <summary>Renders any window and saves it to the screenshots folder (created if needed).</summary>
+    public static WriteableBitmap CaptureWindow(Window window, string name)
     {
         Dispatcher.UIThread.RunJobs();
-        var frame = Window.CaptureRenderedFrame()!;
+        var frame = window.CaptureRenderedFrame()!;
         Directory.CreateDirectory(ScreenshotDir);
         frame.Save(Path.Combine(ScreenshotDir, name + ".png"), PngBitmapEncoderOptions.Default);
         return frame;

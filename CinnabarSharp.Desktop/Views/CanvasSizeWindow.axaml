@@ -1,0 +1,84 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        xmlns:m="using:CinnabarSharp.Core.Models"
+        x:Class="CinnabarSharp.Desktop.Views.CanvasSizeWindow"
+        x:DataType="vm:CanvasSizeViewModel"
+        Title="Canvas Size"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <Window.Styles>
+        <Style Selector="RadioButton.anchor">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+    </Window.Styles>
+    <StackPanel Margin="20" Spacing="12" Width="360">
+        <TextBlock Text="{Binding CurrentSizeText, StringFormat=Current size: {0}}" Foreground="Gray" />
+        <RadioButton GroupName="Mode" Content="By percentage" IsChecked="{Binding ByPercentage}" />
+        <NumericUpDown Value="{Binding Percentage}" Minimum="1" Maximum="10000" Increment="1" FormatString="0"
+                       IsEnabled="{Binding ByPercentage}" Margin="24,0,0,0" />
+        <RadioButton GroupName="Mode" Content="By absolute size" IsChecked="{Binding ByAbsoluteSize}" />
+        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="8"
+              Margin="24,0,0,0" IsEnabled="{Binding ByAbsoluteSize}">
+            <CheckBox Grid.ColumnSpan="3" Content="Maintain aspect ratio" IsChecked="{Binding MaintainAspectRatio}" />
+            <TextBlock Grid.Row="1" Text="Width:" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="WidthInput" Value="{Binding Width}" Minimum="1"
+                           Maximum="65535" Increment="1" FormatString="0" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="2" Text="Height:" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Height}" Minimum="1"
+                           Maximum="65535" Increment="1" FormatString="0" />
+            <TextBlock Grid.Row="2" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="16">
+            <TextBlock Text="Anchor:" VerticalAlignment="Top" />
+            <Grid ColumnDefinitions="36,36,36" RowDefinitions="36,36,36">
+                <RadioButton Grid.Row="0" Grid.Column="0" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.NW}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.NW}}"
+                             ToolTip.Tip="NW" />
+                <RadioButton Grid.Row="0" Grid.Column="1" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.N}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.N}}"
+                             ToolTip.Tip="N" />
+                <RadioButton Grid.Row="0" Grid.Column="2" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.NE}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.NE}}"
+                             ToolTip.Tip="NE" />
+                <RadioButton Grid.Row="1" Grid.Column="0" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.W}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.W}}"
+                             ToolTip.Tip="W" />
+                <RadioButton Grid.Row="1" Grid.Column="1" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.Center}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.Center}}"
+                             ToolTip.Tip="Center" />
+                <RadioButton Grid.Row="1" Grid.Column="2" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.E}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.E}}"
+                             ToolTip.Tip="E" />
+                <RadioButton Grid.Row="2" Grid.Column="0" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.SW}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.SW}}"
+                             ToolTip.Tip="SW" />
+                <RadioButton Grid.Row="2" Grid.Column="1" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.S}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.S}}"
+                             ToolTip.Tip="S" />
+                <RadioButton Grid.Row="2" Grid.Column="2" Classes="anchor" GroupName="Anchor"
+                             Command="{Binding SetAnchorCommand}" CommandParameter="{x:Static m:Anchor.SE}"
+                             IsChecked="{Binding Anchor, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:Anchor.SE}}"
+                             ToolTip.Tip="SE" />
+            </Grid>
+        </StackPanel>
+        <TextBlock Text="New area of the bottom layer is filled with the secondary color." Foreground="Gray"
+                   TextWrapping="Wrap" FontSize="12" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>

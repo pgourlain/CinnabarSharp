@@ -634,6 +634,41 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Paint.NET pastes at the top-left of the visible part of the canvas.</summary>
     private PointI PasteLocation() => Viewport?.VisibleImageOrigin() ?? PointI.Zero;
 
+    // ---- Image ----
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private async Task ResizeImage()
+    {
+        if (Dialogs is null || ActiveDocument is not { } d)
+            return;
+        if (await Dialogs.ShowResizeImageAsync(d.Document.ImageSize) is { } options)
+            d.Document.Actions.ResizeImage(options.Size, options.Resampling);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private async Task CanvasSize()
+    {
+        if (Dialogs is null || ActiveDocument is not { } d)
+            return;
+        if (await Dialogs.ShowCanvasSizeAsync(d.Document.ImageSize) is { } options)
+            d.Document.Actions.ResizeCanvas(options.Size, options.Anchor, ToolSettings.SecondaryColor);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void FlipImageHorizontal() => ActiveDocument?.Document.Actions.FlipImageHorizontal();
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void FlipImageVertical() => ActiveDocument?.Document.Actions.FlipImageVertical();
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void RotateClockwise() => ActiveDocument?.Document.Actions.RotateImage90(clockwise: true);
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void RotateCounterClockwise() => ActiveDocument?.Document.Actions.RotateImage90(clockwise: false);
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private void Rotate180() => ActiveDocument?.Document.Actions.RotateImage180();
+
     // ---- Colors ----
 
     [RelayCommand]
@@ -661,6 +696,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      SaveCommand, SaveAsCommand, CloseCommand,
                      SelectAllCommand, InvertSelectionCommand, EraseSelectionCommand, FillSelectionCommand,
                      CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand,
+                     ResizeImageCommand, CanvasSizeCommand, FlipImageHorizontalCommand, FlipImageVerticalCommand,
+                     RotateClockwiseCommand, RotateCounterClockwiseCommand, Rotate180Command,
                  })
             command.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasDocument));

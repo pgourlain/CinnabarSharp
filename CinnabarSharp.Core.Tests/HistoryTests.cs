@@ -89,6 +89,13 @@ public sealed class HistoryTests : BaseTests, IDisposable
         { "Cut", a => a.Cut() },
         { "Paste", a => a.Paste(new ClipboardImage([9, 9, 9, 255, 9, 9, 9, 255], 2, 1), new PointI(1, 1)) },
         { "Paste Into New Layer", a => a.PasteIntoNewLayer(new ClipboardImage([9, 9, 9, 255], 1, 1), new PointI(3, 2)) },
+        { "Flip Image Horizontal", a => a.FlipImageHorizontal() },
+        { "Flip Image Vertical", a => a.FlipImageVertical() },
+        { "Rotate 90° Clockwise", a => a.RotateImage90(clockwise: true) },
+        { "Rotate 90° Counter-Clockwise", a => a.RotateImage90(clockwise: false) },
+        { "Rotate 180°", a => a.RotateImage180() },
+        { "Canvas Size", a => a.ResizeCanvas(new ImageSize(6, 5), Anchor.Center, ColorBgra.Black) },
+        { "Resize Image", a => a.ResizeImage(new ImageSize(8, 6), ResamplingMode.NearestNeighbor) },
     };
 
     [Fact]

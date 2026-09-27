@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="using:CinnabarSharp.Desktop.Converters"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        x:Class="CinnabarSharp.Desktop.Views.ResizeImageWindow"
+        x:DataType="vm:ResizeImageViewModel"
+        Title="Resize Image"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="20" Spacing="12" Width="340">
+        <TextBlock Text="{Binding CurrentSizeText, StringFormat=Current size: {0}}" Foreground="Gray" />
+        <RadioButton GroupName="Mode" Content="By percentage" IsChecked="{Binding ByPercentage}" />
+        <NumericUpDown Value="{Binding Percentage}" Minimum="1" Maximum="10000" Increment="1" FormatString="0"
+                       IsEnabled="{Binding ByPercentage}" Margin="24,0,0,0" />
+        <RadioButton GroupName="Mode" Content="By absolute size" IsChecked="{Binding ByAbsoluteSize}" />
+        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="8"
+              Margin="24,0,0,0" IsEnabled="{Binding ByAbsoluteSize}">
+            <CheckBox Grid.ColumnSpan="3" Content="Maintain aspect ratio" IsChecked="{Binding MaintainAspectRatio}" />
+            <TextBlock Grid.Row="1" Text="Width:" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="WidthInput" Value="{Binding Width}" Minimum="1"
+                           Maximum="65535" Increment="1" FormatString="0" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="2" Text="Height:" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Height}" Minimum="1"
+                           Maximum="65535" Increment="1" FormatString="0" />
+            <TextBlock Grid.Row="2" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Resampling:" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{x:Static vm:ResizeImageViewModel.ResamplingModes}"
+                      SelectedItem="{Binding Resampling}" MinWidth="160">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>

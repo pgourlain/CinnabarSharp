@@ -124,10 +124,7 @@ public sealed class PaintingUiTests : IDisposable
     {
         var dialog = new ColorPickerWindow("Primary Color", Colors.Orange);
         dialog.Show();
-        Dispatcher.UIThread.RunJobs();
-        var frame = dialog.CaptureRenderedFrame()!;
-        frame.Save(Path.Combine(AppContext.BaseDirectory, "screenshots", "52-color-dialog.png"),
-            Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        TestHarness.CaptureWindow(dialog, "52-color-dialog");
         Assert.True(dialog.Bounds.Width > 200);
         dialog.Close();
     }

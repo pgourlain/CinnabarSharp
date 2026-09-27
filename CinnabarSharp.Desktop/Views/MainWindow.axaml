@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="using:CinnabarSharp.Desktop.Converters"
         xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
         xmlns:c="using:CinnabarSharp.Desktop.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -107,7 +108,13 @@
                     <TextBlock Text="Selection mode:" />
                     <ComboBox x:Name="SelectionModeCombo" ItemsSource="{x:Static vm:MainViewModel.SelectionModes}"
                               SelectedItem="{Binding SelectionMode}" MinWidth="120"
-                              ToolTip.Tip="⌘/Ctrl: union · Alt: exclude · ⌘/Ctrl+Alt: intersect · right-click: exclude" />
+                              ToolTip.Tip="⌘/Ctrl: union · Alt: exclude · ⌘/Ctrl+Alt: intersect · right-click: exclude">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowBrushOptions}">
                     <TextBlock Text="Brush width:" />
@@ -117,13 +124,31 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowShapeOptions}">
                     <TextBlock Text="Shape:" />
-                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeKinds}" SelectedItem="{Binding ShapeKind}" MinWidth="110" />
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeKinds}" SelectedItem="{Binding ShapeKind}" MinWidth="110">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                     <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeStyles}" SelectedItem="{Binding ShapeStyle}" MinWidth="140"
-                              ToolTip.Tip="Outline and fill: outline in the primary color, filled with the secondary color" />
+                              ToolTip.Tip="Outline and fill: outline in the primary color, filled with the secondary color">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowGradientOptions}">
                     <TextBlock Text="Gradient:" />
-                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.GradientKinds}" SelectedItem="{Binding GradientKind}" MinWidth="110" />
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.GradientKinds}" SelectedItem="{Binding GradientKind}" MinWidth="110">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowToleranceOptions}">
                     <TextBlock Text="Tolerance:" />
