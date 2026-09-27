@@ -14,6 +14,7 @@ using CinnabarSharp.Core.Adjustments;
 using CinnabarSharp.Core.Effects;
 using Effect = CinnabarSharp.Core.Effects.Effect;
 using CinnabarSharp.Core.Tools;
+using CinnabarSharp.Core.Photo;
 using CinnabarSharp.Desktop.Services;
 
 namespace CinnabarSharp.Desktop.ViewModels;
@@ -225,6 +226,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 $"{format.DisplayName} files can't store layers, so the saved file will contain the visible layers merged into one. Your layers are kept in CinnabarSharp.",
                 "Flatten and Save"))
             return false;
+
+        if (format is JpegFormat jpeg)
+        {
+            if (Dialogs is not null)
+            {
+                if (await Dialogs.AskJpegQualityAsync(JpegQuality) is not { } quality)
+                    return false;
+                JpegQuality = quality;
+            }
+            jpeg.Quality = JpegQuality;
+        }
 
         try
         {
@@ -585,6 +597,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         Italic = settings.Italic;
         Underline = settings.Underline;
         TextAlignment = settings.TextAlignment;
+        ToolSettings.CropAspect = settings.CropAspect;
+        JpegQuality = settings.JpegQuality;
+        TvOptions = new TvOptions(settings.TvResolution, settings.TvFit, settings.TvBackground);
         Tolerance = settings.Tolerance;
         GlobalFill = settings.GlobalFill;
         SampleImage = settings.SampleImage;
@@ -612,6 +627,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         Italic = Italic,
         Underline = Underline,
         TextAlignment = TextAlignment,
+        CropAspect = ToolSettings.CropAspect,
+        JpegQuality = JpegQuality,
+        TvResolution = TvOptions.Resolution,
+        TvFit = TvOptions.Fit,
+        TvBackground = TvOptions.Background,
         Tolerance = Tolerance,
         GlobalFill = GlobalFill,
         SampleImage = SampleImage,
@@ -676,8 +696,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial ToolOverlay? Overlay { get; set; }
 
-    private void UpdateOverlay() =>
+    private void UpdateOverlay()
+    {
         Overlay = ActiveDocument is { } d && SelectedTool?.Tool is IOverlayTool tool ? tool.GetOverlay(d.Document) : null;
+        ApplyCropCommand.NotifyCanExecuteChanged();
+    }
 
     /// <summary>Redraws the curve or text being edited after a color or option change.</summary>
     private void RefreshEditingTool()
@@ -710,6 +733,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      nameof(ShowSelectionOptions), nameof(ShowToleranceOptions), nameof(ShowBrushOptions),
                      nameof(ShowShapeOptions), nameof(ShowGradientOptions), nameof(ShowColorPickerOptions),
                      nameof(ShowHardnessOptions), nameof(ShowCornerRadiusOptions), nameof(ShowTextOptions),
+                     nameof(ShowCropOptions),
                      nameof(BrushOutlineSize),
                  })
             OnPropertyChanged(name);
@@ -725,6 +749,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool ShowGradientOptions => SelectedTool.IsGradient;
     public bool ShowColorPickerOptions => SelectedTool.IsColorPicker;
     public bool ShowTextOptions => SelectedTool.IsText;
+    public bool ShowCropOptions => SelectedTool.Tool is CropTool;
 
     // ---- Selection and clipboard ----
 
@@ -968,6 +993,98 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private Task ApplyEffect(Effect effect) => RunEffect(effect);
 
+    // ---- Photo: crop and TV ----
+
+    /// <summary>Quality of saved JPEGs, asked on each save and remembered.</summary>
+    public int JpegQuality { get; set; } = JpegFormat.DefaultQuality;
+
+    /// <summary>Last choices of the Prepare for TV dialog.</summary>
+    public TvOptions TvOptions { get; set; } = new(TvResolution.Uhd4K, TvFit.CropToFill);
+
+    public sealed record CropAspectOption(CropAspect Value, string Label);
+
+    public static IReadOnlyList<CropAspectOption> CropAspects { get; } =
+    [
+        new(CropAspect.Wide, "16:9 (TV)"),
+        new(CropAspect.Tall, "9:16"),
+        new(CropAspect.Standard, "4:3"),
+        new(CropAspect.Photo, "3:2"),
+        new(CropAspect.Square, "1:1"),
+        new(CropAspect.Free, "Free"),
+    ];
+
+    public CropAspectOption SelectedCropAspect
+    {
+        get => CropAspects.First(a => a.Value == ToolSettings.CropAspect);
+        set
+        {
+            ToolSettings.CropAspect = value?.Value ?? CropAspect.Free;
+            OnPropertyChanged();
+            RefreshEditingTool();
+        }
+    }
+
+    private CropTool? CropTool => Tools.Select(t => t.Tool).OfType<CropTool>().FirstOrDefault();
+
+    public bool HasCropFrame => ActiveDocument is { } d && CropTool?.IsEditing(d.Document) == true;
+
+    [RelayCommand(CanExecute = nameof(HasCropFrame))]
+    private void ApplyCrop()
+    {
+        if (ActiveDocument is { } d)
+            CropTool?.Apply(d.Document);
+        UpdateOverlay();
+    }
+
+    /// <summary>What Crop to fill keeps: the crop frame, else the selection, else the center.</summary>
+    private RectangleI? TvCropArea(ImageDocument doc) =>
+        CropTool?.Frame(doc) ?? doc.Selection?.Bounds;
+
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private async Task PrepareForTv()
+    {
+        if (Dialogs is null || ActiveDocument is not { } d)
+            return;
+        var doc = d.Document;
+        var crop = TvCropArea(doc);
+        var options = new PrepareForTvViewModel(TvOptions, doc.ImageSize, crop,
+            Documents.Where(o => o != d).ToList());
+        if (!await Dialogs.ShowPrepareForTvAsync(options))
+            return;
+        TvOptions = options.Options;
+
+        var photo = new BgraImage(doc.Layers.GetFlattenedBgra(includeToolLayer: false), doc.ImageSize.Width, doc.ImageSize.Height);
+        BgraImage? second = null;
+        if (options.SideBySide && options.SecondPhoto?.Document is { } other)
+            second = new BgraImage(other.Layers.GetFlattenedBgra(includeToolLayer: false), other.ImageSize.Width, other.ImageSize.Height);
+        var tvOptions = options.Options;
+        var result = await Task.Run(() => second is null
+            ? TvExport.Compose(photo, tvOptions, crop)
+            : TvExport.SideBySide(photo, second, tvOptions));
+
+        var name = Path.GetFileNameWithoutExtension(doc.DisplayName);
+        var tv = _workspace.NewDocumentFromImage(new ClipboardImage(result.Pixels, result.Width, result.Height));
+        tv.DisplayName = name + TvExport.Suffix(tvOptions.Resolution);
+        tv.FileType = "jpg";
+        FitIfLargerThanViewport(tv);
+    }
+
+    [RelayCommand]
+    private async Task PrepareFolderForTv()
+    {
+        if (Dialogs is null || await Dialogs.PickFolderAsync("Choose a folder of photos") is not { } folder)
+            return;
+        var options = new PrepareForTvViewModel(TvOptions, folder: folder);
+        if (!await Dialogs.ShowPrepareForTvAsync(options) || await Dialogs.AskJpegQualityAsync(JpegQuality) is not { } quality)
+            return;
+        TvOptions = options.Options;
+        JpegQuality = quality;
+        var tvOptions = options.Options;
+        var (output, count) = await Task.Run(() => TvExport.ExportFolder(new DirectoryInfo(folder), tvOptions, quality));
+        await Dialogs.ShowMessageAsync("Photos ready for the TV",
+            count == 0 ? "No photos were found in this folder." : $"{count} photo{(count > 1 ? "s" : "")} saved in \"{output.FullName}\".");
+    }
+
     // ---- Image ----
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
@@ -1034,7 +1151,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      AutoLevelCommand, BlackAndWhiteCommand, BrightnessContrastCommand, HueSaturationCommand,
                      InvertColorsCommand, LevelsCommand, CurvesCommand, PosterizeCommand, SepiaCommand,
                      RepeatEffectCommand, ApplyEffectCommand,
-                     ResizeImageCommand, CanvasSizeCommand, FlipImageHorizontalCommand, FlipImageVerticalCommand,
+                     ResizeImageCommand, CanvasSizeCommand, FlipImageHorizontalCommand, FlipImageVerticalCommand, PrepareForTvCommand,
                      RotateClockwiseCommand, RotateCounterClockwiseCommand, Rotate180Command,
                  })
             command.NotifyCanExecuteChanged();

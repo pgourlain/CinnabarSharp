@@ -43,6 +43,17 @@ public interface IDialogService
 
     Task<bool> ShowPhotoFilterAsync(PhotoFilterDialogViewModel filters);
 
+    /// <summary>Returns true for OK; the choices stay in the view model.</summary>
+    Task<bool> ShowPrepareForTvAsync(PrepareForTvViewModel options);
+
+    /// <summary>Returns the JPEG quality (1–100), or null when cancelled.</summary>
+    Task<int?> AskJpegQualityAsync(int current);
+
+    /// <summary>Returns the chosen folder's local path, or null when cancelled.</summary>
+    Task<string?> PickFolderAsync(string title);
+
+    Task ShowMessageAsync(string title, string message);
+
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 

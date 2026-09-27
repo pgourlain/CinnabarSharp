@@ -29,6 +29,11 @@ public record AppSettings
     public bool Italic { get; init; }
     public bool Underline { get; init; }
     public TextAlignment TextAlignment { get; init; }
+    public CropAspect CropAspect { get; init; } = CropAspect.Wide;
+    public int JpegQuality { get; init; } = Core.Services.JpegFormat.DefaultQuality;
+    public Core.Photo.TvResolution TvResolution { get; init; } = Core.Photo.TvResolution.Uhd4K;
+    public Core.Photo.TvFit TvFit { get; init; }
+    public Core.Photo.TvBackground TvBackground { get; init; }
     public int Tolerance { get; init; } = 50;
     public bool GlobalFill { get; init; }
     public bool SampleImage { get; init; }

@@ -162,6 +162,19 @@
                     <CheckBox Content="Transparency mode" IsChecked="{Binding GradientTransparency}"
                               ToolTip.Tip="Fade the layer from opaque to transparent instead of painting colors" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowCropOptions}">
+                    <TextBlock Text="Aspect ratio:" />
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.CropAspects}" SelectedItem="{Binding SelectedCropAspect}"
+                              MinWidth="110" Focusable="False">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MainViewModel+CropAspectOption">
+                                <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Content="Crop" Command="{Binding ApplyCropCommand}" ToolTip.Tip="Crop to the frame (Enter)" />
+                    <TextBlock Text="Drag a frame; drag inside to move it, a corner to resize. Esc removes it." Foreground="Gray" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowTextOptions}">
                     <TextBlock Text="Font:" />
                     <ComboBox x:Name="FontFamilyCombo" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}"

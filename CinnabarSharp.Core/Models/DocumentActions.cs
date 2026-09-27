@@ -242,15 +242,32 @@ public class DocumentActions(ImageDocument document)
     {
         if (document.Selection is not { } selection)
             return;
-        var bounds = selection.Bounds;
-        var mask = selection.Crop(bounds);
+        Crop("Crop to Selection", selection.Bounds, selection.Crop(selection.Bounds));
+    }
+
+    /// <summary>Crops every layer to <paramref name="rect"/> (clipped to the image); the selection is removed.</summary>
+    public void CropToRectangle(RectangleI rect, string text = "Crop")
+    {
+        var x0 = Math.Clamp(rect.X, 0, Width);
+        var y0 = Math.Clamp(rect.Y, 0, document.ImageSize.Height);
+        var x1 = Math.Clamp(rect.X + rect.Width, 0, Width);
+        var y1 = Math.Clamp(rect.Y + rect.Height, 0, document.ImageSize.Height);
+        if (x1 <= x0 || y1 <= y0)
+            return;
+        Crop(text, new RectangleI(x0, y0, x1 - x0, y1 - y0), mask: null);
+    }
+
+    private void Crop(string text, RectangleI bounds, SelectionMask? mask)
+    {
+        var selection = document.Selection;
         var sizeBefore = document.ImageSize;
 
         var surfaces = new List<(Layer, IImageBuf, IImageBuf)>();
         foreach (var layer in Layers.UserLayers)
         {
             var region = PixelRegion.Extract(layer.Surface.ToBgra(), Width, bounds);
-            PixelRegion.ClearOutside(region, mask);
+            if (mask is not null)
+                PixelRegion.ClearOutside(region, mask);
             surfaces.Add((layer, layer.Surface, Utility.FromBgra(region, bounds.Width, bounds.Height)));
         }
 
@@ -258,7 +275,7 @@ public class DocumentActions(ImageDocument document)
         foreach (var (layer, _, after) in surfaces)
             layer.Surface = after;
         document.Resize(new ImageSize(bounds.Width, bounds.Height));
-        History.PushNewItem(new ResizeImageHistoryItem("Crop to Selection", document, sizeBefore,
+        History.PushNewItem(new ResizeImageHistoryItem(text, document, sizeBefore,
             document.ImageSize, surfaces, selection, null));
     }
 

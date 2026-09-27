@@ -179,11 +179,22 @@ public class CanvasView : Control
         }
     }
 
-    private static void DrawOverlay(DrawingContext context, ToolOverlay overlay, double scale)
+    private static readonly IBrush ShadeBrush = new SolidColorBrush(Color.FromArgb(120, 0, 0, 0));
+
+    private void DrawOverlay(DrawingContext context, ToolOverlay overlay, double scale)
     {
         Point P(Core.Models.PointD p) => new(p.X * scale, p.Y * scale);
         Rect R(Core.Models.RectangleD r) => new(r.X * scale, r.Y * scale, r.Width * scale, r.Height * scale);
 
+        if (overlay.Shade is { } keep && Document is { } doc)
+        {
+            var view = doc.Workspace.ViewSize;
+            var k = R(keep);
+            context.FillRectangle(ShadeBrush, new Rect(0, 0, view.Width, k.Top));
+            context.FillRectangle(ShadeBrush, new Rect(0, k.Bottom, view.Width, Math.Max(0, view.Height - k.Bottom)));
+            context.FillRectangle(ShadeBrush, new Rect(0, k.Top, k.Left, k.Height));
+            context.FillRectangle(ShadeBrush, new Rect(k.Right, k.Top, Math.Max(0, view.Width - k.Right), k.Height));
+        }
         foreach (var highlight in overlay.Highlights)
             context.FillRectangle(HighlightBrush, R(highlight));
         if (overlay.Frame is { } frame)

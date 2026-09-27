@@ -2,7 +2,7 @@
 
 A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/), written in C# with .NET 10 and [Avalonia](https://avaloniaui.net/). It runs on Windows, macOS and Linux with the same rendering on all three.
 
-> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments and effects work; photo tools are next. See the [roadmap](tasks.md).
+> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments and effects work; the UI review and an MCP server are next. See the [roadmap](tasks.md).
 
 ![CinnabarSharp main window](docs/screenshot.png)
 
@@ -18,6 +18,7 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Adjustments**: auto-level, black and white, brightness/contrast, curves, hue/saturation, invert, levels (with histograms and per-channel mode), posterize, sepia — with live preview.
 - **Effects**: Gaussian/motion/radial/zoom blur, glow, sharpen, vignette, add noise, median, bulge, frosted glass, pixelate, twist, edge detect, emboss, relief, clouds, Mandelbrot — with live preview and Repeat Last Effect.
 - **Photo menu** (iPhone-like): Auto-Enhance, Adjust Photo (exposure, brilliance, highlights, shadows, contrast, brightness, black point, saturation, vibrance, warmth, tint, sharpness, definition, noise reduction, vignette), filters with thumbnails (Vivid, Dramatic, Mono, Silvertone, Noir…), Straighten; hold to compare before/after.
+- **Photos for the TV**: crop tool locked to 16:9 (or 4:3, 3:2, 1:1…), Prepare for TV at 2K, 4K or 8K (crop to fill, fit with plain or blurred borders, two portraits side by side), JPEG export with quality and sRGB profile, and a whole folder at once.
 - **Image menu**: resize image (resampling choice), canvas size with anchor, rotate, flip, crop to selection.
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
 - **Native feel on each OS**: macOS menu bar and ⌘ shortcuts, in-window menu and Ctrl shortcuts on Windows and Linux, native file dialogs, drag and drop, recent files.

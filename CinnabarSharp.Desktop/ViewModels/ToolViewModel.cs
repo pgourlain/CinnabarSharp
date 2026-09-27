@@ -26,7 +26,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
     public bool IsText => Tool is TextTool;
 
     /// <summary>Tools that paint get a crosshair cursor.</summary>
-    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or LineTool or PaintBucketTool or ColorPickerTool;
+    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or LineTool or PaintBucketTool or ColorPickerTool or CropTool;
 
     public static ToolViewModel[] CreatePaintDotNetTools(ToolSettings settings, ITextRasterizer textRasterizer) =>
     [
@@ -38,6 +38,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
         new("Ellipse Select", "ES", "S", new EllipseSelectTool(settings)),
         new("Lasso Select", "LS", "S", new LassoSelectTool(settings)),
         new("Magic Wand", "MW", "S", new MagicWandTool(settings)),
+        new("Crop", "Cr", "C", new CropTool(settings)),
         new("Paint Bucket", "Fi", "F", new PaintBucketTool(settings)),
         new("Gradient", "Gr", "G", new GradientTool(settings)),
         new("Paintbrush", "Br", "B", new PaintbrushTool(settings)),

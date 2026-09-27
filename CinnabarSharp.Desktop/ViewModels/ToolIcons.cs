@@ -18,6 +18,7 @@ public static class ToolIcons
         ["Rectangle Select"] = ("M4 4h16v16H4z", true),
         ["Ellipse Select"] = ("M3 12a9 7 0 1 0 18 0a9 7 0 1 0-18 0", true),
         ["Lasso Select"] = ("M7 17c-3-1-4-4-3-7 1-4 6-6 10-5s7 4 5 7-6 5-10 5 M7 17c1 1 1 3-2 4", true),
+        ["Crop"] = ("M6 2v16h16 M2 6h16v16", false),
         ["Magic Wand"] = ("M4 20L14 10 M16 2v4 M14 4h4 M20 8v2 M19 9h2 M10 3v2 M9 4h2", false),
         ["Paint Bucket"] = ("M4 11l7-7 7 7-7 7z M4 11h14 M20 14c0 2 1 3 1 4a1 1 0 0 1-2 0c0-1 1-2 1-4z", false),
         ["Gradient"] = ("M3 3h18v18H3z M3 21L21 3 M3 14L14 3 M10 21L21 10", false),

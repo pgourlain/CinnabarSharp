@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        x:Class="CinnabarSharp.Desktop.Views.JpegQualityWindow"
+        x:DataType="vm:JpegQualityViewModel"
+        Title="JPEG Quality"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="20" Spacing="12" Width="360">
+        <TextBlock Text="Higher quality keeps more detail and makes a bigger file." TextWrapping="Wrap" />
+        <DockPanel>
+            <NumericUpDown DockPanel.Dock="Right" Value="{Binding Quality}" Minimum="1" Maximum="100" Increment="1"
+                           FormatString="0" Width="110" Margin="8,0,0,0" />
+            <Slider Minimum="1" Maximum="100" Value="{Binding Quality}" VerticalAlignment="Center" />
+        </DockPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Save" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>

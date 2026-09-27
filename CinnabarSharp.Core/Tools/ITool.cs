@@ -100,6 +100,9 @@ public class ToolSettings
     public bool Underline { get; set; }
     public TextAlignment TextAlignment { get; set; } = TextAlignment.Left;
 
+    /// <summary>Aspect ratio the crop frame is locked to.</summary>
+    public CropAspect CropAspect { get; set; } = CropAspect.Wide;
+
     public TextStyle TextStyle => new(FontFamily, FontSize, Bold, Italic, Underline, Antialiasing);
 
     /// <summary>Color Picker samples the merged image instead of the current layer.</summary>
@@ -184,6 +187,9 @@ public sealed record ToolOverlay
 
     /// <summary>Highlighted areas, e.g. selected text.</summary>
     public IReadOnlyList<RectangleD> Highlights { get; init; } = [];
+
+    /// <summary>Everything outside this rectangle is shaded (what a crop will cut away).</summary>
+    public RectangleD? Shade { get; init; }
 }
 
 public interface IOverlayTool : ITool

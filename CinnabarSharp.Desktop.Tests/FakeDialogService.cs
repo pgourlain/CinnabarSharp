@@ -88,6 +88,37 @@ public class FakeDialogService : IDialogService
         return Task.FromResult(PhotoFilterAnswer(filters));
     }
 
+    public Func<PrepareForTvViewModel, bool> PrepareForTvAnswer { get; set; } = _ => true;
+    public List<PrepareForTvViewModel> PrepareForTvShown { get; } = [];
+
+    public Task<bool> ShowPrepareForTvAsync(PrepareForTvViewModel options)
+    {
+        PrepareForTvShown.Add(options);
+        return Task.FromResult(PrepareForTvAnswer(options));
+    }
+
+    /// <summary>Quality answered when saving a JPEG; null cancels the save.</summary>
+    public int? JpegQualityAnswer { get; set; } = 90;
+    public List<int> JpegQualityAsked { get; } = [];
+
+    public Task<int?> AskJpegQualityAsync(int current)
+    {
+        JpegQualityAsked.Add(current);
+        return Task.FromResult(JpegQualityAnswer);
+    }
+
+    public Queue<string?> Folders { get; } = new();
+
+    public Task<string?> PickFolderAsync(string title) => Task.FromResult(Folders.TryDequeue(out var f) ? f : null);
+
+    public List<string> Messages { get; } = [];
+
+    public Task ShowMessageAsync(string title, string message)
+    {
+        Messages.Add($"{title}: {message}");
+        return Task.CompletedTask;
+    }
+
     public Queue<ResizeImageOptions?> ResizeAnswers { get; } = new();
     public Queue<CanvasSizeOptions?> CanvasSizeAnswers { get; } = new();
 

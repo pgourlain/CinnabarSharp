@@ -98,7 +98,7 @@ public class MagickImageFormat : ImageFormat
 
 public class JpegFormat : MagickImageFormat
 {
-    public const int DefaultQuality = 85;
+    public const int DefaultQuality = 90;
 
     public JpegFormat(IWorkspaceService workspaceService)
         : base(nameof(JpegFormat), "JPEG", ["jpg", "jpeg", "jpe", "jfif"],
@@ -116,5 +116,7 @@ public class JpegFormat : MagickImageFormat
         image.BackgroundColor = MagickColors.White;
         image.Alpha(AlphaOption.Remove);
         image.Quality = (uint)Quality;
+        // TVs and browsers assume sRGB when there is no profile; say it explicitly (pixels are sRGB already).
+        image.SetProfile(ColorProfiles.SRGB);
     }
 }

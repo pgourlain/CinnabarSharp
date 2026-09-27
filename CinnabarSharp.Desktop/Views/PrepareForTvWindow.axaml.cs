@@ -1,0 +1,17 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+
+namespace CinnabarSharp.Desktop.Views;
+
+/// <summary>Dialog result: true for OK. The caller composes the TV image.</summary>
+public partial class PrepareForTvWindow : Window
+{
+    public PrepareForTvWindow()
+    {
+        InitializeComponent();
+    }
+
+    private void OnOk(object? sender, RoutedEventArgs e) => Close(true);
+
+    private void OnCancel(object? sender, RoutedEventArgs e) => Close(false);
+}

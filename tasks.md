@@ -194,7 +194,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] `packaging/package.sh <rid> <version>`: self-contained builds — Windows zip, macOS `.app` (ad-hoc signed, image file types declared) zipped, Linux tarball with `.desktop` file and icon.
 - [x] Release workflow (`.github/workflows/release.yml`): pushing a `v*` tag tests, packages win-x64, linux-x64, osx-arm64, osx-x64 and publishes a GitHub release (or a draft via "Run workflow").
 - [x] Settings persistence (`SettingsStore`, JSON in the per-OS app-data folder): window size/position/maximized, selected tool, tool options, palette colors. Recent files are persisted separately.
-- [ ] JPEG quality dialog on save (quality is fixed at 85 today).
+- [x] JPEG quality dialog on save (done in Phase 11).
 - [x] Open files passed by the OS: command-line arguments (Windows/Linux) and macOS file activation events ("Open With", double-click, drop on Dock icon).
 - [ ] Localization (`Translations`), check the dark theme (the app follows the OS theme; canvas/panel colors need a pass).
 - [ ] Crash log + "unsaved work recovery".
@@ -222,10 +222,10 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] All in Core as effects (`PhotoEffects.cs`, pure C#, cross-OS checksum test); list parameters (`EffectParameter.Choices`) and suggested values (`Effect.SuggestValues`) added to the effect framework.
 
 **Crop and resize for 16:9 TVs (e.g. Samsung TV / The Frame art mode)**
-- [ ] Crop tool with a locked aspect ratio (16:9, plus 4:3, 3:2, 1:1, free) and handles; drag to position the frame on the photo; rule-of-thirds overlay.
-- [ ] "Prepare for TV" dialog: target 2K / Full HD (1920×1080), 4K UHD (3840×2160) or 8K UHD (7680×4320); fit mode Crop to fill (with the crop frame above), Fit with borders (color or blurred background) or Stretch; high-quality resampling; warning when upscaling beyond the photo's resolution.
-- [ ] Export as JPEG with quality setting (and sRGB profile), file name suffix (e.g. `_4K`); batch mode to process a folder of photos with the same settings.
-- [ ] Portrait photos: options to fill with a blurred copy of the photo behind it or to place two portraits side by side.
+- [x] Crop tool (C) with a locked aspect ratio (16:9, 9:16, 4:3, 3:2, 1:1, free): drag a frame, drag inside to move it, drag a corner to resize; rule-of-thirds lines, outside shaded; Enter or the Crop button crops (one history step), Escape removes the frame.
+- [x] Photo › Prepare for TV: Full HD/2K, 4K UHD or 8K UHD; Crop to fill (keeps the crop frame, else the selection, else the center), Fit with borders (black, white or blurred background) or Stretch; Lanczos resampling; warning when the photo is enlarged. The result opens as a new image named `photo_4K`, suggested as JPEG.
+- [x] JPEG quality asked on every JPEG save (remembered, default 90); JPEGs carry an sRGB profile. Photo › Prepare Folder for TV exports every photo of a folder to a "TV 4K" subfolder as `name_4K.jpg`.
+- [x] Portrait photos: blurred-photo background, or two open photos side by side.
 
 **Validation**
 - [ ] Auto-Enhance results reviewed on a set of real photos (under/over-exposed, indoor, night, portrait).

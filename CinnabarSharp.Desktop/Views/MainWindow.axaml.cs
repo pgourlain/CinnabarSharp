@@ -476,6 +476,9 @@ public partial class MainWindow : Window, IViewportService
                 .. EffectCatalog.PhotoTools.Select(e => new MenuSpec(
                     e.Parameters.Count > 0 ? e.Name + "…" : e.Name, vm.ApplyEffectCommand, CommandParameter: e, Literal: true,
                     Gesture: e is AutoEnhanceEffect ? G(Key.E, KeyModifiers.Alt) : null)),
+                MenuSpec.Separator,
+                new("Prepare for _TV…", vm.PrepareForTvCommand),
+                new("Prepare _Folder for TV…", vm.PrepareFolderForTvCommand),
             ]),
         ];
         if (!isMac)

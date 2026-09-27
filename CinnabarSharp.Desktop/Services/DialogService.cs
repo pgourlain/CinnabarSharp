@@ -83,6 +83,26 @@ public class DialogService(Window owner) : IDialogService
     public async Task<bool> ShowPhotoFilterAsync(PhotoFilterDialogViewModel filters) =>
         await new PhotoFilterWindow { DataContext = filters }.ShowDialog<bool?>(owner) == true;
 
+    public async Task<bool> ShowPrepareForTvAsync(PrepareForTvViewModel options) =>
+        await new PrepareForTvWindow { DataContext = options }.ShowDialog<bool?>(owner) == true;
+
+    public async Task<int?> AskJpegQualityAsync(int current)
+    {
+        var quality = new JpegQualityViewModel(current);
+        return await new JpegQualityWindow { DataContext = quality }.ShowDialog<bool?>(owner) == true
+            ? (int)System.Math.Round(quality.Quality)
+            : null;
+    }
+
+    public async Task<string?> PickFolderAsync(string title)
+    {
+        var folders = await owner.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = title });
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+    }
+
+    public Task ShowMessageAsync(string title, string message) =>
+        new MessageWindow("CinnabarSharp", title, message, ["OK"], defaultIndex: 0, cancelIndex: 0).ShowDialog(owner);
+
     public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
         new ResizeImageWindow { DataContext = new ResizeImageViewModel(current) }.ShowDialog<ResizeImageOptions?>(owner);
 
