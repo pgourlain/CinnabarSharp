@@ -462,10 +462,20 @@ public partial class MainWindow : Window, IViewportService
             [
                 new("_Repeat Last Effect", vm.RepeatEffectCommand, G(Key.F)),
                 MenuSpec.Separator,
-                .. EffectCatalog.All.GroupBy(e => e.Category).Select(group => new MenuSpec(group.Key,
+                .. EffectCatalog.Effects.GroupBy(e => e.Category).Select(group => new MenuSpec(group.Key,
                     Children: group.Select(e => new MenuSpec(
                         e.Parameters.Count > 0 ? e.Name + "…" : e.Name, vm.ApplyEffectCommand,
                         CommandParameter: e, Literal: true)).ToArray())),
+            ]),
+        ];
+        menus =
+        [
+            .. menus,
+            new("_Photo", Children:
+            [
+                .. EffectCatalog.PhotoTools.Select(e => new MenuSpec(
+                    e.Parameters.Count > 0 ? e.Name + "…" : e.Name, vm.ApplyEffectCommand, CommandParameter: e, Literal: true,
+                    Gesture: e is AutoEnhanceEffect ? G(Key.E, KeyModifiers.Alt) : null)),
             ]),
         ];
         if (!isMac)

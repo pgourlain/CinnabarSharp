@@ -17,6 +17,7 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Text**: system fonts, size, bold, italic, underline, alignment; the text stays editable (caret, selection, clipboard, style changes) until you finish it.
 - **Adjustments**: auto-level, black and white, brightness/contrast, curves, hue/saturation, invert, levels (with histograms and per-channel mode), posterize, sepia — with live preview.
 - **Effects**: Gaussian/motion/radial/zoom blur, glow, sharpen, vignette, add noise, median, bulge, frosted glass, pixelate, twist, edge detect, emboss, relief, clouds, Mandelbrot — with live preview and Repeat Last Effect.
+- **Photo menu** (iPhone-like): Auto-Enhance, Adjust Photo (exposure, brilliance, highlights, shadows, contrast, brightness, black point, saturation, vibrance, warmth, tint, sharpness, definition, noise reduction, vignette), filters with thumbnails (Vivid, Dramatic, Mono, Silvertone, Noir…), Straighten; hold to compare before/after.
 - **Image menu**: resize image (resampling choice), canvas size with anchor, rotate, flip, crop to selection.
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
 - **Native feel on each OS**: macOS menu bar and ⌘ shortcuts, in-window menu and Ctrl shortcuts on Windows and Linux, native file dialogs, drag and drop, recent files.

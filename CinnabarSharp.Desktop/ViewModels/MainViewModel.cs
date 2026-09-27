@@ -922,6 +922,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             Core.Adjustments.Curves => new CurvesDialogViewModel(session),
             Core.Adjustments.Levels => new LevelsDialogViewModel(session),
+            PhotoFilterEffect => new PhotoFilterDialogViewModel(session),
             _ => new EffectDialogViewModel(session),
         };
         dialog.RequestPreview();
@@ -929,6 +930,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             CurvesDialogViewModel curves => await Dialogs.ShowCurvesAsync(curves),
             LevelsDialogViewModel levels => await Dialogs.ShowLevelsAsync(levels),
+            PhotoFilterDialogViewModel filters => await Dialogs.ShowPhotoFilterAsync(filters),
             _ => await Dialogs.ShowEffectAsync((EffectDialogViewModel)dialog),
         };
         if (ok)

@@ -80,6 +80,14 @@ public class FakeDialogService : IDialogService
         return Task.FromResult(LevelsAnswer(levels));
     }
 
+    public Func<PhotoFilterDialogViewModel, bool> PhotoFilterAnswer { get; set; } = _ => true;
+
+    public Task<bool> ShowPhotoFilterAsync(PhotoFilterDialogViewModel filters)
+    {
+        EffectsShown.Add(filters.Title);
+        return Task.FromResult(PhotoFilterAnswer(filters));
+    }
+
     public Queue<ResizeImageOptions?> ResizeAnswers { get; } = new();
     public Queue<CanvasSizeOptions?> CanvasSizeAnswers { get; } = new();
 

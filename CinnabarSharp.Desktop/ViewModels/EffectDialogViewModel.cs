@@ -18,12 +18,28 @@ public partial class EffectParameterViewModel(EffectParameter parameter, Action 
     public double Step => parameter.Step;
     public string Format => parameter.Step < 1 ? "0.00" : "0";
 
+    /// <summary>Items of a list parameter; null for a slider.</summary>
+    public IReadOnlyList<string>? Choices => parameter.Choices;
+    public bool IsChoice => parameter.Choices is not null;
+    public bool IsSlider => parameter.Choices is null;
+
     [ObservableProperty]
     public partial double Value { get; set; } = parameter.Default;
 
+    public int SelectedIndex
+    {
+        get => (int)Value;
+        set => Value = value;
+    }
+
+    [RelayCommand]
     public void Reset() => Value = parameter.Default;
 
-    partial void OnValueChanged(double value) => changed();
+    partial void OnValueChanged(double value)
+    {
+        OnPropertyChanged(nameof(SelectedIndex));
+        changed();
+    }
 }
 
 /// <summary>
@@ -37,6 +53,25 @@ public abstract class PreviewDialogViewModel(EffectSession session) : ViewModelB
     protected EffectSession Session => session;
 
     public string Title => session.Effect.Name;
+
+    private byte[]? _shown;
+
+    /// <summary>While true the canvas shows the layer before the effect (before/after comparison).</summary>
+    public bool ShowOriginal
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            OnPropertyChanged();
+            if (value)
+                session.Cancel();
+            else if (_shown is not null)
+                session.Show(_shown);
+        }
+    }
 
     /// <summary>The effect's parameter values for the current state of the dialog.</summary>
     public abstract IReadOnlyList<double> Values { get; }
@@ -52,7 +87,10 @@ public abstract class PreviewDialogViewModel(EffectSession session) : ViewModelB
         PreviewTask = Task.Run(() => session.Compute(values, cancellation.Token), cancellation.Token)
             .ContinueWith(t =>
             {
-                if (t.IsCompletedSuccessfully && !cancellation.IsCancellationRequested)
+                if (!t.IsCompletedSuccessfully || cancellation.IsCancellationRequested)
+                    return;
+                _shown = t.Result;
+                if (!ShowOriginal)
                     session.Show(t.Result);
             }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.FromCurrentSynchronizationContext());
     }
@@ -82,16 +120,31 @@ public partial class EffectDialogViewModel : PreviewDialogViewModel
 {
     public EffectDialogViewModel(EffectSession session) : base(session)
     {
+        _suggested = new Lazy<IReadOnlyList<double>?>(session.SuggestValues);
         Parameters = session.Effect.Parameters.Select(p => new EffectParameterViewModel(p, RequestPreview)).ToList();
     }
 
     public IReadOnlyList<EffectParameterViewModel> Parameters { get; }
     public override IReadOnlyList<double> Values => Parameters.Select(p => p.Value).ToList();
 
+    /// <summary>The effect can suggest values for this image (Auto button).</summary>
+    public bool CanAuto => _suggested.Value is not null;
+
+    private readonly Lazy<IReadOnlyList<double>?> _suggested;
+
     [RelayCommand]
     private void Reset()
     {
         foreach (var p in Parameters)
             p.Reset();
+    }
+
+    [RelayCommand]
+    private void Auto()
+    {
+        if (_suggested.Value is not { } values)
+            return;
+        for (var i = 0; i < Parameters.Count && i < values.Count; i++)
+            Parameters[i].Value = values[i];
     }
 }

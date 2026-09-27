@@ -273,3 +273,51 @@ public partial class LevelsDialogViewModel : PreviewDialogViewModel
             RequestPreview();
     }
 }
+
+/// <summary>One preset of the Photo Filter dialog with a thumbnail of the photo in that style.</summary>
+public sealed record FilterPresetViewModel(int Index, string Name, Avalonia.Media.Imaging.Bitmap Thumbnail);
+
+/// <summary>iPhone-like filters: a strip of thumbnails of the photo in each style, and an intensity slider.</summary>
+public partial class PhotoFilterDialogViewModel : PreviewDialogViewModel
+{
+    public const int ThumbnailSize = 88;
+
+    public PhotoFilterDialogViewModel(EffectSession session) : base(session)
+    {
+        var context = session.Context;
+        var (small, w, h) = PhotoMath.Downscale(context.Source, context.Width, context.Height, ThumbnailSize);
+        var smallContext = new EffectContext(small, w, h, context.Primary, context.Secondary);
+        var effect = session.Effect;
+        Presets = PhotoFilterEffect.Presets.Select((preset, index) =>
+        {
+            var pixels = new byte[w * h * 4];
+            effect.Render(smallContext, new RectangleI(0, 0, w, h), pixels, [index, 100], System.Threading.CancellationToken.None);
+            return new FilterPresetViewModel(index, preset.Name, ToBitmap(pixels, w, h));
+        }).ToList();
+        SelectedPreset = Presets[1];
+    }
+
+    public IReadOnlyList<FilterPresetViewModel> Presets { get; }
+
+    [ObservableProperty]
+    public partial FilterPresetViewModel SelectedPreset { get; set; }
+
+    [ObservableProperty]
+    public partial double Intensity { get; set; } = 100;
+
+    public override IReadOnlyList<double> Values => [SelectedPreset.Index, Intensity];
+
+    partial void OnSelectedPresetChanged(FilterPresetViewModel value) => RequestPreview();
+
+    partial void OnIntensityChanged(double value) => RequestPreview();
+
+    private static Avalonia.Media.Imaging.Bitmap ToBitmap(byte[] bgra, int w, int h)
+    {
+        var bitmap = new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(w, h), new Avalonia.Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        using var fb = bitmap.Lock();
+        for (var y = 0; y < h; y++)
+            System.Runtime.InteropServices.Marshal.Copy(bgra, y * w * 4, fb.Address + y * fb.RowBytes, w * 4);
+        return bitmap;
+    }
+}

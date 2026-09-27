@@ -24,6 +24,12 @@ public sealed class EffectSession
         _selection = document.Selection;
     }
 
+    /// <summary>What the effect reads (the layer before the effect); never modify it.</summary>
+    public EffectContext Context => _context;
+
+    /// <summary>The effect's suggested values for this layer (Auto button), or null.</summary>
+    public IReadOnlyList<double>? SuggestValues() => Effect.SuggestValues(_context);
+
     /// <summary>Histogram of the pixels the effect applies to (the selection, or the whole layer), before the effect.</summary>
     public Adjustments.Histogram Histogram() => Adjustments.Histogram.Compute(_session.BasePixels, _selection);
 

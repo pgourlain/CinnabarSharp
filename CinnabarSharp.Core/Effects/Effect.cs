@@ -2,8 +2,12 @@ using CinnabarSharp.Core.Models;
 
 namespace CinnabarSharp.Core.Effects;
 
-/// <summary>A numeric parameter shown as a slider in the effect/adjustment dialog.</summary>
-public sealed record EffectParameter(string Name, double Minimum, double Maximum, double Default, double Step = 1);
+/// <summary>
+/// A parameter of the effect/adjustment dialog: a slider, or a list when <paramref name="Choices"/> is set
+/// (the value is then the index of the chosen item).
+/// </summary>
+public sealed record EffectParameter(string Name, double Minimum, double Maximum, double Default, double Step = 1,
+    IReadOnlyList<string>? Choices = null);
 
 /// <summary>What an effect can read: the layer's original pixels (straight-alpha BGRA) and the palette colors.</summary>
 public sealed class EffectContext(byte[] source, int width, int height, ColorBgra primary, ColorBgra secondary)
@@ -39,6 +43,9 @@ public abstract class Effect
     /// the values are still a list of numbers, encoded by the effect.
     /// </summary>
     public virtual bool HasCustomDialog => false;
+
+    /// <summary>Values that suit this image (the dialog's Auto button), or null when the effect has no suggestion.</summary>
+    public virtual IReadOnlyList<double>? SuggestValues(EffectContext context) => null;
 
     public abstract void Render(EffectContext context, RectangleI region, byte[] destination,
         IReadOnlyList<double> values, CancellationToken cancellation);

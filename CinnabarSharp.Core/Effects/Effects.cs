@@ -597,7 +597,8 @@ public sealed class MandelbrotEffect : Effect
 
 public static class EffectCatalog
 {
-    public static IReadOnlyList<Effect> All { get; } =
+    /// <summary>The Effects menu, grouped by <see cref="Effect.Category"/>.</summary>
+    public static IReadOnlyList<Effect> Effects { get; } =
     [
         new GaussianBlurEffect(), new MotionBlurEffect(), new RadialBlurEffect(), new ZoomBlurEffect(),
         new GlowEffect(), new SharpenEffect(), new VignetteEffect(),
@@ -606,4 +607,12 @@ public static class EffectCatalog
         new EdgeDetectEffect(), new EmbossEffect(), new ReliefEffect(),
         new CloudsEffect(), new MandelbrotEffect(),
     ];
+
+    /// <summary>The Photo menu (iPhone-like photo editing).</summary>
+    public static IReadOnlyList<Effect> PhotoTools { get; } =
+    [
+        new AutoEnhanceEffect(), new PhotoAdjustEffect(), new PhotoFilterEffect(), new StraightenEffect(),
+    ];
+
+    public static IReadOnlyList<Effect> All { get; } = [.. Effects, .. PhotoTools];
 }

@@ -41,6 +41,8 @@ public interface IDialogService
 
     Task<bool> ShowLevelsAsync(LevelsDialogViewModel levels);
 
+    Task<bool> ShowPhotoFilterAsync(PhotoFilterDialogViewModel filters);
+
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 

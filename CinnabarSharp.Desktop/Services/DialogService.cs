@@ -80,6 +80,9 @@ public class DialogService(Window owner) : IDialogService
     public async Task<bool> ShowLevelsAsync(LevelsDialogViewModel levels) =>
         await new LevelsWindow { DataContext = levels }.ShowDialog<bool?>(owner) == true;
 
+    public async Task<bool> ShowPhotoFilterAsync(PhotoFilterDialogViewModel filters) =>
+        await new PhotoFilterWindow { DataContext = filters }.ShowDialog<bool?>(owner) == true;
+
     public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
         new ResizeImageWindow { DataContext = new ResizeImageViewModel(current) }.ShowDialog<ResizeImageOptions?>(owner);
 

@@ -181,7 +181,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Effects: Blurs (Gaussian, Motion, Radial, Zoom), Photo (Glow, Sharpen, Vignette), Noise (Add Noise, Median), Distort (Bulge, Frosted Glass, Pixelate, Twist), Stylize (Edge Detect, Emboss, Relief), Render (Clouds with primary/secondary colors, Mandelbrot). Blurs average premultiplied colors (no dark halos at transparent edges).
 - [x] Effects menu with category submenus; Repeat Last Effect (⌘/Ctrl+F).
 - [ ] More Paint.NET effects: Unfocus, Surface Blur, Reduce Noise, Tile Reflection, Polar Inversion, Dents, Ink/Pencil Sketch, Oil Painting, Outline, Red Eye Removal, Soft Portrait, Julia Fractal.
-- [ ] Progress bar for long effects; non-numeric parameters (checkboxes, choices, angle picker, center point picker for Bulge/Twist/Zoom).
+- [ ] Progress bar for long effects; non-numeric parameters (checkboxes, angle picker, center point picker for Bulge/Twist/Zoom). List parameters (choices) are done (Phase 11).
 
 **Validation**
 - [x] Each effect cancellable (tested); runs on a background thread.
@@ -214,12 +214,12 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 ## Phase 11 — Photo tools
 
 **Photo enhancement (like the iPhone Photos app)**
-- [ ] Auto-Enhance: one click analyzes the photo (histogram, exposure, white balance, saturation) and applies balanced corrections; undoable as one step.
-- [ ] Adjust panel with the iPhone's sliders, all live-previewed and combinable in one dialog: Exposure, Brilliance, Highlights, Shadows, Contrast, Brightness, Black Point, Saturation, Vibrance, Warmth, Tint, Sharpness, Definition (local contrast), Noise Reduction, Vignette. Reset per slider and for all.
-- [ ] Filter presets (Vivid, Vivid Warm, Vivid Cool, Dramatic, Mono, Silvertone, Noir…) with an intensity slider; thumbnails previewing each preset on the current photo.
-- [ ] Before/after comparison (hold a key or split view).
-- [ ] Straighten / rotate by a small angle with automatic crop.
-- [ ] All implemented in Core as effects/adjustments (pure C#, checksum-tested like the others).
+- [x] Auto-Enhance (Photo menu, ⌥⌘E / Ctrl+Alt+E): analyzes the photo (median exposure, clipped highlights/shadows, tonal range, gray-world white balance, saturation) and applies balanced corrections; undoable as one step.
+- [x] Adjust Photo dialog with the iPhone's 15 sliders (Exposure, Brilliance, Highlights, Shadows, Contrast, Brightness, Black Point, Saturation, Vibrance, Warmth, Tint, Sharpness, Definition, Noise Reduction, Vignette), live preview, reset per slider and for all, and an Auto button (Auto-Enhance's values as a starting point).
+- [x] Filters (Vivid, Vivid Warm/Cool, Dramatic, Dramatic Warm/Cool, Mono, Silvertone, Noir) with an intensity slider and thumbnails of the current photo in each style.
+- [x] Before/after comparison: "Hold to compare" in every effect/adjustment dialog shows the original while pressed.
+- [x] Straighten: rotate by −45…45° with automatic zoom so no empty corners appear.
+- [x] All in Core as effects (`PhotoEffects.cs`, pure C#, cross-OS checksum test); list parameters (`EffectParameter.Choices`) and suggested values (`Effect.SuggestValues`) added to the effect framework.
 
 **Crop and resize for 16:9 TVs (e.g. Samsung TV / The Frame art mode)**
 - [ ] Crop tool with a locked aspect ratio (16:9, plus 4:3, 3:2, 1:1, free) and handles; drag to position the frame on the photo; rule-of-thirds overlay.

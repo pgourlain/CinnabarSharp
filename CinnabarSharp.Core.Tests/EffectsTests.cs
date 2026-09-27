@@ -158,7 +158,7 @@ public sealed class EffectsTests : BaseTests
     public void Effects_are_bit_identical_across_platforms()
     {
         var output = new List<byte>();
-        foreach (var effect in EffectCatalog.All)
+        foreach (var effect in EffectCatalog.Effects)
             output.AddRange(Render(effect, Pattern()));
 
         var hash = Convert.ToHexString(SHA256.HashData(output.ToArray()));
