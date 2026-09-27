@@ -533,7 +533,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Selects the next tool with this Paint.NET shortcut letter (pressing S again cycles the select tools).</summary>
     public void SelectToolByShortcut(string letter)
     {
-        var matches = Tools.Where(t => t.Shortcut.Equals(letter, StringComparison.OrdinalIgnoreCase) && (t.Tool is not null || t.Name == "Pan")).ToList();
+        var matches = Tools.Where(t => t.Shortcut.Equals(letter, StringComparison.OrdinalIgnoreCase) && (t.Tool is not null || t.Name is "Pan" or "Zoom")).ToList();
         if (matches.Count == 0)
             return;
         var index = matches.IndexOf(SelectedTool);

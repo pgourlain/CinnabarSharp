@@ -197,7 +197,8 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Open files passed by the OS: command-line arguments (Windows/Linux) and macOS file activation events ("Open With", double-click, drop on Dock icon).
 - [ ] Localization (`Translations`), check the dark theme (the app follows the OS theme; canvas/panel colors need a pass).
 - [ ] Crash log + "unsaved work recovery".
-- [ ] Tool and button icons (text labels today).
+- [x] Tool icons (vector line icons; selection tools dashed; unimplemented tools dimmed). Zoom tool (left click in, right click out, around the click).
+- [ ] Icons for toolbar and layer-panel buttons (text labels today).
 - [ ] Packaging, signed:
   - [ ] Windows: MSIX or Inno Setup installer, file associations, code signing.
   - [ ] macOS: universal (arm64+x64) `.app`, Developer ID signing + notarization, `.dmg`.

@@ -251,6 +251,19 @@ public partial class MainWindow : Window, IViewportService
 
     private void OnCanvasPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (Vm is { HasDocument: true } zoomVm && zoomVm.SelectedTool.Name == "Zoom" && !_spaceHeld)
+        {
+            var props = e.GetCurrentPoint(CanvasScroller).Properties;
+            if (props.IsLeftButtonPressed || props.IsRightButtonPressed)
+            {
+                var percent = props.IsRightButtonPressed
+                    ? MainViewModel.NextZoomOut(zoomVm.CurrentZoomPercent)
+                    : MainViewModel.NextZoomIn(zoomVm.CurrentZoomPercent);
+                ZoomTo(percent / 100, e.GetPosition(CanvasScroller));
+                e.Handled = true;
+                return;
+            }
+        }
         if (Vm?.HasDocument != true || !IsPanGesture(e))
             return;
         _panStart = e.GetPosition(CanvasScroller);

@@ -5,7 +5,13 @@ namespace CinnabarSharp.Desktop.ViewModels;
 /// <param name="Tool">Core implementation, or null for tools not implemented yet (clicking the canvas does nothing).</param>
 public record ToolViewModel(string Name, string Label, string Shortcut, ITool? Tool = null)
 {
-    public string ToolTip => Tool is null ? $"{Name} ({Shortcut}) — coming soon" : $"{Name} ({Shortcut})";
+    public Avalonia.Media.Geometry? Icon { get; } = ToolIcons.For(Name);
+    public Avalonia.Collections.AvaloniaList<double>? IconDashes { get; } = ToolIcons.IsDashed(Name) ? [2, 1.5] : null;
+
+    /// <summary>Tools not implemented yet are shown dimmed.</summary>
+    public double IconOpacity => Tool is null && Name is not ("Pan" or "Zoom") ? 0.35 : 1;
+
+    public string ToolTip => IconOpacity < 1 ? $"{Name} ({Shortcut}) — coming soon" : $"{Name} ({Shortcut})";
 
     public bool IsSelectionTool => Tool is ShapeSelectionTool or MagicWandTool;
     public bool HasTolerance => Tool is MagicWandTool or PaintBucketTool;

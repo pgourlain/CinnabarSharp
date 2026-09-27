@@ -189,7 +189,13 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:ToolViewModel">
-                            <TextBlock Text="{Binding Label}" ToolTip.Tip="{Binding ToolTip}" FontSize="11" />
+                            <Viewbox Width="20" Height="20" ToolTip.Tip="{Binding ToolTip}" Opacity="{Binding IconOpacity}">
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="{Binding Icon}" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                                          StrokeThickness="1.6" StrokeLineCap="Round" StrokeJoin="Round"
+                                          StrokeDashArray="{Binding IconDashes}" />
+                                </Canvas>
+                            </Viewbox>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>

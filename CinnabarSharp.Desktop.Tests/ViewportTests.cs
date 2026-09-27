@@ -91,6 +91,26 @@ public sealed class ViewportTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Zoom_tool_left_click_zooms_in_and_right_click_zooms_out()
+    {
+        NewImage(400, 300);
+        _h.Vm.SelectedTool = _h.Vm.Tools.First(t => t.Name == "Zoom");
+        Dispatcher.UIThread.RunJobs();
+        var p = _h.CanvasToWindow(100, 100);
+
+        _h.Window.MouseDown(p, MouseButton.Left);
+        _h.Window.MouseUp(p, MouseButton.Left);
+        Assert.Equal("125%", _h.Vm.ZoomText);
+
+        Dispatcher.UIThread.RunJobs();
+        p = _h.CanvasToWindow(100, 100);
+        _h.Window.MouseDown(p, MouseButton.Right);
+        _h.Window.MouseUp(p, MouseButton.Right);
+        Assert.Equal("100%", _h.Vm.ZoomText);
+        Assert.Single(_h.Vm.History);
+    }
+
+    [AvaloniaFact]
     public void Pan_tool_drag_pans_with_left_button()
     {
         NewImage(3000, 3000);
