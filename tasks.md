@@ -38,11 +38,11 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Remove platform assumptions from Core (no hard-coded paths or OS checks found).
 - [x] Enforce the "Core is non-visual" constraint (see CLAUDE.md): `System.Drawing` removed (`Size` → `ImageSize`); `CoreArchitectureTests` fails if Core references a UI/rendering assembly.
 - [x] CI matrix: `windows-latest`, `macos-latest`, `ubuntu-latest` running `dotnet build` and `dotnet test` (GitHub Actions, `.github/workflows/ci.yml`).
-- [ ] Verify Magick.NET native libs load on all 3 (`Magick.NET-Q8-AnyCPU` ships osx-arm64, osx-x64, linux-x64, win-x64).
+- [x] Verify Magick.NET native libs load on all 3 (`Magick.NET-Q8-AnyCPU` ships osx-arm64, osx-x64, linux-x64, win-x64).
 
 **Validation**
-- [ ] `dotnet test` green on the 3 OSes (locally and in CI).
-- [ ] `ImageDocumentEventTests` passes on Linux (sample file path resolution).
+- [x] `dotnet test` green on the 3 OSes (locally and in CI).
+- [x] `ImageDocumentEventTests` passes on Linux (sample file path resolution).
 
 ## Phase 1 — Avalonia shell
 
@@ -52,12 +52,12 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Keyboard shortcuts: platform modifier (`Cmd` on macOS, `Ctrl` elsewhere) from `PlatformHotkeyConfiguration.CommandModifiers`; Paint.NET shortcuts (Redo is ⌘⇧Z on macOS, Ctrl+Y elsewhere). `X` swaps colors.
 - [x] New Image dialog (width, height, white/transparent background) → new Core API `IWorkspaceService.NewDocument(size, background)`.
 - [x] Canvas control renders the flattened document over a transparency checkerboard; nearest-neighbour when zoomed in; zoom in/out/best fit/actual size with Paint.NET presets; large images open fitted to the window.
-- [ ] Tool icons (currently 2-letter labels). Pick an icon set that renders identically on all OSes (SVG/path icons, not font glyphs).
-- [ ] Zoom keeps the view centered / zooms around the mouse (port `ImageDocumentWorkspace.ZoomAndRecenterView`) — moved to Phase 2 with Ctrl+wheel.
+- [x] Tool icons: vector path icons, identical on all OSes (done in Phase 10, `ToolIcons`).
+- [x] Zoom keeps the view centered / zooms around the mouse (done in Phase 2 with Ctrl+wheel).
 
 **Validation**
 - [ ] App launches; window resizes; HiDPI crisp (Retina, Windows 150%, Linux scale 2).
-- [ ] File > New creates a document shown on canvas.
+- [x] File > New creates a document shown on canvas (headless test `New_white_image_is_shown_on_canvas` on all 3 OSes in CI).
 - [ ] Shortcuts use the right modifier per OS; macOS app menu present.
   - macOS (2026-09-27): app launches, native menu bar shows CinnabarSharp/File/Edit/View/Image/Layers/Adjustments/Effects, hint shows ⌘+N. Still to check by hand: shortcuts inside the opened menus.
 
@@ -72,11 +72,11 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Zoom around the mouse with ⌘/Ctrl + wheel, trackpad pinch, menu/toolbar zoom keeps the view centre. Pan with scrollbars, Space + drag, middle mouse drag, or the Pan tool.
 - [x] File › Open Recent (10 entries, stored in the user's local app-data folder) with Clear Recent; drag-and-drop image files onto the window; image paths passed on the command line are opened at startup.
 - [x] Deleted the legacy `MyPaintApp/` (MAUI) folder.
-- [ ] Dirty tracking is done in the UI for now (layer add/visibility). Move it to Core with the history in Phase 4.
+- [x] Dirty tracking moved to Core with the history (Phase 4).
 
 **Validation**
-- [ ] Open `sample1.png`, a JPEG, a file with uppercase extension and a file with non-ASCII path. (Automated in `FormatManagerTests` on all 3 OSes via CI.)
-- [ ] Save As each format; reopen; pixels match. (Automated round-trip for all 6 formats.)
+- [x] Open `sample1.png`, a JPEG, a file with uppercase extension and a file with non-ASCII path. (Automated in `FormatManagerTests` on all 3 OSes via CI.)
+- [x] Save As each format; reopen; pixels match. (Automated round-trip for all 6 formats.)
 - [ ] Zoom 1%–3200% smooth; trackpad pinch on macOS/Windows precision touchpad.
 - [ ] Drag & drop from Finder / Explorer / Nautilus.
 - [ ] Native open/save dialogs look and behave right on each OS (GTK/portal dialog on Linux).
@@ -94,7 +94,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [ ] Icons for the layer buttons (text labels for now).
 
 **Validation**
-- [ ] Each blend mode renders identically across the 3 OSes (automated: `BlendOpsTests.Compositing_is_bit_identical_across_platforms` runs in CI on all 3).
+- [x] Each blend mode renders identically across the 3 OSes (automated: `BlendOpsTests.Compositing_is_bit_identical_across_platforms` runs in CI on all 3).
 - [ ] ORA saved on one OS opens identically on the others; also opens in GIMP/Krita/MyPaint (the open-source app) with layers.
 - [ ] Layer Properties live preview feels responsive on a large (4000×3000) image.
 
@@ -126,7 +126,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 **Validation**
 - [ ] Copy from CinnabarSharp → paste into Preview/Paint/GIMP and back, on each OS (transparency preserved where the other app supports it).
-- [ ] Magic wand result identical across OSes (pure C#, same code path as the blend-mode checksum test).
+- [x] Magic wand result identical across OSes (pure C#, exact-pixel `SelectionTests` pass on all 3 OSes in CI).
 - [ ] Marching ants animate smoothly on a large (4000×3000) magic-wand selection.
 
 ## Phase 6 — Painting tools
