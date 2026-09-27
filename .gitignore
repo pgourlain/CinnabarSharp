@@ -1,0 +1,59 @@
+## .NET / Visual Studio
+bin/
+obj/
+out/
+[Dd]ebug/
+[Dd]ebug[Ss]tatic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# VS project user files
+*.vcxproj.user
+*.vcxproj.filters
+*.vcxproj.userosscache
+
+# Build results
+*.dll
+*.exe
+*.pdb
+*.cache
+*.ilk
+*.meta
+*.obj
+*.pch
+*.ipch
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+.nuget/
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# Rider / VS / VSCode
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+
+# MSBuild
+*.binlog
+*.log
+
+# macOS
+.DS_Store

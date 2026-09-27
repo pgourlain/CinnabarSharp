@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CinnabarSharp.Core.Tests/CinnabarSharp.Core.Tests.csproj" />
+  <Project Path="CinnabarSharp.Core/CinnabarSharp.Core.csproj" />
+  <Project Path="CinnabarSharp.Desktop.Tests/CinnabarSharp.Desktop.Tests.csproj" />
+  <Project Path="CinnabarSharp.Desktop/CinnabarSharp.Desktop.csproj" />
+</Solution>

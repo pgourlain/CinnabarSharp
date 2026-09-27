@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CinnabarSharp.Desktop.Views.MessageWindow"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="20" Spacing="16" MaxWidth="440" MinWidth="320">
+        <TextBlock x:Name="HeadingText" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock x:Name="MessageText" TextWrapping="Wrap" />
+        <StackPanel x:Name="ButtonsPanel" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" />
+    </StackPanel>
+</Window>

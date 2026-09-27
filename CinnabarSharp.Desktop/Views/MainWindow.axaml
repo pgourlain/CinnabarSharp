@@ -1,0 +1,220 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        xmlns:c="using:CinnabarSharp.Desktop.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="CinnabarSharp.Desktop.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="{Binding WindowTitle}"
+        Width="1280" Height="800" MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
+
+    <Window.Styles>
+        <Style Selector="Border.panel">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="8" />
+        </Style>
+        <Style Selector="TextBlock.panelTitle">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style Selector="StackPanel.toolbar > Button">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="StackPanel.toolbar > Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.toolbarSeparator">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Margin" Value="6,4" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+        </Style>
+        <Style Selector="ListBox.tools ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ListBox.tabs ListBoxItem">
+            <Setter Property="Padding" Value="12,4,6,4" />
+        </Style>
+        <Style Selector="WrapPanel.layerButtons > Button">
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+        <Style Selector="ListBox#LayersList ListBoxItem">
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+        <Style Selector="Button.closeTab">
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel>
+        <!-- In-window menu for Windows/Linux; on macOS the menu lives in the system menu bar. -->
+        <ContentControl x:Name="MenuHost" DockPanel.Dock="Top" />
+
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" Classes="panel" Padding="4">
+            <StackPanel Classes="toolbar" Orientation="Horizontal" Spacing="2">
+                <Button Content="New" Command="{Binding NewImageCommand}" ToolTip.Tip="New image" />
+                <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open" />
+                <Button Content="Save" Command="{Binding SaveCommand}" ToolTip.Tip="Save" />
+                <Border Classes="toolbarSeparator" />
+                <Button Content="Undo" Command="{Binding NotYetImplemented}" ToolTip.Tip="Undo (Phase 4)" />
+                <Button Content="Redo" Command="{Binding NotYetImplemented}" ToolTip.Tip="Redo (Phase 4)" />
+                <Border Classes="toolbarSeparator" />
+                <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out" />
+                <TextBlock Text="{Binding ZoomText}" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center" />
+                <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in" />
+                <Button Content="Fit" Command="{Binding BestFitCommand}" ToolTip.Tip="Best fit" />
+                <Button Content="1:1" Command="{Binding ActualSizeCommand}" ToolTip.Tip="Actual size" />
+            </StackPanel>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" Padding="8,4"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <Grid ColumnDefinitions="*,140,140,80">
+                <TextBlock Grid.Column="0" Text="{Binding SelectedTool.Name}" />
+                <TextBlock Grid.Column="1" Text="{Binding CursorPositionText}" />
+                <TextBlock Grid.Column="2" Text="{Binding ImageSizeText}" />
+                <TextBlock Grid.Column="3" Text="{Binding ZoomText}" TextAlignment="Right" />
+            </Grid>
+        </Border>
+
+        <Grid ColumnDefinitions="Auto,*,4,240">
+            <!-- Tools -->
+            <Border Grid.Column="0" BorderThickness="0,0,1,0" Padding="4"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <ListBox Classes="tools" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}"
+                         Width="70" Background="Transparent">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ToolViewModel">
+                            <TextBlock Text="{Binding Label}" ToolTip.Tip="{Binding ToolTip}" FontSize="11" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <!-- Image tabs + canvas -->
+            <DockPanel Grid.Column="1">
+                <ListBox DockPanel.Dock="Top" Classes="tabs" ItemsSource="{Binding Documents}"
+                         SelectedItem="{Binding ActiveDocument}" Background="Transparent"
+                         IsVisible="{Binding HasDocument}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DocumentViewModel">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                                <Button Classes="closeTab" Content="×" ToolTip.Tip="Close"
+                                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseTabCommand}"
+                                        CommandParameter="{Binding}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Panel Background="#FF808080">
+                    <ScrollViewer x:Name="CanvasScroller"
+                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <c:CanvasView x:Name="Canvas"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
+                                      Document="{Binding ActiveDocument.Document, FallbackValue={x:Null}}"
+                                      RenderVersion="{Binding RenderVersion}" />
+                    </ScrollViewer>
+                    <TextBlock x:Name="EmptyHint" IsVisible="{Binding !HasDocument}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="White" FontSize="16" />
+                </Panel>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="2" ResizeDirection="Columns" />
+
+            <!-- Panels: Layers, History, Colors -->
+            <DockPanel Grid.Column="3">
+                <Border DockPanel.Dock="Bottom" Classes="panel" BorderThickness="0,1,0,0">
+                    <StackPanel>
+                        <TextBlock Classes="panelTitle" Text="Colors" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Panel Width="56" Height="56">
+                                <Border Width="36" Height="36" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                        Background="{Binding SecondaryBrush}" BorderBrush="Gray" BorderThickness="1"
+                                        ToolTip.Tip="Secondary color" />
+                                <Border Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Background="{Binding PrimaryBrush}" BorderBrush="Gray" BorderThickness="1"
+                                        ToolTip.Tip="Primary color" />
+                            </Panel>
+                            <Button Content="Swap" Command="{Binding SwapColorsCommand}" VerticalAlignment="Center"
+                                    ToolTip.Tip="Swap primary and secondary colors (X)" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border DockPanel.Dock="Bottom" Classes="panel" BorderThickness="0,1,0,0" Height="160">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="History" />
+                        <TextBlock Text="Undo history arrives in Phase 4." Foreground="Gray" TextWrapping="Wrap" />
+                    </DockPanel>
+                </Border>
+
+                <Border Classes="panel" BorderThickness="0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="Layers" />
+                        <WrapPanel DockPanel.Dock="Bottom" Classes="layerButtons" Orientation="Horizontal"
+                                   ItemSpacing="2" LineSpacing="2" Margin="0,6,0,0">
+                            <Button Content="Add" Command="{Binding AddNewLayerCommand}" ToolTip.Tip="Add new layer" />
+                            <Button Content="Del" Command="{Binding DeleteLayerCommand}" ToolTip.Tip="Delete layer" />
+                            <Button Content="Dup" Command="{Binding DuplicateLayerCommand}" ToolTip.Tip="Duplicate layer" />
+                            <Button Content="Up" Command="{Binding MoveLayerUpCommand}" ToolTip.Tip="Move layer up" />
+                            <Button Content="Down" Command="{Binding MoveLayerDownCommand}" ToolTip.Tip="Move layer down" />
+                            <Button Content="Merge" Command="{Binding MergeLayerDownCommand}" ToolTip.Tip="Merge layer down" />
+                            <Button Content="Properties" Command="{Binding LayerPropertiesCommand}" ToolTip.Tip="Layer properties (F4)" />
+                        </WrapPanel>
+                        <ListBox x:Name="LayersList" ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:LayerViewModel">
+                                    <DockPanel>
+                                        <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsVisible}"
+                                                  ToolTip.Tip="Visible" MinWidth="0" />
+                                        <Border DockPanel.Dock="Left" Width="44" Height="44" Margin="0,0,8,0"
+                                                Background="#FFCCCCCC" BorderBrush="Gray" BorderThickness="1">
+                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform"
+                                                   RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Details}" FontSize="11" Foreground="Gray"
+                                                       IsVisible="{Binding Details, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        x:Class="CinnabarSharp.Desktop.Views.LayerPropertiesWindow"
+        x:DataType="vm:LayerPropertiesViewModel"
+        Title="Layer Properties"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+    <StackPanel Margin="20" Spacing="12" Width="340">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="12">
+            <TextBlock Grid.Row="0" Text="Name:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="NameInput" Text="{Binding Name}" />
+
+            <TextBlock Grid.Row="1" Text="Visible:" VerticalAlignment="Center" />
+            <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding IsVisible}" />
+
+            <TextBlock Grid.Row="2" Text="Blend mode:" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                      ItemsSource="{x:Static vm:LayerPropertiesViewModel.BlendModes}"
+                      SelectedItem="{Binding BlendMode}" />
+
+            <TextBlock Grid.Row="3" Text="Opacity:" VerticalAlignment="Center" />
+            <DockPanel Grid.Row="3" Grid.Column="1">
+                <NumericUpDown DockPanel.Dock="Right" Width="110" Margin="8,0,0,0"
+                               Value="{Binding Opacity}" Minimum="0" Maximum="100" Increment="1" FormatString="0" />
+                <Slider Minimum="0" Maximum="100" Value="{Binding Opacity}" VerticalAlignment="Center" />
+            </DockPanel>
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>

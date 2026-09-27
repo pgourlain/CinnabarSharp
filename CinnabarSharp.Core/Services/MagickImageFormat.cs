@@ -1,0 +1,110 @@
+//
+// Based on Pinta's GdkPixbufFormat.cs
+//
+// Author:
+//       Maia Kozheva <sikon@ubuntu.com>
+//
+// Copyright (c) 2010 Maia Kozheva <sikon@ubuntu.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+using ImageMagick;
+using CinnabarSharp.Core.Extensions;
+using CinnabarSharp.Core.Models;
+
+namespace CinnabarSharp.Core.Services;
+
+/// <summary>
+/// A single-layer image file format read and written with Magick.NET.
+/// </summary>
+public class MagickImageFormat : ImageFormat
+{
+    private readonly IWorkspaceService _workspaceService;
+    private readonly MagickFormat[] _magickFormats;
+
+    public MagickImageFormat(string name, string displayName, string[] extensions,
+        MagickFormat[] magickFormats, IWorkspaceService workspaceService)
+        : base(name, displayName, extensions)
+    {
+        _magickFormats = magickFormats;
+        _workspaceService = workspaceService;
+    }
+
+    public override bool MatchesContent(ImageFile file)
+    {
+        try
+        {
+            return _magickFormats.Contains(new MagickImageInfo(file).Format);
+        }
+        catch (MagickException)
+        {
+            return false;
+        }
+    }
+
+    public override void Import(ImageFile file)
+    {
+        var img = Utility.OpenImage(file);
+        img.AutoOrient();
+        var imagesize = new ImageSize((int)img.Width, (int)img.Height);
+
+        var doc = _workspaceService.CreateAndActivateDocument(file, SupportedExtensions[0], imagesize);
+
+        doc.Workspace.ViewSize = imagesize;
+        var layer = doc.Layers.AddNewLayer(file.GetDisplayName());
+        var placeholder = layer.Surface;
+        layer.Surface = img;
+        placeholder.Dispose();
+    }
+
+    public override void Export(ImageDocument document, ImageFile file)
+    {
+        using var image = document.GetFlattenedImage();
+        PrepareForSave(image);
+        image.Format = _magickFormats[0];
+        image.Write(file);
+    }
+
+    protected virtual void PrepareForSave(IMagickImage<byte> image)
+    {
+    }
+}
+
+public class JpegFormat : MagickImageFormat
+{
+    public const int DefaultQuality = 85;
+
+    public JpegFormat(IWorkspaceService workspaceService)
+        : base(nameof(JpegFormat), "JPEG", ["jpg", "jpeg", "jpe", "jfif"],
+            [MagickFormat.Jpeg, MagickFormat.Jpg, MagickFormat.Jpe], workspaceService)
+    {
+    }
+
+    public int Quality { get; set; } = DefaultQuality;
+
+    public override bool SupportsTransparency => false;
+
+    // JPEG has no alpha channel: flatten onto white like Paint.NET instead of letting transparent pixels turn black.
+    protected override void PrepareForSave(IMagickImage<byte> image)
+    {
+        image.BackgroundColor = MagickColors.White;
+        image.Alpha(AlphaOption.Remove);
+        image.Quality = (uint)Quality;
+    }
+}

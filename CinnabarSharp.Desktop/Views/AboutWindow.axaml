@@ -1,0 +1,18 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CinnabarSharp.Desktop.Views.AboutWindow"
+        Title="About CinnabarSharp"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="24" Spacing="8" MaxWidth="360">
+        <TextBlock Text="CinnabarSharp" FontSize="22" FontWeight="SemiBold" />
+        <TextBlock x:Name="VersionText" />
+        <TextBlock TextWrapping="Wrap"
+                   Text="A cross-platform image editor inspired by Paint.NET. Portions of the code are ported from Pinta (MIT license)." />
+        <TextBlock x:Name="RuntimeText" Foreground="Gray" />
+        <Button Content="Close" IsCancel="True" IsDefault="True" HorizontalAlignment="Right"
+                Click="OnClose" Margin="0,8,0,0" />
+    </StackPanel>
+</Window>

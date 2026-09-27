@@ -1,0 +1,409 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Windows.Input;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using CommunityToolkit.Mvvm.Input;
+using CinnabarSharp.Desktop.Services;
+using CinnabarSharp.Desktop.ViewModels;
+
+namespace CinnabarSharp.Desktop.Views;
+
+public partial class MainWindow : Window, IViewportService
+{
+    private sealed record MenuSpec(
+        string Header,
+        ICommand? Command = null,
+        KeyGesture? Gesture = null,
+        MenuSpec[]? Children = null,
+        object? CommandParameter = null,
+        bool Literal = false)
+    {
+        public static readonly MenuSpec Separator = new("-");
+    }
+
+    private double _wheelZoomAccumulator;
+    private bool _spaceHeld;
+    private Point? _panStart;
+    private Vector _panStartOffset;
+    private bool _closeConfirmed;
+    private NativeMenu? _nativeRecentMenu;
+    private MenuItem? _recentMenuItem;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        Canvas.CanvasPointerMoved += p => Vm?.UpdateCursorPosition(p);
+        CanvasScroller.SizeChanged += (_, e) =>
+        {
+            if (Vm is { } vm)
+                vm.ViewportSize = new Size(
+                    Math.Max(0, e.NewSize.Width - Canvas.Margin.Left - Canvas.Margin.Right),
+                    Math.Max(0, e.NewSize.Height - Canvas.Margin.Top - Canvas.Margin.Bottom));
+        };
+
+        CanvasScroller.AddHandler(PointerWheelChangedEvent, OnCanvasWheel, RoutingStrategies.Tunnel);
+        CanvasScroller.AddHandler(PointerTouchPadGestureMagnifyEvent, OnCanvasMagnify);
+        CanvasScroller.AddHandler(PointerPressedEvent, OnCanvasPointerPressed, RoutingStrategies.Tunnel);
+        CanvasScroller.AddHandler(PointerMovedEvent, OnCanvasPointerMoved, RoutingStrategies.Tunnel);
+        CanvasScroller.AddHandler(PointerReleasedEvent, OnCanvasPointerReleased, RoutingStrategies.Tunnel);
+        CanvasScroller.AddHandler(PointerCaptureLostEvent, (_, _) => EndPan());
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DropEvent, OnDrop);
+        LayersList.DoubleTapped += (_, _) => Vm?.LayerPropertiesCommand.Execute(null);
+    }
+
+    private MainViewModel? Vm => DataContext as MainViewModel;
+
+    private KeyModifiers CommandModifier =>
+        Application.Current?.PlatformSettings?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (Vm is not { } vm)
+            return;
+        vm.Dialogs = new DialogService(this);
+        vm.Viewport = this;
+        vm.RecentFiles.Changed += () => RefreshRecentMenu(vm);
+        KeyBindings.Add(new KeyBinding { Gesture = new KeyGesture(Key.X), Command = vm.SwapColorsCommand });
+        BuildMenu(vm);
+    }
+
+    // ---- Closing with unsaved changes ----
+
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_closeConfirmed || Vm is not { HasUnsavedChanges: true } vm)
+            return;
+
+        e.Cancel = true;
+        if (await vm.CloseAllAsync())
+        {
+            _closeConfirmed = true;
+            Close();
+        }
+    }
+
+    // ---- Zoom ----
+
+    public void ZoomTo(double scale, Point? anchor = null)
+    {
+        if (Vm?.ActiveDocument?.Document is not { } doc)
+            return;
+
+        scale = Math.Clamp(scale, MainViewModel.MinZoom, MainViewModel.MaxZoom);
+        // A previous zoom may have changed the offset without re-arranging yet; positions must be current.
+        CanvasScroller.UpdateLayout();
+        var viewport = CanvasScroller.Viewport;
+        var a = anchor ?? new Point(viewport.Width / 2, viewport.Height / 2);
+        var oldScale = doc.Workspace.Scale;
+        var canvasOrigin = Canvas.TranslatePoint(default, CanvasScroller) ?? default;
+        var imagePoint = (a - canvasOrigin) / oldScale;
+
+        doc.Workspace.Scale = scale;
+        CanvasScroller.UpdateLayout();
+
+        var offset = CanvasScroller.Offset;
+        var newOrigin = (Canvas.TranslatePoint(default, CanvasScroller) ?? default) + offset;
+        var desired = newOrigin + imagePoint * doc.Workspace.Scale - a;
+        var extent = CanvasScroller.Extent;
+        CanvasScroller.Offset = new Vector(
+            Math.Clamp(desired.X, 0, Math.Max(0, extent.Width - viewport.Width)),
+            Math.Clamp(desired.Y, 0, Math.Max(0, extent.Height - viewport.Height)));
+        CanvasScroller.UpdateLayout();
+    }
+
+    private void OnCanvasWheel(object? sender, PointerWheelEventArgs e)
+    {
+        if (Vm is not { HasDocument: true } vm)
+            return;
+        if ((e.KeyModifiers & (CommandModifier | KeyModifiers.Control)) == 0)
+            return;
+
+        e.Handled = true;
+        _wheelZoomAccumulator += e.Delta.Y;
+        var anchor = e.GetPosition(CanvasScroller);
+        while (Math.Abs(_wheelZoomAccumulator) >= 1)
+        {
+            var zoomIn = _wheelZoomAccumulator > 0;
+            _wheelZoomAccumulator -= zoomIn ? 1 : -1;
+            var percent = zoomIn
+                ? MainViewModel.NextZoomIn(vm.CurrentZoomPercent)
+                : MainViewModel.NextZoomOut(vm.CurrentZoomPercent);
+            ZoomTo(percent / 100, anchor);
+        }
+    }
+
+    private void OnCanvasMagnify(object? sender, PointerDeltaEventArgs e)
+    {
+        if (Vm?.ActiveDocument?.Document is not { } doc)
+            return;
+        e.Handled = true;
+        ZoomTo(doc.Workspace.Scale * (1 + e.Delta.X), e.GetPosition(CanvasScroller));
+    }
+
+    // ---- Pan: middle button, Space + drag, or the Pan tool ----
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Space && Vm?.HasDocument == true)
+        {
+            _spaceHeld = true;
+            CanvasScroller.Cursor = new Cursor(StandardCursorType.Hand);
+            e.Handled = true;
+        }
+        base.OnKeyDown(e);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.Key == Key.Space)
+        {
+            _spaceHeld = false;
+            if (_panStart is null)
+                CanvasScroller.Cursor = null;
+        }
+        base.OnKeyUp(e);
+    }
+
+    private bool IsPanGesture(PointerPressedEventArgs e)
+    {
+        var props = e.GetCurrentPoint(CanvasScroller).Properties;
+        return props.IsMiddleButtonPressed
+               || (props.IsLeftButtonPressed && (_spaceHeld || Vm?.SelectedTool.Name == "Pan"));
+    }
+
+    private void OnCanvasPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (Vm?.HasDocument != true || !IsPanGesture(e))
+            return;
+        _panStart = e.GetPosition(CanvasScroller);
+        _panStartOffset = CanvasScroller.Offset;
+        CanvasScroller.Cursor = new Cursor(StandardCursorType.SizeAll);
+        e.Pointer.Capture(CanvasScroller);
+        e.Handled = true;
+    }
+
+    private void OnCanvasPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_panStart is not { } start)
+            return;
+        var delta = e.GetPosition(CanvasScroller) - start;
+        CanvasScroller.Offset = _panStartOffset - delta;
+        e.Handled = true;
+    }
+
+    private void OnCanvasPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_panStart is null)
+            return;
+        e.Pointer.Capture(null);
+        EndPan();
+        e.Handled = true;
+    }
+
+    private void EndPan()
+    {
+        _panStart = null;
+        CanvasScroller.Cursor = _spaceHeld ? new Cursor(StandardCursorType.Hand) : null;
+    }
+
+    // ---- Drag and drop files ----
+
+    private static void OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None;
+    }
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (Vm is not { } vm || e.DataTransfer.TryGetFiles() is not { } files)
+            return;
+        foreach (var path in files.Select(f => f.TryGetLocalPath()).OfType<string>())
+            await vm.OpenFileAsync(path);
+    }
+
+    // ---- Menu ----
+
+    private void BuildMenu(MainViewModel vm)
+    {
+        var isMac = OperatingSystem.IsMacOS();
+        var cmd = CommandModifier;
+        KeyGesture G(Key key, KeyModifiers extra = KeyModifiers.None) => new(key, cmd | extra);
+        var notYet = vm.NotYetImplemented;
+
+        var fileItems = new MenuSpec[]
+        {
+            new("_New…", vm.NewImageCommand, G(Key.N)),
+            new("_Open…", vm.OpenCommand, G(Key.O)),
+            new("Open _Recent", Children: []),
+            MenuSpec.Separator,
+            new("_Save", vm.SaveCommand, G(Key.S)),
+            new("Save _As…", vm.SaveAsCommand, G(Key.S, KeyModifiers.Shift)),
+            MenuSpec.Separator,
+            new("_Close", vm.CloseCommand, G(Key.W)),
+        };
+        if (!isMac)
+            fileItems = [.. fileItems, new("E_xit", new RelayCommand(Close), G(Key.Q))];
+
+        MenuSpec[] menus =
+        [
+            new("_File", Children: fileItems),
+            new("_Edit", Children:
+            [
+                new("_Undo", notYet, G(Key.Z)),
+                new("_Redo", notYet, isMac ? G(Key.Z, KeyModifiers.Shift) : G(Key.Y)),
+                MenuSpec.Separator,
+                new("Cu_t", notYet, G(Key.X)),
+                new("_Copy", notYet, G(Key.C)),
+                new("_Paste", notYet, G(Key.V)),
+                MenuSpec.Separator,
+                new("Select _All", notYet, G(Key.A)),
+                new("_Deselect All", notYet, G(Key.D)),
+            ]),
+            new("_View", Children:
+            [
+                new("Zoom _In", vm.ZoomInCommand, G(Key.OemPlus)),
+                new("Zoom _Out", vm.ZoomOutCommand, G(Key.OemMinus)),
+                new("_Best Fit", vm.BestFitCommand, G(Key.B)),
+                new("_Actual Size", vm.ActualSizeCommand, G(Key.D0)),
+            ]),
+            new("_Image", Children:
+            [
+                new("_Crop to Selection", notYet, G(Key.X, KeyModifiers.Shift)),
+                new("_Resize…", notYet, G(Key.R)),
+                new("Canvas _Size…", notYet, G(Key.R, KeyModifiers.Shift)),
+                MenuSpec.Separator,
+                new("Flip _Horizontal", notYet),
+                new("Flip _Vertical", notYet),
+                MenuSpec.Separator,
+                new("Rotate 90° Clockwise", notYet, G(Key.H)),
+                new("Rotate 90° Counter-Clockwise", notYet, G(Key.G)),
+                new("Rotate 180°", notYet, G(Key.J)),
+                MenuSpec.Separator,
+                new("_Flatten", vm.FlattenCommand, G(Key.F, KeyModifiers.Shift)),
+            ]),
+            new("_Layers", Children:
+            [
+                new("_Add New Layer", vm.AddNewLayerCommand, G(Key.N, KeyModifiers.Shift)),
+                new("_Delete Layer", vm.DeleteLayerCommand, G(Key.Delete, KeyModifiers.Shift)),
+                new("D_uplicate Layer", vm.DuplicateLayerCommand, G(Key.D, KeyModifiers.Shift)),
+                new("_Merge Layer Down", vm.MergeLayerDownCommand, G(Key.M)),
+                new("_Import From File…", vm.ImportFromFileCommand),
+                MenuSpec.Separator,
+                new("Flip Layer _Horizontal", vm.FlipLayerHorizontalCommand),
+                new("Flip Layer _Vertical", vm.FlipLayerVerticalCommand),
+                MenuSpec.Separator,
+                new("Move Layer _Up", vm.MoveLayerUpCommand),
+                new("Move Layer Do_wn", vm.MoveLayerDownCommand),
+                MenuSpec.Separator,
+                new("Layer _Properties…", vm.LayerPropertiesCommand, new KeyGesture(Key.F4)),
+            ]),
+            new("_Adjustments", Children:
+            [
+                new("Auto-Level", notYet),
+                new("Black and White", notYet),
+                new("Brightness / Contrast…", notYet),
+                new("Curves…", notYet),
+                new("Hue / Saturation…", notYet),
+                new("Invert Colors", notYet),
+                new("Levels…", notYet),
+                new("Posterize…", notYet),
+                new("Sepia", notYet),
+            ]),
+            new("Effe_cts", Children: [new("Effects arrive in Phase 9", notYet)]),
+        ];
+        if (!isMac)
+            menus = [.. menus, new("_Help", Children: [new("_About CinnabarSharp", vm.AboutCommand)])];
+
+        // Built once: the macOS native menu can't be replaced while the window is shown, only mutated.
+        if (isMac)
+        {
+            var nativeMenu = ToNativeMenu(menus);
+            _nativeRecentMenu = FindNative(nativeMenu, "File", "Open Recent").Menu;
+            NativeMenu.SetMenu(this, nativeMenu);
+        }
+        else
+        {
+            var items = menus.Select(ToMenuItem).Cast<MenuItem>().ToList();
+            _recentMenuItem = items.First(i => (string)i.Header! == "_File")
+                .ItemsSource!.OfType<MenuItem>().First(i => (string)i.Header! == "Open _Recent");
+            MenuHost.Content = new Menu { ItemsSource = items };
+        }
+        RefreshRecentMenu(vm);
+
+        EmptyHint.Text = $"File › New ({G(Key.N).ToString("p", null)}) or drop an image here";
+    }
+
+    private void RefreshRecentMenu(MainViewModel vm)
+    {
+        MenuSpec[] recent = vm.RecentFiles.Files.Count == 0
+            ? [new("No recent files", vm.NotYetImplemented)]
+            :
+            [
+                .. vm.RecentFiles.Files.Select(path =>
+                    new MenuSpec(path, vm.OpenRecentCommand, CommandParameter: path, Literal: true)),
+                MenuSpec.Separator,
+                new("Clear Recent", vm.ClearRecentCommand),
+            ];
+
+        if (_nativeRecentMenu is not null)
+        {
+            _nativeRecentMenu.Items.Clear();
+            foreach (var spec in recent)
+                _nativeRecentMenu.Items.Add(ToNativeMenuItem(spec));
+        }
+        if (_recentMenuItem is not null)
+            _recentMenuItem.ItemsSource = recent.Select(ToMenuItem).ToList();
+    }
+
+    private static NativeMenuItem FindNative(NativeMenu menu, params string[] path)
+    {
+        var item = menu.Items.OfType<NativeMenuItem>().First(i => i.Header == path[0]);
+        return path.Length == 1 ? item : FindNative(item.Menu!, path[1..]);
+    }
+
+    private static NativeMenu ToNativeMenu(MenuSpec[] specs)
+    {
+        var menu = new NativeMenu();
+        foreach (var spec in specs)
+            menu.Add(ToNativeMenuItem(spec));
+        return menu;
+    }
+
+    private static NativeMenuItemBase ToNativeMenuItem(MenuSpec spec)
+    {
+        if (spec == MenuSpec.Separator)
+            return new NativeMenuItemSeparator();
+        var item = new NativeMenuItem(spec.Literal ? spec.Header : spec.Header.Replace("_", ""))
+        {
+            Command = spec.Command,
+            CommandParameter = spec.CommandParameter,
+            Gesture = spec.Gesture,
+        };
+        if (spec.Children is not null)
+            item.Menu = ToNativeMenu(spec.Children);
+        return item;
+    }
+
+    private static Control ToMenuItem(MenuSpec spec)
+    {
+        if (spec == MenuSpec.Separator)
+            return new Separator();
+        return new MenuItem
+        {
+            Header = spec.Literal ? spec.Header.Replace("_", "__") : spec.Header,
+            Command = spec.Command,
+            CommandParameter = spec.CommandParameter,
+            InputGesture = spec.Gesture,
+            HotKey = spec.Gesture,
+            ItemsSource = spec.Children?.Select(ToMenuItem).ToList(),
+        };
+    }
+}
