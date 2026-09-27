@@ -71,8 +71,8 @@ public class DialogService(Window owner) : IDialogService
     public async Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>
         await new LayerPropertiesWindow { DataContext = properties }.ShowDialog<bool?>(owner) == true;
 
-    public async Task<bool> ShowAdjustmentAsync(AdjustmentViewModel adjustment) =>
-        await new AdjustmentWindow { DataContext = adjustment }.ShowDialog<bool?>(owner) == true;
+    public async Task<bool> ShowEffectAsync(EffectDialogViewModel adjustment) =>
+        await new EffectWindow { DataContext = adjustment }.ShowDialog<bool?>(owner) == true;
 
     public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
         new ResizeImageWindow { DataContext = new ResizeImageViewModel(current) }.ShowDialog<ResizeImageOptions?>(owner);

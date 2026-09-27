@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CinnabarSharp.Core.Adjustments;
+using CinnabarSharp.Core.Effects;
+using CinnabarSharp.Core.Effects;
 
 namespace CinnabarSharp.Desktop.ViewModels;
 
-public partial class AdjustmentParameterViewModel(AdjustmentParameter parameter, Action changed) : ViewModelBase
+public partial class EffectParameterViewModel(EffectParameter parameter, Action changed) : ViewModelBase
 {
     public string Name => parameter.Name;
     public double Minimum => parameter.Minimum;
@@ -30,19 +31,19 @@ public partial class AdjustmentParameterViewModel(AdjustmentParameter parameter,
 /// Adjustment dialog state. Every parameter change recomputes the preview on a background thread
 /// (an older, still-running preview is cancelled) and shows it on the canvas when done.
 /// </summary>
-public partial class AdjustmentViewModel : ViewModelBase
+public partial class EffectDialogViewModel : ViewModelBase
 {
-    private readonly AdjustmentSession _session;
+    private readonly EffectSession _session;
     private CancellationTokenSource? _pending;
 
-    public AdjustmentViewModel(AdjustmentSession session)
+    public EffectDialogViewModel(EffectSession session)
     {
         _session = session;
-        Parameters = session.Adjustment.Parameters.Select(p => new AdjustmentParameterViewModel(p, RequestPreview)).ToList();
+        Parameters = session.Effect.Parameters.Select(p => new EffectParameterViewModel(p, RequestPreview)).ToList();
     }
 
-    public string Title => _session.Adjustment.Name;
-    public IReadOnlyList<AdjustmentParameterViewModel> Parameters { get; }
+    public string Title => _session.Effect.Name;
+    public IReadOnlyList<EffectParameterViewModel> Parameters { get; }
     public IReadOnlyList<double> Values => Parameters.Select(p => p.Value).ToList();
 
     /// <summary>The latest preview computation; tests await it.</summary>
@@ -68,12 +69,17 @@ public partial class AdjustmentViewModel : ViewModelBase
             }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
-    /// <summary>Applies the final values synchronously and records one history step.</summary>
-    public void Commit()
+    public bool Committed { get; private set; }
+
+    /// <summary>Computes the final values in the background, then applies them as one history step.</summary>
+    public async Task CommitAsync()
     {
         _pending?.Cancel();
-        _session.Show(_session.Compute(Values));
+        var values = Values;
+        var pixels = await Task.Run(() => _session.Compute(values));
+        _session.Show(pixels);
         _session.Commit();
+        Committed = true;
     }
 
     public void Cancel()

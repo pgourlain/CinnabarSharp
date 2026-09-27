@@ -11,6 +11,8 @@ using ImageMagick;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
 using CinnabarSharp.Core.Adjustments;
+using CinnabarSharp.Core.Effects;
+using Effect = CinnabarSharp.Core.Effects.Effect;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Desktop.Services;
 
@@ -661,26 +663,67 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(HasDocument))]
     private Task Sepia() => RunAdjustment(new Sepia());
 
-    /// <summary>Adjustments without parameters apply at once; others open a live-preview dialog.</summary>
-    public async Task RunAdjustment(ColorAdjustment adjustment)
+    private Task RunAdjustment(ColorAdjustment adjustment) => RunEffect(adjustment);
+
+    // ---- Effects ----
+
+    private (Effect Effect, IReadOnlyList<double> Values)? _lastEffect;
+
+    public string RepeatEffectText => _lastEffect is { } last ? $"Repeat {last.Effect.Name}" : "Repeat Last Effect";
+
+    /// <summary>
+    /// Operations without parameters apply at once; others open a live-preview dialog. The final result is
+    /// computed in the background, then applied as one history step.
+    /// </summary>
+    public async Task RunEffect(Effect effect)
     {
         if (ActiveDocument is not { } d)
             return;
-        if (adjustment.Parameters.Count == 0)
+        var session = new EffectSession(d.Document, effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor);
+        if (effect.Parameters.Count == 0)
         {
-            AdjustmentSession.ApplyNow(d.Document, adjustment);
+            await ApplyAsync(session, effect.Defaults);
             return;
         }
         if (Dialogs is null)
             return;
 
-        var dialog = new AdjustmentViewModel(new AdjustmentSession(d.Document, adjustment));
+        var dialog = new EffectDialogViewModel(session);
         dialog.RequestPreview();
-        if (await Dialogs.ShowAdjustmentAsync(dialog))
-            dialog.Commit();
+        if (await Dialogs.ShowEffectAsync(dialog))
+            await dialog.CommitAsync();
         else
             dialog.Cancel();
+        if (dialog.Committed && effect is not ColorAdjustment)
+            RememberEffect(effect, dialog.Values);
     }
+
+    [RelayCommand(CanExecute = nameof(CanRepeatEffect))]
+    private async Task RepeatEffect()
+    {
+        if (ActiveDocument is not { } d || _lastEffect is not { } last)
+            return;
+        await ApplyAsync(new EffectSession(d.Document, last.Effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor), last.Values);
+    }
+
+    public bool CanRepeatEffect => HasDocument && _lastEffect is not null;
+
+    private void RememberEffect(Effect effect, IReadOnlyList<double> values)
+    {
+        _lastEffect = (effect, values);
+        OnPropertyChanged(nameof(RepeatEffectText));
+        RepeatEffectCommand.NotifyCanExecuteChanged();
+    }
+
+    private static async Task ApplyAsync(EffectSession session, IReadOnlyList<double> values)
+    {
+        var pixels = await Task.Run(() => session.Compute(values));
+        session.Show(pixels);
+        session.Commit();
+    }
+
+    [RelayCommand]
+    private Task ApplyEffect(Effect effect) => RunEffect(effect);
 
     // ---- Image ----
 
@@ -746,6 +789,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand,
                      AutoLevelCommand, BlackAndWhiteCommand, BrightnessContrastCommand, HueSaturationCommand,
                      InvertColorsCommand, LevelsCommand, PosterizeCommand, SepiaCommand,
+                     RepeatEffectCommand, ApplyEffectCommand,
                      ResizeImageCommand, CanvasSizeCommand, FlipImageHorizontalCommand, FlipImageVerticalCommand,
                      RotateClockwiseCommand, RotateCounterClockwiseCommand, Rotate180Command,
                  })

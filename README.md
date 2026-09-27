@@ -2,7 +2,7 @@
 
 A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/), written in C# with .NET 10 and [Avalonia](https://avaloniaui.net/). It runs on Windows, macOS and Linux with the same rendering on all three.
 
-> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting tools, the Image menu and adjustments work; text and effects are next. See the [roadmap](tasks.md).
+> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting tools, the Image menu, adjustments and effects work; the text tool and packaging are next. See the [roadmap](tasks.md).
 
 ![CinnabarSharp main window](docs/screenshot.png)
 
@@ -15,6 +15,7 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Selections**: rectangle, ellipse, lasso and magic wand with Paint.NET's modes (replace, union, exclude, xor, intersect), marching ants, move selection / selected pixels, crop to selection, erase, fill; cut/copy/paste with the system clipboard.
 - **Painting**: paintbrush, pencil, eraser, paint bucket, color picker, line, rectangle/ellipse shapes and gradients (linear, radial, diamond, conical), with primary/secondary colors and a color dialog.
 - **Adjustments**: auto-level, black and white, brightness/contrast, hue/saturation, invert, levels, posterize, sepia — with live preview.
+- **Effects**: Gaussian/motion/radial/zoom blur, glow, sharpen, vignette, add noise, median, bulge, frosted glass, pixelate, twist, edge detect, emboss, relief, clouds, Mandelbrot — with live preview and Repeat Last Effect.
 - **Image menu**: resize image (resampling choice), canvas size with anchor, rotate, flip, crop to selection.
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
 - **Native feel on each OS**: macOS menu bar and ⌘ shortcuts, in-window menu and Ctrl shortcuts on Windows and Linux, native file dialogs, drag and drop, recent files.

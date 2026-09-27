@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
+using CinnabarSharp.Core.Effects;
 using CinnabarSharp.Desktop.Services;
 using CinnabarSharp.Desktop.ViewModels;
 
@@ -353,7 +354,15 @@ public partial class MainWindow : Window, IViewportService
                 new("_Posterize…", vm.PosterizeCommand, G(Key.P, KeyModifiers.Shift)),
                 new("_Sepia", vm.SepiaCommand, G(Key.E, KeyModifiers.Shift)),
             ]),
-            new("Effe_cts", Children: [new("Effects arrive in Phase 9", notYet)]),
+            new("Effe_cts", Children:
+            [
+                new("_Repeat Last Effect", vm.RepeatEffectCommand, G(Key.F)),
+                MenuSpec.Separator,
+                .. EffectCatalog.All.GroupBy(e => e.Category).Select(group => new MenuSpec(group.Key,
+                    Children: group.Select(e => new MenuSpec(
+                        e.Parameters.Count > 0 ? e.Name + "…" : e.Name, vm.ApplyEffectCommand,
+                        CommandParameter: e, Literal: true)).ToArray())),
+            ]),
         ];
         if (!isMac)
             menus = [.. menus, new("_Help", Children: [new("_About CinnabarSharp", vm.AboutCommand)])];

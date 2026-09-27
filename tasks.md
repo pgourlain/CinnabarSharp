@@ -175,12 +175,17 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 ## Phase 9 — Effects
 
-- [ ] Effect framework: `IEffect` with parameters → auto-generated dialog, live preview, progress + cancel.
-- [ ] Blurs (Gaussian, Motion, Radial, Zoom, Unfocus), Sharpen, Noise (Add, Reduce, Median), Distort (Bulge, Twist, Pixelate, Tile Reflection, Frosted Glass), Artistic (Ink Sketch, Oil Painting, Pencil Sketch), Stylize (Emboss, Edge Detect, Outline, Relief), Render (Clouds, Julia, Mandelbrot), Photo (Glow, Red Eye, Soft Portrait, Vignette).
-- [ ] Repeat last effect (`Ctrl+F`).
+- [x] Effect framework in Core (`CinnabarSharp.Core.Effects`): `Effect` renders a rectangle from the layer's original pixels with numeric parameters; adjustments are now per-pixel effects. `EffectSession` (selection-aware, one history step with only the affected rectangle) replaces `AdjustmentSession`. Pure C#; random effects use a seeded hash so results are reproducible.
+- [x] One dialog for adjustments and effects, generated from the parameters; background live preview; final result computed in the background after OK; Cancel leaves no trace.
+- [x] Effects: Blurs (Gaussian, Motion, Radial, Zoom), Photo (Glow, Sharpen, Vignette), Noise (Add Noise, Median), Distort (Bulge, Frosted Glass, Pixelate, Twist), Stylize (Edge Detect, Emboss, Relief), Render (Clouds with primary/secondary colors, Mandelbrot). Blurs average premultiplied colors (no dark halos at transparent edges).
+- [x] Effects menu with category submenus; Repeat Last Effect (⌘/Ctrl+F).
+- [ ] More Paint.NET effects: Unfocus, Surface Blur, Reduce Noise, Tile Reflection, Polar Inversion, Dents, Ink/Pencil Sketch, Oil Painting, Outline, Red Eye Removal, Soft Portrait, Julia Fractal.
+- [ ] Progress bar for long effects; non-numeric parameters (checkboxes, choices, angle picker, center point picker for Bulge/Twist/Zoom).
 
 **Validation**
-- [ ] Each effect cancellable; multi-core used; results identical across OSes.
+- [x] Each effect cancellable (tested); runs on a background thread.
+- [ ] Results identical across OSes: CI checksum over all effects. Effects use `Math.Sin/Cos/Exp`, which come from each OS's math library; if CI ever shows a last-bit difference, switch that test to a per-pixel tolerance.
+- [ ] Multi-core rendering (effects are single-threaded today).
 
 ## Phase 10 — Polish and packaging
 

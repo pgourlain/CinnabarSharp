@@ -54,14 +54,14 @@ public class FakeDialogService : IDialogService
         Task.FromResult(LayerPropertiesAnswer(properties));
 
     /// <summary>Changes made in the adjustment dialog, then whether OK is clicked.</summary>
-    public Func<AdjustmentViewModel, bool> AdjustmentAnswer { get; set; } = _ => true;
+    public Func<EffectDialogViewModel, bool> EffectAnswer { get; set; } = _ => true;
 
-    public List<string> AdjustmentsShown { get; } = [];
+    public List<string> EffectsShown { get; } = [];
 
-    public Task<bool> ShowAdjustmentAsync(AdjustmentViewModel adjustment)
+    public Task<bool> ShowEffectAsync(EffectDialogViewModel adjustment)
     {
-        AdjustmentsShown.Add(adjustment.Title);
-        return Task.FromResult(AdjustmentAnswer(adjustment));
+        EffectsShown.Add(adjustment.Title);
+        return Task.FromResult(EffectAnswer(adjustment));
     }
 
     public Queue<ResizeImageOptions?> ResizeAnswers { get; } = new();

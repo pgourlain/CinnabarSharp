@@ -1,25 +1,27 @@
+using CinnabarSharp.Core.Effects;
 using CinnabarSharp.Core.Models;
 
 namespace CinnabarSharp.Core.Adjustments;
 
-/// <summary>A numeric parameter shown as a slider in the adjustment dialog.</summary>
-public sealed record AdjustmentParameter(string Name, double Minimum, double Maximum, double Default, double Step = 1);
-
 /// <summary>
-/// A per-pixel color adjustment (Paint.NET's Adjustments menu). <see cref="Create"/> receives the parameter values and
-/// the layer's original pixels (for adjustments that need statistics, like Auto-Level) and returns the pixel function.
-/// Pure C#, so results are identical on every OS.
+/// A per-pixel color adjustment (Paint.NET's Adjustments menu): an <see cref="Effect"/> whose result for a pixel
+/// depends only on that pixel. <see cref="Create"/> receives the parameter values and the layer's original pixels
+/// (for adjustments that need statistics, like Auto-Level) and returns the pixel function.
 /// </summary>
-public abstract class ColorAdjustment
+public abstract class ColorAdjustment : Effect
 {
-    public abstract string Name { get; }
-
-    /// <summary>Empty for adjustments applied immediately, without a dialog.</summary>
-    public virtual IReadOnlyList<AdjustmentParameter> Parameters => [];
-
     public abstract PixelFunction Create(IReadOnlyList<double> values, ReadOnlySpan<byte> layerPixels);
 
-    public IReadOnlyList<double> Defaults => Parameters.Select(p => p.Default).ToList();
+    public override void Render(EffectContext context, RectangleI region, byte[] destination,
+        IReadOnlyList<double> values, CancellationToken cancellation)
+    {
+        var function = Create(values, context.Source);
+        ForEachPixel(region, destination, cancellation, (x, y, px) =>
+        {
+            context.Source.AsSpan(context.Index(x, y), 4).CopyTo(px);
+            function(px);
+        });
+    }
 
     /// <summary>Transforms a pixel in place (straight-alpha BGRA; alpha is kept by every adjustment).</summary>
     public delegate void PixelFunction(Span<byte> pixel);
@@ -83,7 +85,7 @@ public sealed class BrightnessContrast : ColorAdjustment
 {
     public override string Name => "Brightness / Contrast";
 
-    public override IReadOnlyList<AdjustmentParameter> Parameters =>
+    public override IReadOnlyList<EffectParameter> Parameters =>
     [
         new("Brightness", -100, 100, 0),
         new("Contrast", -100, 100, 0),
@@ -102,7 +104,7 @@ public sealed class Posterize : ColorAdjustment
 {
     public override string Name => "Posterize";
 
-    public override IReadOnlyList<AdjustmentParameter> Parameters => [new("Levels", 2, 64, 16)];
+    public override IReadOnlyList<EffectParameter> Parameters => [new("Levels", 2, 64, 16)];
 
     public override PixelFunction Create(IReadOnlyList<double> values, ReadOnlySpan<byte> layerPixels)
     {
@@ -116,7 +118,7 @@ public sealed class Levels : ColorAdjustment
 {
     public override string Name => "Levels";
 
-    public override IReadOnlyList<AdjustmentParameter> Parameters =>
+    public override IReadOnlyList<EffectParameter> Parameters =>
     [
         new("Input black", 0, 254, 0),
         new("Input white", 1, 255, 255),
@@ -173,7 +175,7 @@ public sealed class HueSaturation : ColorAdjustment
 {
     public override string Name => "Hue / Saturation";
 
-    public override IReadOnlyList<AdjustmentParameter> Parameters =>
+    public override IReadOnlyList<EffectParameter> Parameters =>
     [
         new("Hue", -180, 180, 0),
         new("Saturation", 0, 200, 100),

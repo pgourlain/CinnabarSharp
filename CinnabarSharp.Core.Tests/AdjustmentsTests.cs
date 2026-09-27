@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using CinnabarSharp.Core.Adjustments;
+using CinnabarSharp.Core.Effects;
 using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
@@ -95,7 +96,7 @@ public sealed class AdjustmentsTests : BaseTests
     {
         var doc = _workspace.NewDocument(new ImageSize(4, 1), ColorBgra.White);
         doc.SetSelection(SelectionMask.Rectangle(4, 1, new PointD(0, 0), new PointD(2, 1)));
-        var session = new AdjustmentSession(doc, new BrightnessContrast());
+        var session = new EffectSession(doc, new BrightnessContrast());
 
         session.Preview([-50, 0]);
         session.Preview([-100, 0]);
@@ -112,7 +113,7 @@ public sealed class AdjustmentsTests : BaseTests
     public void Cancel_restores_and_records_nothing()
     {
         var doc = _workspace.NewDocument(new ImageSize(3, 3), ColorBgra.White);
-        var session = new AdjustmentSession(doc, new InvertColors());
+        var session = new EffectSession(doc, new InvertColors());
 
         session.Preview([]);
         session.Cancel();
@@ -126,7 +127,7 @@ public sealed class AdjustmentsTests : BaseTests
     public void Compute_does_not_touch_the_layer_and_can_be_cancelled()
     {
         var doc = _workspace.NewDocument(new ImageSize(50, 50), ColorBgra.White);
-        var session = new AdjustmentSession(doc, new InvertColors());
+        var session = new EffectSession(doc, new InvertColors());
 
         var pixels = session.Compute([]);
         Assert.Equal(0, pixels[0]);

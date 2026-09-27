@@ -1,15 +1,15 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
-        x:Class="CinnabarSharp.Desktop.Views.AdjustmentWindow"
-        x:DataType="vm:AdjustmentViewModel"
+        x:Class="CinnabarSharp.Desktop.Views.EffectWindow"
+        x:DataType="vm:EffectDialogViewModel"
         Title="{Binding Title}"
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
     <StackPanel Margin="20" Spacing="14" Width="380">
         <ItemsControl ItemsSource="{Binding Parameters}">
             <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:AdjustmentParameterViewModel">
+                <DataTemplate x:DataType="vm:EffectParameterViewModel">
                     <StackPanel Spacing="2" Margin="0,0,0,10">
                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                         <DockPanel>

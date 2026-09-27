@@ -32,6 +32,9 @@ public sealed class PaintSession
     /// <summary>The layer pixels as they were when the session started.</summary>
     public ReadOnlySpan<byte> Base => _base;
 
+    /// <summary>Same as <see cref="Base"/>, as an array for code that runs on other threads. Never modify it.</summary>
+    public byte[] BasePixels => _base;
+
     /// <summary>Computes a pixel from its value before the session (<paramref name="pixel"/>, BGRA, edited in place).</summary>
     public delegate void PixelFunction(int x, int y, Span<byte> pixel);
 
@@ -60,6 +63,24 @@ public sealed class PaintSession
                     continue;
                 function(ix, iy, buffer.AsSpan((y * region.Width + x) * 4, 4));
             }
+        }
+        return buffer;
+    }
+
+    /// <summary>
+    /// Pixels of <paramref name="region"/> rendered by <paramref name="render"/> into a region-sized buffer, with
+    /// pixels outside the selection reset to their original value. Thread-safe like <see cref="Compute"/>.
+    /// </summary>
+    public byte[] ComputeRegion(RectangleI region, Action<byte[]> render)
+    {
+        var buffer = new byte[region.Width * region.Height * 4];
+        render(buffer);
+        if (_selection is { } s)
+        {
+            for (var y = 0; y < region.Height; y++)
+                for (var x = 0; x < region.Width; x++)
+                    if (!s.Contains(region.X + x, region.Y + y))
+                        _base.AsSpan(((region.Y + y) * Width + region.X + x) * 4, 4).CopyTo(buffer.AsSpan((y * region.Width + x) * 4, 4));
         }
         return buffer;
     }

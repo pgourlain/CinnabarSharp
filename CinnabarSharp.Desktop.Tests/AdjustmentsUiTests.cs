@@ -1,6 +1,7 @@
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using CinnabarSharp.Core.Adjustments;
+using CinnabarSharp.Core.Effects;
 using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Desktop.ViewModels;
@@ -30,7 +31,7 @@ public sealed class AdjustmentsUiTests : IDisposable
         await Vm.InvertColorsCommand.ExecuteAsync(null);
 
         Assert.Equal(new byte[] { 215, 165, 55, 255 }, Pixel());
-        Assert.Empty(_h.Dialogs.AdjustmentsShown);
+        Assert.Empty(_h.Dialogs.EffectsShown);
         Assert.Equal(["New Image", "Invert Colors"], Vm.History.Select(h => h.Text));
     }
 
@@ -38,7 +39,7 @@ public sealed class AdjustmentsUiTests : IDisposable
     public async Task Dialog_ok_applies_the_chosen_values()
     {
         NewImage();
-        _h.Dialogs.AdjustmentAnswer = dialog =>
+        _h.Dialogs.EffectAnswer = dialog =>
         {
             dialog.Parameters.Single(p => p.Name == "Saturation").Value = 0;
             return true;
@@ -47,7 +48,7 @@ public sealed class AdjustmentsUiTests : IDisposable
         await Vm.HueSaturationCommand.ExecuteAsync(null);
 
         var px = Pixel();
-        Assert.Equal(["Hue / Saturation"], _h.Dialogs.AdjustmentsShown);
+        Assert.Equal(["Hue / Saturation"], _h.Dialogs.EffectsShown);
         Assert.True(px[0] == px[1] && px[1] == px[2], string.Join(",", px));
         Assert.Equal("Hue / Saturation", Vm.History[^1].Text);
     }
@@ -56,7 +57,7 @@ public sealed class AdjustmentsUiTests : IDisposable
     public async Task Dialog_cancel_leaves_no_trace()
     {
         NewImage();
-        _h.Dialogs.AdjustmentAnswer = dialog =>
+        _h.Dialogs.EffectAnswer = dialog =>
         {
             dialog.Parameters[0].Value = 100;
             return false;
@@ -74,7 +75,7 @@ public sealed class AdjustmentsUiTests : IDisposable
     public async Task Live_preview_is_computed_in_background_and_shown_on_canvas()
     {
         NewImage();
-        var dialog = new AdjustmentViewModel(new AdjustmentSession(Doc, new BrightnessContrast()));
+        var dialog = new EffectDialogViewModel(new EffectSession(Doc, new BrightnessContrast()));
 
         dialog.Parameters[0].Value = 100;
         await dialog.PreviewTask;
@@ -105,9 +106,9 @@ public sealed class AdjustmentsUiTests : IDisposable
     public void Adjustment_dialog_renders_its_parameters()
     {
         NewImage();
-        var dialog = new AdjustmentWindow
+        var dialog = new EffectWindow
         {
-            DataContext = new AdjustmentViewModel(new AdjustmentSession(Doc, new Levels())),
+            DataContext = new EffectDialogViewModel(new EffectSession(Doc, new Levels())),
         };
         dialog.Show();
         TestHarness.CaptureWindow(dialog, "71-levels-dialog");
