@@ -615,4 +615,12 @@ public static class EffectCatalog
     ];
 
     public static IReadOnlyList<Effect> All { get; } = [.. Effects, .. PhotoTools];
+
+    /// <summary>The Adjustments menu (per-pixel color adjustments), in menu order.</summary>
+    public static IReadOnlyList<Effect> Adjustments { get; } =
+    [
+        new Adjustments.AutoLevel(), new Adjustments.BlackAndWhite(), new Adjustments.BrightnessContrast(),
+        new Adjustments.Curves(), new Adjustments.HueSaturation(), new Adjustments.InvertColors(),
+        new Adjustments.Levels(), new Adjustments.Posterize(), new Adjustments.Sepia(),
+    ];
 }

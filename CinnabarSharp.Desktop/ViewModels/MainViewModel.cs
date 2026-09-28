@@ -60,6 +60,40 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public IClipboardService? Clipboard { get; set; }
 
+    /// <summary>MCP attached mode (File › Allow AI Agents); not set in tests.</summary>
+    public AgentConnection? Agents { get; set; }
+
+    /// <summary>Whether AI agents connected with "CinnabarSharp --mcp --attach" can edit the open images.</summary>
+    [ObservableProperty]
+    public partial bool AllowAgents { get; set; }
+
+    partial void OnAllowAgentsChanged(bool value)
+    {
+        if (Agents is null)
+            return;
+        if (!value)
+        {
+            Agents.Stop();
+            return;
+        }
+        string? error;
+        try
+        {
+            error = Agents.Start() ? null : "Another CinnabarSharp window already accepts AI agents.";
+        }
+        catch (Exception e) when (e is System.Net.Sockets.SocketException or IOException or UnauthorizedAccessException)
+        {
+            error = e.Message;
+        }
+        if (error is null)
+            return;
+        AllowAgents = false;
+        Dialogs?.ShowErrorAsync("Can't accept AI agents", error);
+    }
+
+    [RelayCommand]
+    private void ToggleAllowAgents() => AllowAgents = !AllowAgents;
+
     [ObservableProperty]
     public partial DocumentViewModel? ActiveDocument { get; set; }
 
@@ -607,6 +641,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShapeKind = settings.ShapeKind;
         ShapeStyle = settings.ShapeStyle;
         GradientKind = settings.GradientKind;
+        AllowAgents = settings.AllowAgents;
         if (Tools.FirstOrDefault(t => t.Name == settings.SelectedTool) is { } tool)
             SelectedTool = tool;
     }
@@ -639,6 +674,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShapeKind = ShapeKind,
         ShapeStyle = ShapeStyle,
         GradientKind = GradientKind,
+        AllowAgents = AllowAgents,
     };
 
     /// <summary>Selects the next tool with this Paint.NET shortcut letter (pressing S again cycles the select tools).</summary>

@@ -41,6 +41,7 @@ public record AppSettings
     public ShapeKind ShapeKind { get; init; }
     public ShapeStyle ShapeStyle { get; init; }
     public GradientKind GradientKind { get; init; }
+    public bool AllowAgents { get; init; }
 }
 
 /// <summary>Reads and writes <see cref="AppSettings"/> as JSON in the user's app-data folder; never throws.</summary>

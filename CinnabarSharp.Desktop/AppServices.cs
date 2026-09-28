@@ -17,6 +17,7 @@ public static class AppServices
         services.AddSingleton(_ => new RecentFilesStore(RecentFilesStore.DefaultPath));
         services.AddSingleton(_ => new SettingsStore(SettingsStore.DefaultPath));
         services.AddSingleton<CinnabarSharp.Core.Tools.ITextRasterizer, AvaloniaTextRasterizer>();
+        services.AddSingleton<AgentConnection>();
         services.AddSingleton<MainViewModel>();
         configure?.Invoke(services);
         return services.BuildServiceProvider();

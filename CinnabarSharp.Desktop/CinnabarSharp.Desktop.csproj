@@ -33,5 +33,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CinnabarSharp.Core\CinnabarSharp.Core.csproj" />
+    <ProjectReference Include="..\CinnabarSharp.Mcp\CinnabarSharp.Mcp.csproj" />
   </ItemGroup>
 </Project>

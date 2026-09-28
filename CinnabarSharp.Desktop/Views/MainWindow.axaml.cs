@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -22,7 +23,8 @@ public partial class MainWindow : Window, IViewportService
         KeyGesture? Gesture = null,
         MenuSpec[]? Children = null,
         object? CommandParameter = null,
-        bool Literal = false)
+        bool Literal = false,
+        (object Source, string Path)? Checked = null)
     {
         public static readonly MenuSpec Separator = new("-");
     }
@@ -382,6 +384,8 @@ public partial class MainWindow : Window, IViewportService
             new("_Save", vm.SaveCommand, G(Key.S)),
             new("Save _As…", vm.SaveAsCommand, G(Key.S, KeyModifiers.Shift)),
             MenuSpec.Separator,
+            new("Allow AI A_gents (MCP)", vm.ToggleAllowAgentsCommand, Checked: (vm, nameof(MainViewModel.AllowAgents))),
+            MenuSpec.Separator,
             new("_Close", vm.CloseCommand, G(Key.W)),
         };
         if (!isMac)
@@ -551,6 +555,11 @@ public partial class MainWindow : Window, IViewportService
         };
         if (spec.Children is not null)
             item.Menu = ToNativeMenu(spec.Children);
+        if (spec.Checked is { } check)
+        {
+            item.ToggleType = MenuItemToggleType.CheckBox;
+            item.Bind(NativeMenuItem.IsCheckedProperty, new Binding(check.Path) { Source = check.Source, Mode = BindingMode.OneWay });
+        }
         return item;
     }
 
@@ -558,7 +567,7 @@ public partial class MainWindow : Window, IViewportService
     {
         if (spec == MenuSpec.Separator)
             return new Separator();
-        return new MenuItem
+        var item = new MenuItem
         {
             Header = spec.Literal ? spec.Header.Replace("_", "__") : spec.Header,
             Command = spec.Command,
@@ -567,5 +576,11 @@ public partial class MainWindow : Window, IViewportService
             HotKey = spec.Gesture,
             ItemsSource = spec.Children?.Select(ToMenuItem).ToList(),
         };
+        if (spec.Checked is { } check)
+        {
+            item.ToggleType = MenuItemToggleType.CheckBox;
+            item.Bind(MenuItem.IsCheckedProperty, new Binding(check.Path) { Source = check.Source, Mode = BindingMode.OneWay });
+        }
+        return item;
     }
 }

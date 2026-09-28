@@ -3,4 +3,6 @@
   <Project Path="CinnabarSharp.Core/CinnabarSharp.Core.csproj" />
   <Project Path="CinnabarSharp.Desktop.Tests/CinnabarSharp.Desktop.Tests.csproj" />
   <Project Path="CinnabarSharp.Desktop/CinnabarSharp.Desktop.csproj" />
+  <Project Path="CinnabarSharp.Mcp.Tests/CinnabarSharp.Mcp.Tests.csproj" />
+  <Project Path="CinnabarSharp.Mcp/CinnabarSharp.Mcp.csproj" />
 </Solution>

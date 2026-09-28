@@ -26,7 +26,9 @@ The code is ported from [Pinta](https://github.com/PintaProject/Pinta), itself a
 
 - `CinnabarSharp.Core/` — net10.0 class library, all document/layer/history logic. Non-visual (see constraint above).
 - `CinnabarSharp.Core.Tests/` — xUnit tests for Core, including `CoreArchitectureTests` which enforces the non-visual constraint.
+- `CinnabarSharp.Mcp/` — MCP server library (official C# SDK `ModelContextProtocol`), Core only, no UI. Hosted by the desktop executable: `CinnabarSharp --mcp` (headless, stdio) or `--mcp --attach` (stdio relayed to the running app's socket).
 - `CinnabarSharp.Desktop/` — Avalonia 12 desktop app (MVVM with CommunityToolkit.Mvvm).
+- `CinnabarSharp.Mcp.Tests/` — xunit v3; starts the real `CinnabarSharp.dll --mcp` (copied to its output through the Desktop project reference) and drives it with an MCP client over stdio.
 - `CinnabarSharp.Desktop.Tests/` — headless UI tests (Avalonia.Headless + Skia, **xunit v3**, unlike Core.Tests which is xunit v2). They render the real `MainWindow`, assert on pixels of the captured frame, and save screenshots to `CinnabarSharp.Desktop.Tests/bin/<Config>/net10.0/screenshots/`.
 
 Root solution: `CinnabarSharp.slnx`. Repository: https://github.com/pgourlain/CinnabarSharp (remote `origin`). CI: `.github/workflows/ci.yml` builds and tests on Windows, macOS and Linux and uploads the UI screenshots per OS as artifacts (`screenshots-<os>`).
@@ -45,6 +47,9 @@ dotnet test CinnabarSharp.Desktop.Tests --filter "FullyQualifiedName~MainWindowT
 
 # Run the app
 dotnet run --project CinnabarSharp.Desktop
+
+# MCP server over stdio (build first; `dotnet run` would write build output to stdout)
+dotnet CinnabarSharp.Desktop/bin/Debug/net10.0/CinnabarSharp.dll --mcp --allow ~/Pictures
 
 # Self-contained package (win-x64 | linux-x64 | osx-arm64 | osx-x64) into artifacts/
 packaging/package.sh osx-arm64 0.1.0
@@ -77,6 +82,8 @@ Magick.NET 14 uses `uint` for image width/height; Core's own types (`ImageSize`,
 
 **History:** items are created *after* the change (state "done"). The first item is always a `BaseHistoryItem` ("New Image"/"Open Image") pushed by `WorkspaceManager`. `IsDirty` is derived: `Pointer != cleanPointer`; `FormatManager.Save` calls `History.SetClean()`. Items own surfaces that are not in the document in their current state and dispose them in `OnDispose` (e.g. `AddLayerHistoryItem` disposes the layer if undone, `DeleteLayerHistoryItem` if done), so low-level layer methods must not dispose surfaces they replace or remove. When adding an action, add it to `HistoryTests.Actions`: that test checks undo restores order, properties, pixels and current layer exactly.
 - `Selection` (`ImageDocumentSelection`).
+
+**MCP server (`CinnabarSharp.Mcp`, user docs in `docs/mcp.md`):** `ImageTools` holds every tool; each tool body runs through `McpContext.Run`, which calls `IMcpDispatcher` (serialized in headless mode, `Dispatcher.UIThread` in attached mode, because the view model reacts to Core events on the UI thread) and turns Core exceptions into `McpException` (the SDK hides other exception messages from the agent). Edits must go through `DocumentActions`/`EffectSession` like the UI. Paths go through `FileAccessPolicy.Resolve` (allowed folders, symlinks resolved); overwriting a file needs `overwrite`, closing unsaved work needs `discardChanges`. Documents have session ids from `McpContext.IdOf`. `Program.Main` branches on `--mcp` **before** Avalonia starts: stdout is the protocol, so never write to it there (logs go to stderr). Attached mode: `AgentConnection` (Desktop) starts `AttachListener` on a Unix domain socket (`<LocalAppData>/CinnabarSharp/mcp.sock`) when File › Allow AI Agents is on (`AppSettings.AllowAgents`); `AttachProxy` relays stdio to it. New Core features an agent should use need a tool in `ImageTools` and a line in `docs/mcp.md`; new effects appear automatically (`EffectCatalogInfo` reads `EffectCatalog`).
 
 **Events replace Pinta's C# events:** Instead of `EventHandler`s (left commented out in several classes), state changes call `IDocumentEventsService.PushEvent(new DocumentEventItem(doc, DocumentEventEnum.X))` (or `LayerEventItem`/`CanvasEventItem`). Consumers subscribe to the `IObservable<EventItem<DocumentEventEnum>>` stream; `MainViewModel` subscribes and turns events into view-model updates (tabs, layers list, `RenderVersion` to redraw the canvas). `DocumentEventsService` is a hand-rolled observable (no Rx dependency in Core; tests use `System.Reactive.Linq`). Tests assert the exact ordered sequence of events, so adding/reordering `PushEvent` calls breaks `ImageDocumentEventTests`.
 

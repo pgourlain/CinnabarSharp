@@ -2,7 +2,7 @@
 
 A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/), written in C# with .NET 10 and [Avalonia](https://avaloniaui.net/). It runs on Windows, macOS and Linux with the same rendering on all three.
 
-> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments and effects work; the UI review and an MCP server are next. See the [roadmap](tasks.md).
+> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments, effects, photo tools and the MCP server for AI agents work; the UI review is in progress. See the [roadmap](tasks.md).
 
 ![CinnabarSharp main window](docs/screenshot.png)
 
@@ -21,6 +21,7 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Photos for the TV**: crop tool locked to 16:9 (or 4:3, 3:2, 1:1…), Prepare for TV at 2K, 4K or 8K (crop to fill, fit with plain or blurred borders, two portraits side by side), JPEG export with quality and sRGB profile, and a whole folder at once.
 - **Image menu**: resize image (resampling choice), canvas size with anchor, rotate, flip, crop to selection.
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
+- **AI agents (MCP)**: Claude Code, Claude Desktop and other MCP clients can open, edit and save images, headless (`CinnabarSharp --mcp`) or in the running app while you watch (`--mcp --attach`). File access is limited to allowed folders, and every edit can be undone. See [docs/mcp.md](docs/mcp.md).
 - **Native feel on each OS**: macOS menu bar and ⌘ shortcuts, in-window menu and Ctrl shortcuts on Windows and Linux, native file dialogs, drag and drop, recent files.
 
 ## Download
@@ -49,9 +50,11 @@ Pushing a tag such as `v0.1.0` builds the packages for every OS and publishes a 
 | Project | Contents |
 |---|---|
 | `CinnabarSharp.Core` | Document model, layers, compositing, file formats. No UI code; builds and tests without any UI framework. |
+| `CinnabarSharp.Mcp` | MCP server (tools, resources, allowed folders), built on Core only; hosted by the desktop executable with `--mcp`. |
 | `CinnabarSharp.Desktop` | Avalonia desktop app (MVVM). |
 | `CinnabarSharp.Core.Tests` | Unit tests, including a checksum test that keeps blend modes bit-identical on every OS. |
 | `CinnabarSharp.Desktop.Tests` | Headless UI tests that drive the real window and save screenshots. |
+| `CinnabarSharp.Mcp.Tests` | Integration tests that start `CinnabarSharp --mcp` and drive it over stdio like an agent. |
 
 CI builds and tests on Windows, macOS and Linux, and publishes the UI screenshots of each OS as artifacts so they can be compared.
 

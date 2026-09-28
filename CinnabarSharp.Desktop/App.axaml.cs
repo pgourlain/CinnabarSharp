@@ -29,6 +29,9 @@ public partial class App : Application
         {
             var vm = Services.GetRequiredService<MainViewModel>();
             var settings = Services.GetRequiredService<SettingsStore>();
+            // Before RestoreSettings: it turns attached mode back on if the user left it on.
+            vm.Agents = Services.GetRequiredService<AgentConnection>();
+            desktop.Exit += (_, _) => vm.Agents.Dispose();
             var window = new MainWindow { DataContext = vm };
             window.RestoreSettings(settings);
             desktop.MainWindow = window;

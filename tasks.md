@@ -246,14 +246,16 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 
 ## Phase 13 — MCP server (drive CinnabarSharp from Claude and other agents)
 
-- [ ] `CinnabarSharp.Mcp` project exposing a Model Context Protocol server (official C# MCP SDK), built on `CinnabarSharp.Core` only (no UI).
-- [ ] Two modes: **headless** (stdio server: agents open, edit and save files without a window) and **attached** (the desktop app hosts the server so an agent drives the open documents and the user watches the changes live).
-- [ ] Tools: open/new/save/export (formats, JPEG quality), list documents and layers, add/delete/reorder layers and set properties, select (rectangle/ellipse/all/magic wand), run any adjustment or effect by name with parameters, resize/crop/canvas size/rotate, "prepare for TV", undo/redo, get image info (size, histogram), and render a preview (PNG, downscaled) so the agent can see the result.
-- [ ] Resources: document list, effect catalog with parameter schemas (generated from `Effect.Parameters`), history.
-- [ ] Safety: file access limited to allowed folders, destructive operations (overwrite, close without saving) require explicit parameters; everything goes through `DocumentActions` so it is undoable in attached mode.
-- [ ] Packaging and docs: `claude mcp add` instructions for Claude Code / Claude Desktop, examples ("make this photo 4K for my TV", "apply sepia to every photo in this folder").
-- [ ] Tests: MCP integration tests driving the server over stdio.
+- [x] `CinnabarSharp.Mcp` library exposing a Model Context Protocol server (official C# SDK `ModelContextProtocol` 2.2), built on `CinnabarSharp.Core` only (no UI). No separate executable: the app runs it with `CinnabarSharp --mcp`, so every package already contains it.
+- [x] Two modes: **headless** (`--mcp`, stdio, no window) and **attached** (`--mcp --attach` relays stdio to the running app over a Unix domain socket; File › Allow AI Agents (MCP), off by default and remembered; edits run on the UI thread and show live, one history step each).
+- [x] Tools: open/new/save/export (formats, JPEG quality)/close, list documents, image info with histogram, PNG preview, history, undo/redo; layers (add, import, delete, duplicate, merge down, flatten, move, select, properties, flip); selection (rectangle, ellipse, magic wand, all, none, invert, fill, erase); any adjustment/effect/photo tool by name with named parameters and list choices, suggested (Auto) values; resize, canvas size, crop (rectangle, ratio, selection), rotate, flip; prepare for TV and batch folder export. `EffectCatalog.Adjustments` added to Core.
+- [x] Resources: `cinnabar://documents`, `cinnabar://effects` (parameter ranges, defaults, choices, encoded values for Curves/Levels), `cinnabar://documents/{id}/history`.
+- [x] Safety: allowed folders (`--allow`, `CINNABARSHARP_MCP_ALLOW`, default the current directory; attached: Pictures, Documents, Desktop, Downloads), symbolic links resolved before the check; `overwrite` / `discardChanges` required for destructive operations; edits go through `DocumentActions` / `EffectSession`; socket readable by the user only.
+- [x] Docs: [docs/mcp.md](docs/mcp.md) with `claude mcp add` and Claude Desktop setup, tools, safety, examples.
+- [x] Tests: `CinnabarSharp.Mcp.Tests` start `CinnabarSharp --mcp` and drive it over stdio (end-to-end photo → TV JPEG, allowed folders and symlinks, overwrite/discard, effects parameters, undo/redo, layers, preview, batch), the `--attach` proxy against an in-process listener; a headless UI test drives the real window through the socket and checks pixels and undo.
 
 **Validation**
 - [ ] Claude Code edits a photo end-to-end through the MCP server (open → enhance → crop 16:9 → export 4K) on each OS.
+- [ ] Windows: the packaged `CinnabarSharp.exe` (GUI subsystem) serves stdio when launched by Claude Code/Desktop; if not, add a small console launcher.
+- [ ] Attached mode with the real app on each OS: toggle File › Allow AI Agents (native menu check mark on macOS), agent edits appear live, undo works.
 
