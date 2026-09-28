@@ -707,12 +707,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>True while keys typed belong to the selected tool (the Text tool is editing).</summary>
     public bool IsTyping => ActiveDocument is { } d && SelectedTool.Tool is IKeyboardTool k && k.IsTyping(d.Document);
 
-    /// <summary>Sends a key to the selected tool; returns true if the tool used it.</summary>
+    /// <summary>
+    /// Sends a key to the selected tool; returns true if it was used. Escape that no tool uses (to cancel a crop
+    /// frame, finish a text...) deselects.
+    /// </summary>
     public bool ToolKeyDown(ToolKey key, ToolModifiers modifiers)
     {
-        if (ActiveDocument is not { } d || SelectedTool.Tool is not IKeyboardTool tool)
+        if (ActiveDocument is not { } d)
             return false;
-        var handled = tool.OnKeyDown(d.Document, key, modifiers);
+        var handled = SelectedTool.Tool is IKeyboardTool tool && tool.OnKeyDown(d.Document, key, modifiers);
+        if (!handled && key == ToolKey.Escape && modifiers == ToolModifiers.None && d.Document.HasSelection)
+        {
+            d.Document.Actions.DeselectAll();
+            handled = true;
+        }
         UpdateOverlay();
         return handled;
     }
@@ -1167,7 +1175,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void UpdateCursorPosition(Core.Models.PointD? canvasPoint)
     {
         CursorPositionText = canvasPoint is { } p ? $"{(int)Math.Floor(p.X)}, {(int)Math.Floor(p.Y)}" : "";
+        HoverCursor = canvasPoint is { } point && ActiveDocument is { } d && SelectedTool.Tool is IOverlayTool tool
+            ? tool.CursorAt(d.Document, point)
+            : ToolCursor.Default;
     }
+
+    /// <summary>What the selected tool wants the cursor to show under the mouse (e.g. resize arrows over a handle).</summary>
+    [ObservableProperty]
+    public partial ToolCursor HoverCursor { get; set; }
 
     partial void OnActiveDocumentChanged(DocumentViewModel? value)
     {

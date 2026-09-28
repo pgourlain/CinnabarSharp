@@ -208,7 +208,12 @@ public class CanvasView : Control
             context.DrawLine(OverlayDark, P(from), P(to));
         }
         foreach (var handle in overlay.Handles)
-            context.DrawEllipse(Brushes.White, OverlayDark, P(handle), 4, 4);
+        {
+            if (overlay.SquareHandles)
+                context.DrawRectangle(Brushes.White, OverlayDark, new Rect(P(handle) - new Point(3.5, 3.5), new Size(7, 7)));
+            else
+                context.DrawEllipse(Brushes.White, OverlayDark, P(handle), 4, 4);
+        }
     }
 
     private Geometry OutlineGeometry(SelectionMask selection, double scale)

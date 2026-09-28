@@ -176,8 +176,11 @@ public interface IKeyboardTool : IEditingTool
 /// <summary>What a tool draws over the canvas (in image coordinates); the canvas renders it at the current zoom.</summary>
 public sealed record ToolOverlay
 {
-    /// <summary>Draggable points, drawn as small circles.</summary>
+    /// <summary>Draggable points, drawn as small circles (squares when <see cref="SquareHandles"/>).</summary>
     public IReadOnlyList<PointD> Handles { get; init; } = [];
+
+    /// <summary>Handles resize a shape (selection), drawn as squares like Paint.NET's.</summary>
+    public bool SquareHandles { get; init; }
 
     /// <summary>Thin lines: text caret, lines from curve ends to their control points.</summary>
     public IReadOnlyList<(PointD From, PointD To)> Lines { get; init; } = [];
@@ -192,7 +195,29 @@ public sealed record ToolOverlay
     public RectangleD? Shade { get; init; }
 }
 
+/// <summary>Mouse cursor a tool asks for over a point (e.g. resize arrows over a handle).</summary>
+public enum ToolCursor
+{
+    Default,
+    Move,
+
+    /// <summary>Left or right edge.</summary>
+    ResizeHorizontal,
+
+    /// <summary>Top or bottom edge.</summary>
+    ResizeVertical,
+
+    /// <summary>Top-left or bottom-right corner.</summary>
+    ResizeDiagonal,
+
+    /// <summary>Top-right or bottom-left corner.</summary>
+    ResizeAntiDiagonal,
+}
+
 public interface IOverlayTool : ITool
 {
     ToolOverlay? GetOverlay(ImageDocument document);
+
+    /// <summary>The cursor over <paramref name="point"/> (image coordinates) when no button is pressed.</summary>
+    ToolCursor CursorAt(ImageDocument document, PointD point) => ToolCursor.Default;
 }

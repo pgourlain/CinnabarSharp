@@ -96,13 +96,23 @@ public partial class MainWindow : Window, IViewportService
         }
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(MainViewModel.SelectedTool))
-                Canvas.Cursor = vm.SelectedTool.IsText ? new Cursor(StandardCursorType.Ibeam)
-                    : vm.SelectedTool.IsPaintingTool ? new Cursor(StandardCursorType.Cross)
-                    : null;
+            if (e.PropertyName is nameof(MainViewModel.SelectedTool) or nameof(MainViewModel.HoverCursor))
+                Canvas.Cursor = CanvasCursor(vm);
         };
         BuildMenu(vm);
     }
+
+    private static Cursor? CanvasCursor(MainViewModel vm) => vm.HoverCursor switch
+    {
+        CinnabarSharp.Core.Tools.ToolCursor.Move => new Cursor(StandardCursorType.SizeAll),
+        CinnabarSharp.Core.Tools.ToolCursor.ResizeHorizontal => new Cursor(StandardCursorType.SizeWestEast),
+        CinnabarSharp.Core.Tools.ToolCursor.ResizeVertical => new Cursor(StandardCursorType.SizeNorthSouth),
+        CinnabarSharp.Core.Tools.ToolCursor.ResizeDiagonal => new Cursor(StandardCursorType.TopLeftCorner),
+        CinnabarSharp.Core.Tools.ToolCursor.ResizeAntiDiagonal => new Cursor(StandardCursorType.TopRightCorner),
+        _ when vm.SelectedTool.IsText => new Cursor(StandardCursorType.Ibeam),
+        _ when vm.SelectedTool.IsPaintingTool => new Cursor(StandardCursorType.Cross),
+        _ => null,
+    };
 
     // ---- Settings ----
 

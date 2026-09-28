@@ -177,6 +177,20 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
         return new ToolOverlay { Frame = f, Shade = f, Handles = Corners(f), Lines = thirds };
     }
 
+    public ToolCursor CursorAt(ImageDocument document, PointD point)
+    {
+        if (!IsEditing(document) || _frame is not { } f)
+            return ToolCursor.Default;
+        var tolerance = 8 / Math.Max(document.Workspace.Scale, 0.01);
+        var corners = Corners(f);
+        for (var i = 0; i < 4; i++)
+            if (corners[i].Distance(point) <= tolerance)
+                return i % 2 == 0 ? ToolCursor.ResizeDiagonal : ToolCursor.ResizeAntiDiagonal;
+        return point.X >= f.X && point.X <= f.X + f.Width && point.Y >= f.Y && point.Y <= f.Y + f.Height
+            ? ToolCursor.Move
+            : ToolCursor.Default;
+    }
+
     // Top-left, top-right, bottom-right, bottom-left: the opposite corner of i is (i + 2) % 4.
     private static PointD[] Corners(RectangleD f) =>
     [

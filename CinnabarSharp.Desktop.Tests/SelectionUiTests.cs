@@ -53,8 +53,9 @@ public sealed class SelectionUiTests : IDisposable
         Assert.True(Vm.DeselectAllCommand.CanExecute(null));
 
         var frame = _h.Capture("40-rectangle-selection");
-        var edge = TestHarness.PixelAt(frame, _h.CanvasToWindow(100, 40));
-        Assert.NotEqual((255, 255, 255), edge == (255, 255, 255) ? TestHarness.PixelAt(frame, _h.CanvasToWindow(104, 40)) : edge);
+        // Away from the resize handles (corners and middle of each edge).
+        var edge = TestHarness.PixelAt(frame, _h.CanvasToWindow(75, 40));
+        Assert.NotEqual((255, 255, 255), edge == (255, 255, 255) ? TestHarness.PixelAt(frame, _h.CanvasToWindow(79, 40)) : edge);
         Assert.Equal((255, 255, 255), TestHarness.PixelAt(frame, _h.CanvasToWindow(100, 80)));
     }
 
@@ -203,5 +204,93 @@ public sealed class SelectionUiTests : IDisposable
         Assert.InRange(image.Bgra[1], 98, 101);
         Assert.Equal(0, image.Bgra[0]);
         Assert.Equal(128, image.Bgra[3]);
+    }
+
+    private void PressEscape()
+    {
+        _h.Window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    [AvaloniaFact]
+    public void Escape_deselects_and_can_be_undone()
+    {
+        NewImage();
+        Drag(50, 40, 150, 120);
+
+        PressEscape();
+        Assert.Null(Doc.Selection);
+        Assert.Equal("Deselect All", Vm.History[^1].Text);
+
+        Vm.UndoCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new RectangleI(50, 40, 100, 80), Doc.Selection!.Bounds);
+    }
+
+    [AvaloniaFact]
+    public void Escape_first_removes_the_crop_frame_then_deselects()
+    {
+        NewImage();
+        Drag(50, 40, 150, 120);
+        UseTool("Crop");
+        Drag(10, 10, 170, 100);
+        Assert.NotNull(Vm.Overlay?.Shade);
+
+        PressEscape();
+        Assert.Null(Vm.Overlay);
+        Assert.NotNull(Doc.Selection);
+
+        PressEscape();
+        Assert.Null(Doc.Selection);
+    }
+
+    [AvaloniaFact]
+    public void Selection_handles_resize_the_rectangle()
+    {
+        NewImage();
+        Drag(50, 40, 150, 120);
+
+        var handles = Vm.Overlay!.Handles;
+        Assert.True(Vm.Overlay.SquareHandles);
+        Assert.Equal(8, handles.Count);
+        Assert.Contains(new PointD(150, 80), handles); // middle of the right edge
+
+        // Hovering a handle shows a resize cursor.
+        _h.Window.MouseMove(_h.CanvasToWindow(150, 80));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Core.Tools.ToolCursor.ResizeHorizontal, Vm.HoverCursor);
+        _h.Window.MouseMove(_h.CanvasToWindow(100, 80));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Core.Tools.ToolCursor.Default, Vm.HoverCursor);
+
+        var frame = _h.Capture("41-selection-handles");
+        Assert.Equal((255, 255, 255), TestHarness.PixelAt(frame, _h.CanvasToWindow(150, 120)));
+
+        Drag(150, 120, 200, 160); // bottom-right corner
+        Assert.Equal(new RectangleI(50, 40, 150, 120), Doc.Selection!.Bounds);
+        Drag(50, 100, 20, 100); // middle of the left edge
+        Assert.Equal(new RectangleI(20, 40, 180, 120), Doc.Selection!.Bounds);
+        Assert.Equal("Selection 180 × 120", Vm.SelectionSizeText);
+        Assert.Equal(["New Image", "Rectangle Select", "Rectangle Select", "Rectangle Select"], Vm.History.Select(h => h.Text));
+
+        // Dragging inside the selection (not on a handle) draws a new one.
+        Drag(100, 100, 120, 110);
+        Assert.Equal(new RectangleI(100, 100, 20, 10), Doc.Selection!.Bounds);
+    }
+
+    [AvaloniaFact]
+    public void Ellipse_select_has_resize_handles_too()
+    {
+        NewImage();
+        UseTool("Ellipse Select");
+        Drag(50, 40, 150, 120);
+        Assert.Equal(8, Vm.Overlay!.Handles.Count);
+
+        Drag(100, 120, 100, 180); // bottom middle
+        Assert.Equal(new RectangleI(50, 40, 100, 140), Doc.Selection!.Bounds);
+
+        Vm.SelectAllCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Null(Vm.Overlay);
     }
 }

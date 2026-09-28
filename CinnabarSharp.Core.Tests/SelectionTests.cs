@@ -124,7 +124,7 @@ public sealed class SelectionToolsTests : BaseTests
     [Fact]
     public void Modifiers_change_the_mode_and_click_deselects()
     {
-        var doc = NewDoc();
+        var doc = NewDoc(40, 30);
         var tool = new RectangleSelectTool(_settings);
         Drag(tool, doc, new PointD(0, 0), new PointD(4, 4));
 
@@ -134,8 +134,43 @@ public sealed class SelectionToolsTests : BaseTests
         Drag(tool, doc, new PointD(0, 0), new PointD(6, 3), button: ToolButton.Right);
         Assert.Equal(new RectangleI(0, 3, 6, 3), doc.Selection!.Bounds);
 
-        Drag(tool, doc, new PointD(3, 3), new PointD(3, 3));
+        // Far from the last shape's resize handles.
+        Drag(tool, doc, new PointD(30, 25), new PointD(30, 25));
         Assert.Null(doc.Selection);
+    }
+
+    [Fact]
+    public void Handles_resize_the_last_shape_combined_with_the_previous_selection()
+    {
+        var doc = NewDoc(100, 80);
+        var tool = new RectangleSelectTool(_settings);
+        Drag(tool, doc, new PointD(10, 10), new PointD(30, 30));
+        Drag(tool, doc, new PointD(50, 20), new PointD(70, 40), ToolModifiers.Command);
+        Assert.Equal(8, tool.GetOverlay(doc)!.Handles.Count);
+        Assert.True(tool.GetOverlay(doc)!.SquareHandles);
+        Assert.Equal(ToolCursor.ResizeHorizontal, tool.CursorAt(doc, new PointD(70, 30)));
+        Assert.Equal(ToolCursor.Default, tool.CursorAt(doc, new PointD(60, 30)));
+
+        // Right edge of the second rectangle, from x = 70 to 90: the first rectangle stays selected.
+        Drag(tool, doc, new PointD(70, 30), new PointD(90, 30));
+        Assert.Equal(new RectangleI(10, 10, 80, 30), doc.Selection!.Bounds);
+        Assert.True(doc.Selection.Contains(15, 15));
+        Assert.True(doc.Selection.Contains(85, 25));
+        Assert.False(doc.Selection.Contains(40, 25));
+
+        // Top-left corner moved past the bottom-right one: the box flips.
+        Drag(tool, doc, new PointD(50, 20), new PointD(95, 45));
+        Assert.Equal(new RectangleI(10, 10, 85, 35), doc.Selection!.Bounds);
+        Assert.True(doc.Selection.Contains(92, 42));
+
+        Assert.Equal(["New Image", "Rectangle Select", "Rectangle Select", "Rectangle Select", "Rectangle Select"],
+            doc.Workspace.History.Items.Select(i => i.Text));
+        doc.Workspace.History.Undo();
+        Assert.Equal(new RectangleI(10, 10, 80, 30), doc.Selection!.Bounds);
+        Assert.Null(tool.GetOverlay(doc)); // the undone selection is no longer the tool's shape
+
+        doc.Actions.SelectAll();
+        Assert.Null(tool.GetOverlay(doc));
     }
 
     [Fact]
