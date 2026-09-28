@@ -61,7 +61,28 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public IClipboardService? Clipboard { get; set; }
 
     /// <summary>MCP attached mode (File › Allow AI Agents); not set in tests.</summary>
-    public AgentConnection? Agents { get; set; }
+    public AgentConnection? Agents
+    {
+        get => _agents;
+        set
+        {
+            if (_agents is not null)
+                _agents.Changed -= OnAgentsChanged;
+            _agents = value;
+            if (_agents is not null)
+                _agents.Changed += OnAgentsChanged;
+        }
+    }
+
+    private AgentConnection? _agents;
+
+    // Turning the option on shows how to connect, but not when it comes back on with the saved settings.
+    private bool _restoringSettings;
+
+    private void OnAgentsChanged() => OnPropertyChanged(nameof(AgentStatusText));
+
+    /// <summary>Status bar text while AI agents are allowed ("Waiting for an AI agent", "1 AI agent connected").</summary>
+    public string AgentStatusText => Agents is { } agents && AllowAgents ? AgentConnectionViewModel.StatusFor(agents) : "";
 
     /// <summary>Whether AI agents connected with "CinnabarSharp --mcp --attach" can edit the open images.</summary>
     [ObservableProperty]
@@ -69,6 +90,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     partial void OnAllowAgentsChanged(bool value)
     {
+        OnPropertyChanged(nameof(AgentStatusText));
+        ShowAgentConnectionCommand.NotifyCanExecuteChanged();
         if (Agents is null)
             return;
         if (!value)
@@ -86,13 +109,27 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             error = e.Message;
         }
         if (error is null)
+        {
+            if (!_restoringSettings)
+                _ = ShowAgentConnection();
             return;
+        }
         AllowAgents = false;
         Dialogs?.ShowErrorAsync("Can't accept AI agents", error);
     }
 
     [RelayCommand]
     private void ToggleAllowAgents() => AllowAgents = !AllowAgents;
+
+    /// <summary>Shows the commands that connect Claude Code or Claude Desktop to this window.</summary>
+    [RelayCommand(CanExecute = nameof(AllowAgents))]
+    private async Task ShowAgentConnection()
+    {
+        if (Dialogs is null || Agents is null)
+            return;
+        using var connection = new AgentConnectionViewModel(Agents, Clipboard);
+        await Dialogs.ShowAgentConnectionAsync(connection);
+    }
 
     [ObservableProperty]
     public partial DocumentViewModel? ActiveDocument { get; set; }
@@ -124,7 +161,35 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(SecondaryColor));
         OnPropertyChanged(nameof(PrimaryBrush));
         OnPropertyChanged(nameof(SecondaryBrush));
+        OnPropertyChanged(nameof(PrimaryColorHex));
+        OnPropertyChanged(nameof(SecondaryColorHex));
+        OnPropertyChanged(nameof(PrimaryColorRgbText));
+        OnPropertyChanged(nameof(SecondaryColorRgbText));
+        OnPropertyChanged(nameof(PrimaryColorDetails));
+        OnPropertyChanged(nameof(SecondaryColorDetails));
         RefreshEditingTool();
+    }
+
+    // ---- Color panel text: hex ("html syntax"), RGB, and a tooltip with HSV and alpha ----
+
+    public string PrimaryColorHex => HexText(ToolSettings.PrimaryColor);
+    public string SecondaryColorHex => HexText(ToolSettings.SecondaryColor);
+    public string PrimaryColorRgbText => RgbText(ToolSettings.PrimaryColor);
+    public string SecondaryColorRgbText => RgbText(ToolSettings.SecondaryColor);
+    public string PrimaryColorDetails => ColorDetails(ToolSettings.PrimaryColor);
+    public string SecondaryColorDetails => ColorDetails(ToolSettings.SecondaryColor);
+
+    /// <summary>"#RRGGBB", or "#RRGGBBAA" when the color isn't fully opaque.</summary>
+    private static string HexText(ColorBgra c) =>
+        $"#{c.R:X2}{c.G:X2}{c.B:X2}{(c.A == 255 ? "" : c.A.ToString("X2"))}";
+
+    private static string RgbText(ColorBgra c) => $"RGB {c.R}, {c.G}, {c.B}";
+
+    private static string ColorDetails(ColorBgra c)
+    {
+        var hsv = ToAvalonia(c).ToHsv();
+        var details = $"Hex {HexText(c)}\n{RgbText(c)}\nHSV {hsv.H:0}°, {hsv.S:P0}, {hsv.V:P0}";
+        return c.A == 255 ? details : details + $"\nAlpha {c.A} ({c.A / 255.0:P0})";
     }
 
     [RelayCommand]
@@ -641,7 +706,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShapeKind = settings.ShapeKind;
         ShapeStyle = settings.ShapeStyle;
         GradientKind = settings.GradientKind;
-        AllowAgents = settings.AllowAgents;
+        _restoringSettings = true;
+        try
+        {
+            AllowAgents = settings.AllowAgents;
+        }
+        finally
+        {
+            _restoringSettings = false;
+        }
         if (Tools.FirstOrDefault(t => t.Name == settings.SelectedTool) is { } tool)
             SelectedTool = tool;
     }
@@ -687,7 +760,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         SelectedTool = matches[(index + 1) % matches.Count];
     }
 
-    public void ToolPointerDown(ToolPointer pointer) => WithTool(t => t.OnPointerDown, pointer);
+    public void ToolPointerDown(ToolPointer pointer)
+    {
+        // Prepare for TV without Crop to fill has no frame to move.
+        if (!IsBusy && Tv is not { ShowsFrame: false })
+            WithTool(t => t.OnPointerDown, pointer);
+    }
+
     public void ToolPointerMove(ToolPointer pointer) => WithTool(t => t.OnPointerMove, pointer);
 
     public void ToolPointerUp(ToolPointer pointer)
@@ -713,8 +792,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public bool ToolKeyDown(ToolKey key, ToolModifiers modifiers)
     {
-        if (ActiveDocument is not { } d)
+        if (ActiveDocument is not { } d || IsBusy)
             return false;
+        if (IsTvMode && modifiers == ToolModifiers.None && key is ToolKey.Enter or ToolKey.Escape)
+        {
+            if (key == ToolKey.Enter)
+                ApplyTvCommand.Execute(null);
+            else
+                ExitTv();
+            return true;
+        }
         var handled = SelectedTool.Tool is IKeyboardTool tool && tool.OnKeyDown(d.Document, key, modifiers);
         if (!handled && key == ToolKey.Escape && modifiers == ToolModifiers.None && d.Document.HasSelection)
         {
@@ -742,7 +829,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void UpdateOverlay()
     {
-        Overlay = ActiveDocument is { } d && SelectedTool?.Tool is IOverlayTool tool ? tool.GetOverlay(d.Document) : null;
+        Overlay = ActiveDocument is not { } d ? null
+            : Tv is { ShowsFrame: false } tvOptions ? TvOverlay(tvOptions, d.Document)
+            : SelectedTool?.Tool is IOverlayTool tool ? tool.GetOverlay(d.Document)
+            : null;
+        if (Tv is { } tv && ActiveDocument is { } doc)
+            tv.Crop = CropTool?.Frame(doc.Document);
         ApplyCropCommand.NotifyCanExecuteChanged();
     }
 
@@ -764,11 +856,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     // The generator declares oldValue non-nullable, but it is null on the first assignment.
-    partial void OnSelectedToolChanged(ToolViewModel oldValue, ToolViewModel newValue) =>
+    partial void OnSelectedToolChanged(ToolViewModel oldValue, ToolViewModel newValue)
+    {
+        // Picking another tool leaves Prepare for TV, keeping the tool picked.
+        if (IsTvMode && newValue?.Tool is not Core.Tools.CropTool)
+        {
+            _toolBeforeTv = null;
+            ExitTv();
+        }
         FinishEditing(oldValue?.Tool, ActiveDocument?.Document);
+    }
 
-    partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue) =>
+    partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue)
+    {
+        ExitTv();
         FinishEditing(SelectedTool?.Tool, oldValue?.Document);
+    }
 
     partial void OnSelectedToolChanged(ToolViewModel value)
     {
@@ -793,7 +896,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool ShowGradientOptions => SelectedTool.IsGradient;
     public bool ShowColorPickerOptions => SelectedTool.IsColorPicker;
     public bool ShowTextOptions => SelectedTool.IsText;
-    public bool ShowCropOptions => SelectedTool.Tool is CropTool;
+    public bool ShowCropOptions => SelectedTool.Tool is CropTool && !IsTvMode;
 
     // ---- Selection and clipboard ----
 
@@ -966,6 +1069,41 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // ---- Effects ----
 
+    // ---- Long operations: feedback in the status bar ----
+
+    /// <summary>Name of the long operation in progress ("Auto-Enhance…"), shown in the status bar; null when idle.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBusy), nameof(IsIdle))]
+    public partial string? BusyText { get; set; }
+
+    /// <summary>Progress in percent, or null when the operation can't tell (the bar then just animates).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BusyIndeterminate))]
+    public partial double? BusyProgress { get; set; }
+
+    public bool IsBusy => BusyText is not null;
+    public bool IsIdle => !IsBusy;
+    public bool BusyIndeterminate => BusyProgress is null;
+
+    /// <summary>
+    /// Runs a long operation while the status bar shows <paramref name="text"/> and a progress bar, and the window's
+    /// editing areas are disabled so nothing else changes the image meanwhile.
+    /// </summary>
+    public async Task<T> RunBusyAsync<T>(string text, Func<IProgress<double>, Task<T>> work)
+    {
+        BusyText = text + "…";
+        BusyProgress = null;
+        try
+        {
+            return await work(new Progress<double>(p => BusyProgress = p));
+        }
+        finally
+        {
+            BusyText = null;
+            BusyProgress = null;
+        }
+    }
+
     private (Effect Effect, IReadOnlyList<double> Values)? _lastEffect;
 
     public string RepeatEffectText => _lastEffect is { } last ? $"Repeat {last.Effect.Name}" : "Repeat Last Effect";
@@ -976,7 +1114,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public async Task RunEffect(Effect effect)
     {
-        if (ActiveDocument is not { } d)
+        if (ActiveDocument is not { } d || IsBusy)
             return;
         var session = new EffectSession(d.Document, effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor);
         if (effect.Parameters.Count == 0 && !effect.HasCustomDialog)
@@ -1003,7 +1141,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             _ => await Dialogs.ShowEffectAsync((EffectDialogViewModel)dialog),
         };
         if (ok)
-            await dialog.CommitAsync();
+            await RunBusyAsync(effect.Name, async _ =>
+            {
+                await dialog.CommitAsync();
+                return true;
+            });
         else
             dialog.Cancel();
         if (dialog.Committed && effect is not ColorAdjustment)
@@ -1013,7 +1155,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanRepeatEffect))]
     private async Task RepeatEffect()
     {
-        if (ActiveDocument is not { } d || _lastEffect is not { } last)
+        if (ActiveDocument is not { } d || _lastEffect is not { } last || IsBusy)
             return;
         await ApplyAsync(new EffectSession(d.Document, last.Effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor), last.Values);
     }
@@ -1027,9 +1169,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RepeatEffectCommand.NotifyCanExecuteChanged();
     }
 
-    private static async Task ApplyAsync(EffectSession session, IReadOnlyList<double> values)
+    private async Task ApplyAsync(EffectSession session, IReadOnlyList<double> values)
     {
-        var pixels = await Task.Run(() => session.Compute(values));
+        var history = ActiveDocument!.Document.Workspace.History;
+        var (pointer, count) = (history.Pointer, history.Items.Count);
+        var pixels = await RunBusyAsync(session.Effect.Name, _ => Task.Run(() => session.Compute(values)));
+        // The macOS menu stays usable: if something changed the image meanwhile (e.g. Undo), drop the result.
+        if (history.Pointer != pointer || history.Items.Count != count)
+            return;
         session.Show(pixels);
         session.Commit();
     }
@@ -1080,37 +1227,198 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         UpdateOverlay();
     }
 
-    /// <summary>What Crop to fill keeps: the crop frame, else the selection, else the center.</summary>
-    private RectangleI? TvCropArea(ImageDocument doc) =>
-        CropTool?.Frame(doc) ?? doc.Selection?.Bounds;
+    // ---- Prepare for TV: options in the options bar, a 16:9 frame on the canvas ----
+
+    /// <summary>
+    /// Set while Prepare for TV is in progress: the options bar shows these options and, for Crop to fill, the canvas
+    /// shows a 16:9 frame (the Crop tool) to move or resize. Apply (Enter) creates the TV image, Cancel (Escape) leaves.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTvMode), nameof(ShowCropOptions))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyTvCommand), nameof(CancelTvCommand))]
+    public partial PrepareForTvViewModel? Tv { get; set; }
+
+    public bool IsTvMode => Tv is not null;
+
+    private ToolViewModel? _toolBeforeTv;
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
-    private async Task PrepareForTv()
+    private void PrepareForTv()
     {
-        if (Dialogs is null || ActiveDocument is not { } d)
+        if (ActiveDocument is not { } d || IsTvMode || IsBusy || CropTool is not { } crop)
             return;
         var doc = d.Document;
-        var crop = TvCropArea(doc);
-        var options = new PrepareForTvViewModel(TvOptions, doc.ImageSize, crop,
-            Documents.Where(o => o != d).ToList());
-        if (!await Dialogs.ShowPrepareForTvAsync(options))
+        // The frame is centered on the crop frame, the selection, or the photo.
+        var area = crop.Frame(doc) ?? doc.Selection?.Bounds ?? new RectangleI(0, 0, doc.ImageSize.Width, doc.ImageSize.Height);
+
+        _toolBeforeTv = SelectedTool;
+        SelectedTool = Tools.First(t => t.Tool == crop);
+        crop.ForcedRatio = 16 / 9.0;
+        crop.CanDrawNewFrame = false;
+
+        var tv = new PrepareForTvViewModel(TvOptions, doc.ImageSize, null, Documents.Where(o => o != d).ToList());
+        tv.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(PrepareForTvViewModel.Resolution))
+                ProposeTvFrame(CropTool?.Frame(doc) ?? area);
+            else if (e.PropertyName is nameof(PrepareForTvViewModel.Fit) or nameof(PrepareForTvViewModel.SideBySide)
+                     or nameof(PrepareForTvViewModel.Background) or nameof(PrepareForTvViewModel.SecondPhoto))
+            {
+                UpdateOverlay();
+                if (Overlay?.Frame is { } screen)
+                    ZoomToShow(doc, screen);
+                _ = RefreshTvPreviewAsync();
+            }
+        };
+        Tv = tv;
+        ProposeTvFrame(area);
+    }
+
+    /// <summary>
+    /// Puts the TV frame at the resolution's size (one image pixel per TV pixel), centered on <paramref name="around"/>
+    /// and on the photo (covering it when larger), and zooms out if needed so the whole frame is visible: a frame larger
+    /// than the photo shows that the photo will be enlarged. Resizing the frame is undone by choosing a resolution again.
+    /// </summary>
+    private void ProposeTvFrame(RectangleI around)
+    {
+        if (Tv is not { } tv || ActiveDocument is not { } d || CropTool is not { } crop)
             return;
-        TvOptions = options.Options;
+        var doc = d.Document;
+        var (iw, ih) = (doc.ImageSize.Width, doc.ImageSize.Height);
+        var size = TvExport.SizeOf(tv.Resolution);
+        var (cx, cy) = (around.X + around.Width / 2.0, around.Y + around.Height / 2.0);
+        var frame = new RectangleD(
+            Math.Round(Core.Tools.CropTool.KeepOnImage(cx - size.Width / 2.0, size.Width, iw)),
+            Math.Round(Core.Tools.CropTool.KeepOnImage(cy - size.Height / 2.0, size.Height, ih)),
+            size.Width, size.Height);
+        crop.Propose(doc, frame);
+        UpdateOverlay();
+        ZoomToShow(doc, tv.ShowsFrame ? frame : TvScreen(doc, tv.Resolution));
+        _ = RefreshTvPreviewAsync();
+    }
+
+    /// <summary>
+    /// Zooms out (never in) so <paramref name="area"/> (image pixels, possibly beyond the image) is visible: the canvas
+    /// is centered in the view, so the image and the area must fit around its center.
+    /// </summary>
+    private void ZoomToShow(ImageDocument doc, RectangleD area)
+    {
+        if (ViewportSize.Width <= 0 || ViewportSize.Height <= 0)
+            return;
+        var (iw, ih) = (doc.ImageSize.Width, doc.ImageSize.Height);
+        var halfWidth = Math.Max(Math.Max(iw / 2.0, iw / 2.0 - area.X), area.X + area.Width - iw / 2.0);
+        var halfHeight = Math.Max(Math.Max(ih / 2.0, ih / 2.0 - area.Y), area.Y + area.Height - ih / 2.0);
+        var fit = 0.9 * Math.Min(ViewportSize.Width / (2 * halfWidth), ViewportSize.Height / (2 * halfHeight));
+        if (fit < doc.Workspace.Scale)
+            SetZoomPercent(fit * 100);
+    }
+
+    /// <summary>The TV screen at one image pixel per TV pixel, centered on the photo.</summary>
+    private static RectangleD TvScreen(ImageDocument doc, TvResolution resolution)
+    {
+        var size = TvExport.SizeOf(resolution);
+        return new RectangleD(Math.Round((doc.ImageSize.Width - size.Width) / 2.0),
+            Math.Round((doc.ImageSize.Height - size.Height) / 2.0), size.Width, size.Height);
+    }
+
+    // Preview of the TV image for Fit with borders, Stretch and Side by side (computed in the background).
+    private OverlayPicture? _tvPreview;
+    private int _tvPreviewVersion;
+
+    /// <summary>
+    /// What the TV shows when there is no frame to place: a preview of the TV image in a screen of the TV's size
+    /// (one image pixel per TV pixel) centered on the photo, which is shaded around it.
+    /// </summary>
+    private ToolOverlay TvOverlay(PrepareForTvViewModel tv, ImageDocument doc)
+    {
+        var screen = TvScreen(doc, tv.Resolution);
+        return new ToolOverlay
+        {
+            Frame = screen,
+            Shade = screen,
+            Picture = _tvPreview is { } preview && preview.Area == screen ? preview : null,
+        };
+    }
+
+    /// <summary>Recomputes the preview when an option changes; the latest request wins.</summary>
+    private async Task RefreshTvPreviewAsync()
+    {
+        var version = ++_tvPreviewVersion;
+        if (Tv is not { ShowsFrame: false } tv || ActiveDocument is not { } d)
+        {
+            _tvPreview = null;
+            return;
+        }
+        var doc = d.Document;
+        var screen = TvScreen(doc, tv.Resolution);
+        var options = tv.Options;
+        var photo = new BgraImage(doc.Layers.GetFlattenedBgra(includeToolLayer: false), doc.ImageSize.Width, doc.ImageSize.Height);
+        var other = tv.SideBySide ? tv.SecondPhoto?.Document : null;
+        var second = other is null
+            ? null
+            : new BgraImage(other.Layers.GetFlattenedBgra(includeToolLayer: false), other.ImageSize.Width, other.ImageSize.Height);
+        // As many pixels as the screen shows (twice for high-DPI displays), never more than the TV has.
+        var width = (int)Math.Clamp(screen.Width * doc.Workspace.Scale * 2, 64, Math.Min(screen.Width, 2560));
+        var size = new ImageSize(width, (int)Math.Round(width * 9 / 16.0));
+
+        var result = await Task.Run(() => second is null
+            ? TvExport.Compose(photo, options, size: size)
+            : TvExport.SideBySide(photo, second, options, size));
+        if (version != _tvPreviewVersion || Tv != tv)
+            return;
+        _tvPreview = new OverlayPicture(result.Pixels, result.Width, result.Height, screen);
+        UpdateOverlay();
+    }
+
+    [RelayCommand(CanExecute = nameof(IsTvMode))]
+    private async Task ApplyTv()
+    {
+        if (Tv is not { } tv || ActiveDocument is not { } d)
+            return;
+        var doc = d.Document;
+        var crop = tv.ShowsFrame ? CropTool?.Frame(doc) : null;
+        var tvOptions = tv.Options;
+        var other = tv.SideBySide ? tv.SecondPhoto?.Document : null;
+        TvOptions = tvOptions;
+        ExitTv();
 
         var photo = new BgraImage(doc.Layers.GetFlattenedBgra(includeToolLayer: false), doc.ImageSize.Width, doc.ImageSize.Height);
-        BgraImage? second = null;
-        if (options.SideBySide && options.SecondPhoto?.Document is { } other)
-            second = new BgraImage(other.Layers.GetFlattenedBgra(includeToolLayer: false), other.ImageSize.Width, other.ImageSize.Height);
-        var tvOptions = options.Options;
-        var result = await Task.Run(() => second is null
+        var second = other is null
+            ? null
+            : new BgraImage(other.Layers.GetFlattenedBgra(includeToolLayer: false), other.ImageSize.Width, other.ImageSize.Height);
+        var result = await RunBusyAsync("Preparing for TV", _ => Task.Run(() => second is null
             ? TvExport.Compose(photo, tvOptions, crop)
-            : TvExport.SideBySide(photo, second, tvOptions));
+            : TvExport.SideBySide(photo, second, tvOptions)));
 
         var name = Path.GetFileNameWithoutExtension(doc.DisplayName);
-        var tv = _workspace.NewDocumentFromImage(new ClipboardImage(result.Pixels, result.Width, result.Height));
-        tv.DisplayName = name + TvExport.Suffix(tvOptions.Resolution);
-        tv.FileType = "jpg";
-        FitIfLargerThanViewport(tv);
+        var image = _workspace.NewDocumentFromImage(new ClipboardImage(result.Pixels, result.Width, result.Height));
+        image.DisplayName = name + TvExport.Suffix(tvOptions.Resolution);
+        image.FileType = "jpg";
+        FitIfLargerThanViewport(image);
+    }
+
+    [RelayCommand(CanExecute = nameof(IsTvMode))]
+    private void CancelTv() => ExitTv();
+
+    /// <summary>Removes the TV frame and goes back to the tool used before (unless the user picked another one).</summary>
+    private void ExitTv()
+    {
+        if (Tv is null)
+            return;
+        Tv = null;
+        _tvPreview = null;
+        _tvPreviewVersion++;
+        if (CropTool is { } crop)
+        {
+            crop.ForcedRatio = null;
+            crop.CanDrawNewFrame = true;
+            if (ActiveDocument is { } d)
+                crop.Finish(d.Document);
+        }
+        if (_toolBeforeTv is { } tool)
+            SelectedTool = tool;
+        _toolBeforeTv = null;
+        UpdateOverlay();
     }
 
     [RelayCommand]
@@ -1124,7 +1432,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         TvOptions = options.Options;
         JpegQuality = quality;
         var tvOptions = options.Options;
-        var (output, count) = await Task.Run(() => TvExport.ExportFolder(new DirectoryInfo(folder), tvOptions, quality));
+        var (output, count) = await RunBusyAsync("Preparing photos for TV", percent =>
+        {
+            var photos = new Progress<(int Done, int Total)>(p =>
+            {
+                BusyText = $"Preparing photos for TV… {p.Done} / {p.Total}";
+                percent.Report(100.0 * p.Done / p.Total);
+            });
+            return Task.Run(() => TvExport.ExportFolder(new DirectoryInfo(folder), tvOptions, quality, photos));
+        });
         await Dialogs.ShowMessageAsync("Photos ready for the TV",
             count == 0 ? "No photos were found in this folder." : $"{count} photo{(count > 1 ? "s" : "")} saved in \"{output.FullName}\".");
     }

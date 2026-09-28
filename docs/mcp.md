@@ -13,6 +13,8 @@ The server is part of the app. There is nothing else to install: the same `Cinna
 
 Attached mode only works while the app is running with **File › Allow AI Agents (MCP)** turned on. This setting is off by default, and the app remembers it between sessions. Only one CinnabarSharp window can accept agents at a time.
 
+When you turn the option on, the app shows a **Connect an AI Agent** window. It has the exact `claude mcp add` command and the Claude Desktop configuration for this installation, each with a Copy button, and the list of allowed folders. The status bar then shows whether an agent is connected; click it, or use File › Connect an AI Agent…, to see the window again.
+
 ## Setup
 
 Where the executable is:

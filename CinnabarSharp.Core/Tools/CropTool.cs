@@ -62,6 +62,22 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
 
     public bool IsEditing(ImageDocument document) => _document == document && _frame is not null;
 
+    /// <summary>Ratio used instead of <see cref="ToolSettings.CropAspect"/> (Prepare for TV locks 16:9).</summary>
+    public double? ForcedRatio { get; set; }
+
+    /// <summary>False to only move and resize the current frame: dragging elsewhere doesn't start a new one.</summary>
+    public bool CanDrawNewFrame { get; set; } = true;
+
+    private double? CurrentRatio => ForcedRatio ?? Ratio(settings.CropAspect);
+
+    /// <summary>Shows <paramref name="frame"/> on the document, ready to be moved or resized.</summary>
+    public void Propose(ImageDocument document, RectangleD frame)
+    {
+        _document = document;
+        _frame = frame;
+        _drag = DragKind.None;
+    }
+
     public void OnPointerDown(ImageDocument document, ToolPointer pointer)
     {
         var p = pointer.Position;
@@ -76,7 +92,8 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
                 if (corners[i].Distance(p) <= tolerance)
                 {
                     _drag = DragKind.Corner;
-                    _anchor = corners[(i + 2) % 4];
+                    // A frame larger than the image (Prepare for TV) shrinks back onto it.
+                    _anchor = Clamp(document, corners[(i + 2) % 4]);
                     return;
                 }
             }
@@ -85,6 +102,11 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
                 _drag = DragKind.Move;
                 return;
             }
+        }
+        if (!CanDrawNewFrame)
+        {
+            _drag = DragKind.None;
+            return;
         }
         _document = document;
         _frame = null;
@@ -101,8 +123,8 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
             var f = _startFrame;
             _frame = f with
             {
-                X = Math.Clamp(f.X + pointer.Position.X - _start.X, 0, document.ImageSize.Width - f.Width),
-                Y = Math.Clamp(f.Y + pointer.Position.Y - _start.Y, 0, document.ImageSize.Height - f.Height),
+                X = KeepOnImage(f.X + pointer.Position.X - _start.X, f.Width, document.ImageSize.Width),
+                Y = KeepOnImage(f.Y + pointer.Position.Y - _start.Y, f.Height, document.ImageSize.Height),
             };
         }
         else
@@ -154,12 +176,12 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
     /// <summary>Fits the frame to a newly chosen aspect ratio, keeping its center.</summary>
     public void Refresh(ImageDocument document)
     {
-        if (!IsEditing(document) || _frame is not { } f || Ratio(settings.CropAspect) is not { } ratio)
+        if (!IsEditing(document) || _frame is not { } f || CurrentRatio is not { } ratio)
             return;
         var (cx, cy) = (f.X + f.Width / 2, f.Y + f.Height / 2);
         var (w, h) = f.Width / f.Height > ratio ? (f.Height * ratio, f.Height) : (f.Width, f.Width / ratio);
         var (iw, ih) = (document.ImageSize.Width, document.ImageSize.Height);
-        _frame = new RectangleD(Math.Clamp(cx - w / 2, 0, iw - w), Math.Clamp(cy - h / 2, 0, ih - h), w, h);
+        _frame = new RectangleD(KeepOnImage(cx - w / 2, w, iw), KeepOnImage(cy - h / 2, h, ih), w, h);
     }
 
     public ToolOverlay? GetOverlay(ImageDocument document)
@@ -197,6 +219,13 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
         new(f.X, f.Y), new(f.X + f.Width, f.Y), new(f.X + f.Width, f.Y + f.Height), new(f.X, f.Y + f.Height),
     ];
 
+    /// <summary>
+    /// Position of a frame side of length <paramref name="size"/> on an image side of length <paramref name="image"/>:
+    /// inside the image, or covering it when the frame is larger (Prepare for TV at a resolution above the photo's).
+    /// </summary>
+    public static double KeepOnImage(double position, double size, double image) =>
+        Math.Clamp(position, Math.Min(0, image - size), Math.Max(0, image - size));
+
     private static PointD Clamp(ImageDocument document, PointD p) =>
         new(Math.Clamp(p.X, 0, document.ImageSize.Width), Math.Clamp(p.Y, 0, document.ImageSize.Height));
 
@@ -206,7 +235,7 @@ public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
         to = Clamp(document, to);
         var (sx, sy) = (to.X >= anchor.X ? 1 : -1, to.Y >= anchor.Y ? 1 : -1);
         var (w, h) = (Math.Abs(to.X - anchor.X), Math.Abs(to.Y - anchor.Y));
-        if (Ratio(settings.CropAspect) is { } ratio)
+        if (CurrentRatio is { } ratio)
         {
             // Follow the larger movement, then shrink to fit in the image on the dragged side.
             (w, h) = w / ratio >= h ? (w, w / ratio) : (h * ratio, h);

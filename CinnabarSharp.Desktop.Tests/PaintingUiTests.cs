@@ -3,7 +3,9 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Desktop.ViewModels;
@@ -101,6 +103,39 @@ public sealed class PaintingUiTests : IDisposable
 
         Assert.Equal(Colors.Lime, Vm.PrimaryColor);
         Assert.Equal(Colors.Lime, ((ISolidColorBrush)Vm.PrimaryBrush).Color);
+    }
+
+    [AvaloniaFact]
+    public void Color_panel_shows_hex_and_rgb_and_updates_with_the_colors()
+    {
+        Vm.PrimaryColor = Color.FromRgb(0x1A, 0x2B, 0x3C);
+        Vm.SecondaryColor = Color.FromArgb(0x80, 0xFF, 0x00, 0x80);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("#1A2B3C", Vm.PrimaryColorHex);
+        Assert.Equal("RGB 26, 43, 60", Vm.PrimaryColorRgbText);
+        Assert.Contains("Hex #1A2B3C", Vm.PrimaryColorDetails);
+        Assert.Contains("RGB 26, 43, 60", Vm.PrimaryColorDetails);
+        Assert.Contains("HSV", Vm.PrimaryColorDetails);
+        Assert.DoesNotContain("Alpha", Vm.PrimaryColorDetails); // fully opaque: no alpha line
+
+        // Not fully opaque: the hex code and the tooltip both carry the alpha.
+        Assert.Equal("#FF008080", Vm.SecondaryColorHex);
+        Assert.Equal("RGB 255, 0, 128", Vm.SecondaryColorRgbText);
+        Assert.Contains("Alpha 128", Vm.SecondaryColorDetails);
+
+        var texts = _h.Window.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+        Assert.Contains("#1A2B3C", texts);
+        Assert.Contains("#FF008080", texts);
+
+        Vm.SwapColorsCommand.Execute(null);
+        Assert.Equal("#FF008080", Vm.PrimaryColorHex);
+        Assert.Equal("#1A2B3C", Vm.SecondaryColorHex);
+
+        Vm.ResetColorsCommand.Execute(null);
+        Assert.Equal("#000000", Vm.PrimaryColorHex);
+        Assert.Equal("#FFFFFF", Vm.SecondaryColorHex);
+        _h.Capture("20-color-panel-hex");
     }
 
     [AvaloniaFact]

@@ -31,8 +31,6 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
         </Grid>
-        <TextBlock Text="{Binding CropText}" IsVisible="{Binding CropText, Converter={x:Static ObjectConverters.IsNotNull}}"
-                   TextWrapping="Wrap" FontSize="12" Foreground="Gray" />
         <TextBlock Text="{Binding ResultText}" FontSize="12" />
         <Border IsVisible="{Binding HasWarning}" Background="#FFFFF4D6" BorderBrush="#FFE0B040" BorderThickness="1" Padding="8" CornerRadius="4">
             <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="#FF6B4E00" />

@@ -149,6 +149,44 @@ public sealed class CropAndTvTests : BaseTests, IDisposable
     }
 
     [Fact]
+    public void Crop_frame_larger_than_the_photo_keeps_the_photo_unstretched()
+    {
+        var photo = Halves(320, 180);
+        var options = new TvOptions(TvResolution.FullHd, TvFit.CropToFill);
+
+        // A 16:9 frame far larger than the photo and off-center: only its part on the photo counts.
+        var result = TvExport.Compose(photo, options, new RectangleI(-900, -100, 1920, 1080));
+
+        Assert.Equal(TvExport.Compose(photo, options).Pixels, result.Pixels);
+        Assert.True(TvExport.UpscaleFactor(320, 180, options, new RectangleI(-900, -100, 1920, 1080)) > 5);
+    }
+
+    [Fact]
+    public void Frame_larger_than_the_image_moves_while_covering_it_and_a_corner_brings_it_back()
+    {
+        var doc = NewDoc(400, 300);
+        var tool = new CropTool(_settings) { ForcedRatio = 16 / 9.0, CanDrawNewFrame = false };
+        tool.Propose(doc, new RectangleD(-760, -390, 1920, 1080));
+
+        Drag(tool, doc, (200, 150), (5000, 5000)); // move as far as possible: the image stays covered
+        Assert.Equal(new RectangleI(0, 0, 1920, 1080), tool.Frame(doc));
+        Drag(tool, doc, (200, 150), (-5000, -5000));
+        Assert.Equal(new RectangleI(-1520, -780, 1920, 1080), tool.Frame(doc));
+
+        Drag(tool, doc, (50, 50), (10, 10)); // outside no frame is started...
+        Assert.Equal(new RectangleI(-1520, -780, 1920, 1080), tool.Frame(doc));
+
+        // ...but the bottom-right corner of the proposed frame: resizing keeps it on the image.
+        tool.Propose(doc, new RectangleD(0, 0, 1920, 1080));
+        Assert.Equal(ToolCursor.Move, tool.CursorAt(doc, new PointD(200, 150)));
+        tool.Propose(doc, new RectangleD(0, 0, 320, 180));
+        Drag(tool, doc, (320, 180), (500, 400));
+        var frame = tool.Frame(doc)!.Value;
+        Assert.True(frame.Width <= 400 && frame.Height <= 300);
+        Assert.Equal(16 / 9.0, (double)frame.Width / frame.Height, 2);
+    }
+
+    [Fact]
     public void Fit_with_borders_centers_the_photo_on_the_background()
     {
         var portrait = Solid(300, 600, 0, 200, 0);

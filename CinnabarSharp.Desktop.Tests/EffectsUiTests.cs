@@ -5,7 +5,9 @@ using Avalonia.Threading;
 using CinnabarSharp.Core.Effects;
 using Effect = CinnabarSharp.Core.Effects.Effect;
 using CinnabarSharp.Core.Models;
+using PointD = CinnabarSharp.Core.Models.PointD;
 using CinnabarSharp.Desktop.ViewModels;
+using CinnabarSharp.Desktop.Views;
 
 namespace CinnabarSharp.Desktop.Tests;
 
@@ -18,6 +20,17 @@ public sealed class EffectsUiTests : IDisposable
     private MainViewModel Vm => _h.Vm;
 
     private void NewImage() => Vm.CreateImage(new NewImageOptions(new ImageSize(300, 200), ColorBgra.White));
+
+    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+
+    /// <summary>A white image with a colored rectangle, so effects like Zoom Blur have something to distort.</summary>
+    private void NewPatternedImage()
+    {
+        NewImage();
+        Doc.SetSelection(SelectionMask.Rectangle(300, 200, new PointD(80, 60), new PointD(220, 140)));
+        Doc.Actions.FillSelection(ColorBgra.FromBgra(0, 120, 220, 255));
+        Doc.SetSelection(null);
+    }
 
     private static Effect Find(string name) => EffectCatalog.All.Single(e => e.Name == name);
 
@@ -60,6 +73,67 @@ public sealed class EffectsUiTests : IDisposable
         Assert.Equal(["New Image", "Clouds", "Twist", "Twist"], Vm.History.Select(h => h.Text));
         Assert.Equal(["Clouds", "Twist"], _h.Dialogs.EffectsShown);
         _h.Capture("80-clouds-twist");
+    }
+
+    [AvaloniaFact]
+    public async Task Effect_dialog_shows_progress_while_previewing_and_the_status_bar_while_applying()
+    {
+        NewPatternedImage(); // Zoom Blur needs something non-uniform to actually change any pixel
+        EffectDialogViewModel? captured = null;
+        _h.Dialogs.EffectAnswer = d =>
+        {
+            // The preview for the dialog's default values was just requested and hasn't finished yet (no
+            // dispatcher pump has happened): the same "Computing…" indicator Auto-Enhance uses in the status bar.
+            Assert.True(d.Computing);
+            captured = d;
+            return true;
+        };
+
+        var task = Vm.ApplyEffectCommand.ExecuteAsync(Find("Zoom Blur"));
+        // After the (fake) dialog "closes", CommitAsync's own await is the first one that doesn't complete
+        // synchronously, so by now the status bar is already showing, exactly like clicking Auto-Enhance.
+        Assert.True(Vm.IsBusy);
+        Assert.Equal("Zoom Blur…", Vm.BusyText);
+        Assert.False(_h.Canvas.IsEffectivelyEnabled);
+
+        await task;
+
+        Assert.False(Vm.IsBusy);
+        Assert.NotNull(captured);
+        Assert.False(captured!.Computing);
+        Assert.Equal(["New Image", "Fill Selection", "Zoom Blur"], Vm.History.Select(h => h.Text));
+    }
+
+    [AvaloniaFact]
+    public async Task Effect_window_shows_a_progress_indicator_and_disables_ok_while_computing()
+    {
+        NewImage();
+        var session = new Core.Effects.EffectSession(Doc, Find("Gaussian Blur"));
+        var dialog = new EffectDialogViewModel(session);
+        var window = new EffectWindow { DataContext = dialog };
+        window.Show();
+        Dispatcher.UIThread.RunJobs(); // let the window realize its visual tree before checking visibility
+
+        dialog.RequestPreview(); // just started: still computing, nothing has pumped the background task's result yet
+        var row = window.FindControl<StackPanel>("ComputingRow")!;
+        var ok = window.FindControl<Button>("OkButton")!;
+        Assert.True(row.IsVisible);
+        Assert.False(ok.IsEnabled);
+        TestHarness.CaptureWindow(window, "83-effect-computing");
+
+        // The preview's continuation resumes on this same (UI) thread, so pump the dispatcher while awaiting it
+        // instead of blocking it with .Wait(), which would deadlock.
+        var preview = dialog.PreviewTask;
+        while (!preview.IsCompleted)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(5);
+        }
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(dialog.Computing);
+        Assert.False(row.IsEffectivelyVisible);
+        window.Close();
     }
 
     [AvaloniaFact]

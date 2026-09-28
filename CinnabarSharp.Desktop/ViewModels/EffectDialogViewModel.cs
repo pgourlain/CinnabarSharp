@@ -79,15 +79,36 @@ public abstract class PreviewDialogViewModel(EffectSession session) : ViewModelB
     /// <summary>The latest preview computation; tests await it.</summary>
     public Task PreviewTask { get; private set; } = Task.CompletedTask;
 
+    /// <summary>
+    /// True while a preview or the final result is being computed (dragging a slider, or after OK): dialogs show a
+    /// small progress indicator, the same principle as the main window's status bar for operations without a dialog.
+    /// </summary>
+    public bool Computing
+    {
+        get;
+        private set
+        {
+            if (field == value)
+                return;
+            field = value;
+            OnPropertyChanged();
+        }
+    }
+
     public void RequestPreview()
     {
         _pending?.Cancel();
         var cancellation = _pending = new CancellationTokenSource();
         var values = Values;
+        Computing = true;
         PreviewTask = Task.Run(() => session.Compute(values, cancellation.Token), cancellation.Token)
             .ContinueWith(t =>
             {
-                if (!t.IsCompletedSuccessfully || cancellation.IsCancellationRequested)
+                // A newer request is already running (or about to): let it clear Computing when it finishes.
+                if (cancellation.IsCancellationRequested)
+                    return;
+                Computing = false;
+                if (!t.IsCompletedSuccessfully)
                     return;
                 _shown = t.Result;
                 if (!ShowOriginal)
@@ -102,10 +123,18 @@ public abstract class PreviewDialogViewModel(EffectSession session) : ViewModelB
     {
         _pending?.Cancel();
         var values = Values;
-        var pixels = await Task.Run(() => session.Compute(values));
-        session.Show(pixels);
-        session.Commit();
-        Committed = true;
+        Computing = true;
+        try
+        {
+            var pixels = await Task.Run(() => session.Compute(values));
+            session.Show(pixels);
+            session.Commit();
+            Committed = true;
+        }
+        finally
+        {
+            Computing = false;
+        }
     }
 
     public void Cancel()

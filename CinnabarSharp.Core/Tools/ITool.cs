@@ -193,7 +193,13 @@ public sealed record ToolOverlay
 
     /// <summary>Everything outside this rectangle is shaded (what a crop will cut away).</summary>
     public RectangleD? Shade { get; init; }
+
+    /// <summary>A picture drawn over the canvas, e.g. a preview of what a TV will show.</summary>
+    public OverlayPicture? Picture { get; init; }
 }
+
+/// <summary>Straight-alpha BGRA pixels drawn stretched over <paramref name="Area"/> (image coordinates).</summary>
+public sealed record OverlayPicture(byte[] Bgra, int Width, int Height, RectangleD Area);
 
 /// <summary>Mouse cursor a tool asks for over a point (e.g. resize arrows over a handle).</summary>
 public enum ToolCursor

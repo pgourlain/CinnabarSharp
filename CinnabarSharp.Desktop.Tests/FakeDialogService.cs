@@ -113,6 +113,14 @@ public class FakeDialogService : IDialogService
 
     public List<string> Messages { get; } = [];
 
+    public List<AgentConnectionViewModel> AgentConnectionsShown { get; } = [];
+
+    public Task ShowAgentConnectionAsync(AgentConnectionViewModel connection)
+    {
+        AgentConnectionsShown.Add(connection);
+        return Task.CompletedTask;
+    }
+
     public Task ShowMessageAsync(string title, string message)
     {
         Messages.Add($"{title}: {message}");

@@ -98,6 +98,8 @@ public partial class MainWindow : Window, IViewportService
         {
             if (e.PropertyName is nameof(MainViewModel.SelectedTool) or nameof(MainViewModel.HoverCursor))
                 Canvas.Cursor = CanvasCursor(vm);
+            if (e.PropertyName == nameof(MainViewModel.IsBusy))
+                Cursor = vm.IsBusy ? new Cursor(StandardCursorType.Wait) : null;
         };
         BuildMenu(vm);
     }
@@ -394,7 +396,8 @@ public partial class MainWindow : Window, IViewportService
             new("_Save", vm.SaveCommand, G(Key.S)),
             new("Save _As…", vm.SaveAsCommand, G(Key.S, KeyModifiers.Shift)),
             MenuSpec.Separator,
-            new("Allow AI A_gents (MCP)", vm.ToggleAllowAgentsCommand, Checked: (vm, nameof(MainViewModel.AllowAgents))),
+            new("Allow AI Ag_ents (MCP)", vm.ToggleAllowAgentsCommand, Checked: (vm, nameof(MainViewModel.AllowAgents))),
+            new("Connect an AI A_gent…", vm.ShowAgentConnectionCommand),
             MenuSpec.Separator,
             new("_Close", vm.CloseCommand, G(Key.W)),
         };

@@ -189,11 +189,17 @@ public class CanvasView : Control
         if (overlay.Shade is { } keep && Document is { } doc)
         {
             var view = doc.Workspace.ViewSize;
-            var k = R(keep);
+            // The kept area can extend beyond the image (Prepare for TV): shade only the image around it.
+            var k = R(keep).Intersect(new Rect(0, 0, view.Width, view.Height));
             context.FillRectangle(ShadeBrush, new Rect(0, 0, view.Width, k.Top));
             context.FillRectangle(ShadeBrush, new Rect(0, k.Bottom, view.Width, Math.Max(0, view.Height - k.Bottom)));
             context.FillRectangle(ShadeBrush, new Rect(0, k.Top, k.Left, k.Height));
             context.FillRectangle(ShadeBrush, new Rect(k.Right, k.Top, Math.Max(0, view.Width - k.Right), k.Height));
+        }
+        if (overlay.Picture is { } picture)
+        {
+            using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.HighQuality }))
+                context.DrawImage(PictureBitmap(picture), R(picture.Area));
         }
         foreach (var highlight in overlay.Highlights)
             context.FillRectangle(HighlightBrush, R(highlight));
@@ -359,6 +365,26 @@ public class CanvasView : Control
                 Marshal.Copy(pixels, y * rowBytes, fb.Address + y * fb.RowBytes, rowBytes);
         }
         _bitmap = bitmap;
+    }
+
+    private (OverlayPicture Picture, WriteableBitmap Bitmap)? _picture;
+
+    // Converted once per picture: the overlay is redrawn much more often than it changes.
+    private WriteableBitmap PictureBitmap(OverlayPicture picture)
+    {
+        if (_picture is { } cached && ReferenceEquals(cached.Picture, picture))
+            return cached.Bitmap;
+        // Not disposed: the renderer may still draw the previous one.
+        var bitmap = new WriteableBitmap(new PixelSize(picture.Width, picture.Height), new Vector(96, 96),
+            PixelFormat.Bgra8888, AlphaFormat.Unpremul);
+        using (var fb = bitmap.Lock())
+        {
+            var rowBytes = picture.Width * 4;
+            for (var y = 0; y < picture.Height; y++)
+                Marshal.Copy(picture.Bgra, y * rowBytes, fb.Address + y * fb.RowBytes, rowBytes);
+        }
+        _picture = (picture, bitmap);
+        return bitmap;
     }
 
     private static IBrush CreateCheckerBrush()

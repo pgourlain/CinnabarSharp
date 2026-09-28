@@ -85,16 +85,18 @@ public static class TvExport
         };
     }
 
-    public static BgraImage Compose(BgraImage source, TvOptions options, RectangleI? crop = null)
+    /// <param name="size">Size of the result; the TV's resolution by default. A smaller 16:9 size gives the same
+    /// picture at a lower resolution (a preview).</param>
+    public static BgraImage Compose(BgraImage source, TvOptions options, RectangleI? crop = null, ImageSize? size = null)
     {
-        var target = SizeOf(options.Resolution);
+        var target = size ?? SizeOf(options.Resolution);
         return Fill(source, target.Width, target.Height, options, crop);
     }
 
     /// <summary>Two photos (typically portraits) side by side, each filling half of the screen.</summary>
-    public static BgraImage SideBySide(BgraImage left, BgraImage right, TvOptions options)
+    public static BgraImage SideBySide(BgraImage left, BgraImage right, TvOptions options, ImageSize? size = null)
     {
-        var target = SizeOf(options.Resolution);
+        var target = size ?? SizeOf(options.Resolution);
         var half = target.Width / 2;
         var halfOptions = options with { Fit = options.Fit == TvFit.Stretch ? TvFit.Stretch : TvFit.CropToFill };
         var a = Fill(left, half, target.Height, halfOptions, null);
@@ -135,9 +137,14 @@ public static class TvExport
         var ratio = (double)target.Width / target.Height;
         if (crop is not { } c || c.Width <= 0 || c.Height <= 0)
             return CenteredCrop(width, height, ratio);
-        var inner = CenteredCrop(c.Width, c.Height, ratio);
-        return new RectangleI(Math.Clamp(c.X + inner.X, 0, width - 1), Math.Clamp(c.Y + inner.Y, 0, height - 1),
-            Math.Min(inner.Width, width - Math.Max(0, c.X + inner.X)), Math.Min(inner.Height, height - Math.Max(0, c.Y + inner.Y)));
+        // Keep the part of the frame that is on the photo (the frame can be larger than the photo), then the largest
+        // area of the TV's ratio centered in it, so the result is never stretched.
+        var (x0, y0) = (Math.Clamp(c.X, 0, width), Math.Clamp(c.Y, 0, height));
+        var (x1, y1) = (Math.Clamp(c.X + c.Width, 0, width), Math.Clamp(c.Y + c.Height, 0, height));
+        if (x1 - x0 < 1 || y1 - y0 < 1)
+            return CenteredCrop(width, height, ratio);
+        var inner = CenteredCrop(x1 - x0, y1 - y0, ratio);
+        return new RectangleI(x0 + inner.X, y0 + inner.Y, inner.Width, inner.Height);
     }
 
     private static byte[] Background(BgraImage source, int tw, int th, TvBackground background)

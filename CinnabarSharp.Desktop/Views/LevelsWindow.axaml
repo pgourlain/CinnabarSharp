@@ -59,6 +59,10 @@
             </StackPanel>
         </Grid>
 
+        <StackPanel x:Name="ComputingRow" Orientation="Horizontal" Spacing="8" IsVisible="{Binding Computing}">
+            <ProgressBar Width="120" IsIndeterminate="True" />
+            <TextBlock Text="Computing…" Foreground="Gray" VerticalAlignment="Center" />
+        </StackPanel>
         <DockPanel Margin="0,8,0,0">
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
                 <Button Content="Auto" Command="{Binding AutoCommand}" ToolTip.Tip="Stretch the input range (Auto-Level)" />
@@ -66,7 +70,7 @@
                 <c:CompareButton ShowOriginal="{Binding ShowOriginal}" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button x:Name="OkButton" Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" IsEnabled="{Binding !Computing}" />
                 <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
             </StackPanel>
         </DockPanel>

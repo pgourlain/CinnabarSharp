@@ -57,6 +57,9 @@ public interface IDialogService
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 
+    /// <summary>How to connect an AI agent to this window (MCP attached mode).</summary>
+    Task ShowAgentConnectionAsync(AgentConnectionViewModel connection);
+
     /// <summary>Returns the chosen color, or null when cancelled.</summary>
     Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial);
 }

@@ -41,7 +41,13 @@ public class AttachTests
                 var result = await client.CallToolAsync("new_image",
                     new Dictionary<string, object?> { ["width"] = 20, ["height"] = 10 }, cancellationToken: Ct);
                 Assert.NotEqual(true, result.IsError);
+                Assert.Equal(1, listener.ClientCount);
             }
+
+            // The proxy process exited: the app ends the session.
+            for (var i = 0; i < 300 && listener.ClientCount > 0; i++)
+                await Task.Delay(10, Ct);
+            Assert.Equal(0, listener.ClientCount);
 
             var doc = Assert.Single(workspace.OpenDocuments);
             Assert.Equal((20, 10), (doc.ImageSize.Width, doc.ImageSize.Height));

@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        x:Class="CinnabarSharp.Desktop.Views.AgentConnectionWindow"
+        x:DataType="vm:AgentConnectionViewModel"
+        Title="Connect an AI Agent"
+        SizeToContent="Height"
+        Width="620"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="20" Spacing="12">
+        <TextBlock Text="Connect an AI agent" FontSize="16" FontWeight="SemiBold" />
+        <TextBlock x:Name="StatusText" Text="{Binding StatusText}" FontWeight="SemiBold" />
+        <TextBlock TextWrapping="Wrap"
+                   Text="AI agents such as Claude Code or Claude Desktop can now edit the images open in this window. Every change appears live and can be undone. Register CinnabarSharp once in the agent, then ask it, for example, to enhance the open photo." />
+
+        <TextBlock Text="Claude Code — run in a terminal:" FontWeight="SemiBold" />
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Copy" Margin="8,0,0,0" VerticalAlignment="Top"
+                    Command="{Binding CopyClaudeCodeCommand}" AutomationProperties.Name="Copy Claude Code command" />
+            <TextBox x:Name="ClaudeCodeBox" Text="{Binding ClaudeCodeCommand, Mode=OneWay}" IsReadOnly="True"
+                     TextWrapping="Wrap" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
+                     AutomationProperties.Name="Claude Code command" />
+        </DockPanel>
+
+        <TextBlock Text="Claude Desktop — add to claude_desktop_config.json (Settings › Developer › Edit Config):"
+                   FontWeight="SemiBold" TextWrapping="Wrap" />
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Copy" Margin="8,0,0,0" VerticalAlignment="Top"
+                    Command="{Binding CopyClaudeDesktopCommand}" AutomationProperties.Name="Copy Claude Desktop configuration" />
+            <TextBox Text="{Binding ClaudeDesktopConfig, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"
+                     FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace" AutomationProperties.Name="Claude Desktop configuration" />
+        </DockPanel>
+
+        <TextBlock Text="The agent can open and save files only in these folders:" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding AllowedFolders}" TextWrapping="Wrap" />
+
+        <DockPanel Margin="0,8,0,0">
+            <Button DockPanel.Dock="Right" Content="Close" IsDefault="True" IsCancel="True" Click="OnClose" />
+            <Button DockPanel.Dock="Left" Content="Documentation" Click="OnDocs" Margin="0,0,12,0" />
+            <TextBlock Text="{Binding CopiedText}" Foreground="Gray" VerticalAlignment="Center" />
+        </DockPanel>
+    </StackPanel>
+</Window>

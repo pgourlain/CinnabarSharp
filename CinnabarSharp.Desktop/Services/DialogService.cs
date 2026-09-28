@@ -109,6 +109,9 @@ public class DialogService(Window owner) : IDialogService
     public Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current) =>
         new CanvasSizeWindow { DataContext = new CanvasSizeViewModel(current) }.ShowDialog<CanvasSizeOptions?>(owner);
 
+    public Task ShowAgentConnectionAsync(AgentConnectionViewModel connection) =>
+        new AgentConnectionWindow { DataContext = connection }.ShowDialog(owner);
+
     public Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial) =>
         new ColorPickerWindow(title, initial).ShowDialog<Avalonia.Media.Color?>(owner);
 

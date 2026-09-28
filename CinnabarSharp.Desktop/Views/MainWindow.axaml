@@ -81,10 +81,10 @@
 
     <DockPanel>
         <!-- In-window menu for Windows/Linux; on macOS the menu lives in the system menu bar. -->
-        <ContentControl x:Name="MenuHost" DockPanel.Dock="Top" />
+        <ContentControl x:Name="MenuHost" DockPanel.Dock="Top" IsEnabled="{Binding IsIdle}" />
 
         <!-- Toolbar -->
-        <Border DockPanel.Dock="Top" Classes="panel" Padding="4">
+        <Border DockPanel.Dock="Top" Classes="panel" Padding="4" IsEnabled="{Binding IsIdle}">
             <StackPanel Classes="toolbar" Orientation="Horizontal" Spacing="2">
                 <Button Content="New" Command="{Binding NewImageCommand}" ToolTip.Tip="New image" />
                 <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open" />
@@ -102,7 +102,7 @@
         </Border>
 
         <!-- Tool options (Paint.NET shows these under the toolbar) -->
-        <Border DockPanel.Dock="Top" Classes="panel" Padding="8,0" Height="40">
+        <Border DockPanel.Dock="Top" Classes="panel" Padding="8,0" Height="40" IsEnabled="{Binding IsIdle}">
             <StackPanel Classes="toolOptions" Orientation="Horizontal" Spacing="16">
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowSelectionOptions}">
                     <TextBlock Text="Selection mode:" />
@@ -175,6 +175,33 @@
                     <Button Content="Crop" Command="{Binding ApplyCropCommand}" ToolTip.Tip="Crop to the frame (Enter)" />
                     <TextBlock Text="Drag a frame; drag inside to move it, a corner to resize. Esc removes it." Foreground="Gray" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsTvMode}">
+                    <TextBlock Text="TV:" FontWeight="SemiBold" />
+                    <ComboBox ItemsSource="{x:Static vm:PrepareForTvViewModel.Resolutions}" SelectedItem="{Binding Tv.SelectedResolution}"
+                              DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="TV resolution" Focusable="False" />
+                    <ComboBox ItemsSource="{x:Static vm:PrepareForTvViewModel.Fits}" SelectedItem="{Binding Tv.SelectedFit}"
+                              DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="How the photo fills the screen"
+                              IsEnabled="{Binding !Tv.SideBySide}" Focusable="False" />
+                    <ComboBox ItemsSource="{x:Static vm:PrepareForTvViewModel.Backgrounds}" SelectedItem="{Binding Tv.SelectedBackground}"
+                              DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="Borders"
+                              IsVisible="{Binding Tv.ShowBackground}" Focusable="False" />
+                    <CheckBox Content="Side by side with" IsChecked="{Binding Tv.SideBySide}" IsVisible="{Binding Tv.CanSideBySide}"
+                              Focusable="False" />
+                    <ComboBox ItemsSource="{Binding Tv.OtherPhotos}" SelectedItem="{Binding Tv.SecondPhoto}"
+                              IsVisible="{Binding Tv.SideBySide}" AutomationProperties.Name="Second photo" Focusable="False" MaxWidth="180">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DocumentViewModel">
+                                <TextBlock Text="{Binding Title}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Content="Apply" Command="{Binding ApplyTvCommand}" ToolTip.Tip="Create the TV image (Enter)" />
+                    <Button Content="Cancel" Command="{Binding CancelTvCommand}" ToolTip.Tip="Leave without changes (Esc)" />
+                    <TextBlock x:Name="TvHint" Text="{Binding Tv.Warning}" IsVisible="{Binding Tv.HasWarning}" Foreground="#FFB06000"
+                               TextTrimming="CharacterEllipsis" MaxWidth="360" ToolTip.Tip="{Binding Tv.Warning}" />
+                    <TextBlock Text="{Binding Tv.Hint}" Foreground="Gray" IsVisible="{Binding !Tv.HasWarning}"
+                               TextTrimming="CharacterEllipsis" MaxWidth="520" ToolTip.Tip="{Binding Tv.Hint}" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowTextOptions}">
                     <TextBlock Text="Font:" />
                     <ComboBox x:Name="FontFamilyCombo" AutomationProperties.Name="Font" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}"
@@ -213,16 +240,27 @@
         <!-- Status bar -->
         <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" Padding="8,4"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-            <Grid ColumnDefinitions="*,180,140,140,80">
-                <TextBlock Grid.Column="0" Text="{Binding SelectedTool.Name}" />
-                <TextBlock Grid.Column="1" Text="{Binding SelectionSizeText}" />
-                <TextBlock Grid.Column="2" Text="{Binding CursorPositionText}" />
-                <TextBlock Grid.Column="3" Text="{Binding ImageSizeText}" />
-                <TextBlock Grid.Column="4" Text="{Binding ZoomText}" TextAlignment="Right" />
+            <Grid ColumnDefinitions="*,Auto,180,140,140,80">
+                <TextBlock Grid.Column="0" Text="{Binding SelectedTool.Name}" IsVisible="{Binding IsIdle}" />
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsBusy}">
+                    <ProgressBar x:Name="BusyBar" Width="140" MinWidth="140" VerticalAlignment="Center"
+                                 IsIndeterminate="{Binding BusyIndeterminate}" Value="{Binding BusyProgress}"
+                                 AutomationProperties.Name="Progress" />
+                    <TextBlock Text="{Binding BusyText}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Grid.Column="1" x:Name="AgentStatusButton" Classes="statusLink" Margin="0,0,16,0" Padding="0"
+                        Background="Transparent" BorderThickness="0" Foreground="{DynamicResource SystemAccentColor}"
+                        Content="{Binding AgentStatusText}" IsVisible="{Binding AllowAgents}"
+                        Command="{Binding ShowAgentConnectionCommand}" ToolTip.Tip="How to connect an AI agent"
+                        AutomationProperties.Name="AI agents status" />
+                <TextBlock Grid.Column="2" Text="{Binding SelectionSizeText}" />
+                <TextBlock Grid.Column="3" Text="{Binding CursorPositionText}" />
+                <TextBlock Grid.Column="4" Text="{Binding ImageSizeText}" />
+                <TextBlock Grid.Column="5" Text="{Binding ZoomText}" TextAlignment="Right" />
             </Grid>
         </Border>
 
-        <Grid ColumnDefinitions="Auto,*,4,240">
+        <Grid ColumnDefinitions="Auto,*,4,240" IsEnabled="{Binding IsIdle}">
             <!-- Tools -->
             <Border Grid.Column="0" BorderThickness="0,0,1,0" Padding="4"
                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
@@ -312,6 +350,22 @@
                                         ToolTip.Tip="Swap primary and secondary colors (X)" />
                                 <Button Content="Reset" Command="{Binding ResetColorsCommand}"
                                         ToolTip.Tip="Black and white (D)" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Spacing="3" Margin="0,8,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding PrimaryColorDetails}">
+                                <Border Width="10" Height="10" Background="{Binding PrimaryBrush}" BorderBrush="Gray"
+                                        BorderThickness="1" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding PrimaryColorHex}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding PrimaryColorRgbText}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding SecondaryColorDetails}">
+                                <Border Width="10" Height="10" Background="{Binding SecondaryBrush}" BorderBrush="Gray"
+                                        BorderThickness="1" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding SecondaryColorHex}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding SecondaryColorRgbText}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>

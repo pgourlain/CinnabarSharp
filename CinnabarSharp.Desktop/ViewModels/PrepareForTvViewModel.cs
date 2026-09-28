@@ -8,19 +8,19 @@ using CinnabarSharp.Core.Photo;
 namespace CinnabarSharp.Desktop.ViewModels;
 
 /// <summary>
-/// "Prepare for TV": resolution, how the photo fills the 16:9 screen, the border background, and optionally a
-/// second photo shown side by side. For a folder (batch) there is no current photo, so no size warning.
+/// "Prepare for TV" options: resolution, how the photo fills the 16:9 screen, the border background, and optionally
+/// a second photo shown side by side. For the current photo they are in the options bar while a 16:9 frame on the
+/// canvas chooses what is kept (<see cref="Crop"/>); for a folder (batch) they are in a dialog, with no size warning.
 /// </summary>
 public partial class PrepareForTvViewModel : ViewModelBase
 {
     private readonly ImageSize? _photo;
-    private readonly RectangleI? _crop;
 
     public PrepareForTvViewModel(TvOptions options, ImageSize? photo = null, RectangleI? crop = null,
         IReadOnlyList<DocumentViewModel>? otherPhotos = null, string? folder = null)
     {
         _photo = photo;
-        _crop = crop;
+        Crop = crop;
         Folder = folder;
         OtherPhotos = otherPhotos ?? [];
         SecondPhoto = OtherPhotos.FirstOrDefault();
@@ -87,15 +87,45 @@ public partial class PrepareForTvViewModel : ViewModelBase
     public partial TvResolution Resolution { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Warning), nameof(HasWarning), nameof(ShowBackground), nameof(CropText))]
+    [NotifyPropertyChangedFor(nameof(Warning), nameof(HasWarning), nameof(ShowBackground), nameof(ShowsFrame), nameof(Hint))]
     public partial TvFit Fit { get; set; }
 
     [ObservableProperty]
     public partial TvBackground Background { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Warning), nameof(HasWarning), nameof(ShowBackground), nameof(CropText))]
+    [NotifyPropertyChangedFor(nameof(Warning), nameof(HasWarning), nameof(ShowBackground), nameof(ShowsFrame), nameof(Hint))]
     public partial bool SideBySide { get; set; }
+
+    /// <summary>The area kept by Crop to fill (the frame on the canvas), in image pixels.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Warning), nameof(HasWarning))]
+    public partial RectangleI? Crop { get; set; }
+
+    /// <summary>What the canvas shows, for the options bar.</summary>
+    public string Hint
+    {
+        get
+        {
+            if (SideBySide)
+                return "Each photo fills half of the screen.";
+            if (Fit == TvFit.FitWithBorders)
+                return "The whole photo is scaled to fit the screen without distortion; the borders fill the rest.";
+            if (Fit == TvFit.Stretch && _photo is { } p)
+            {
+                var stretch = 16 / 9.0 / ((double)p.Width / p.Height);
+                return Math.Abs(stretch - 1) < 0.01
+                    ? "The photo already has the screen's shape: it is not distorted."
+                    : stretch > 1
+                        ? $"The whole photo fills the screen, stretched {stretch - 1:P0} wider."
+                        : $"The whole photo fills the screen, stretched {1 / stretch - 1:P0} taller.";
+            }
+            return "Drag the frame to choose what the TV shows; drag a corner to resize it.";
+        }
+    }
+
+    /// <summary>Crop to fill of the current photo: the canvas shows the 16:9 frame to place.</summary>
+    public bool ShowsFrame => !IsBatch && Fit == TvFit.CropToFill && !SideBySide;
 
     [ObservableProperty]
     public partial DocumentViewModel? SecondPhoto { get; set; }
@@ -113,10 +143,6 @@ public partial class PrepareForTvViewModel : ViewModelBase
         }
     }
 
-    public string? CropText => Fit == TvFit.CropToFill && !SideBySide && !IsBatch
-        ? _crop is null ? "Keeps the center of the photo (draw a 16:9 frame with the Crop tool to choose)." : "Keeps the area of the crop frame or selection."
-        : null;
-
     /// <summary>Shown when the photo has fewer pixels than the TV and will be enlarged.</summary>
     public string? Warning
     {
@@ -124,9 +150,9 @@ public partial class PrepareForTvViewModel : ViewModelBase
         {
             if (_photo is not { } photo || SideBySide)
                 return null;
-            var factor = TvExport.UpscaleFactor(photo.Width, photo.Height, Options, _crop);
+            var factor = TvExport.UpscaleFactor(photo.Width, photo.Height, Options, Crop);
             return factor > 1.05
-                ? $"The photo is enlarged {factor:0.0}×: it has fewer pixels than a {TvExport.Suffix(Resolution).TrimStart('_')} TV, so it may look soft."
+                ? $"Enlarged {factor:0.0}×: fewer pixels than a {TvExport.Suffix(Resolution).TrimStart('_')} TV, may look soft."
                 : null;
         }
     }

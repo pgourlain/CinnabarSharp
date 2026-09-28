@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CinnabarSharp.Core.Services;
@@ -17,12 +19,23 @@ namespace CinnabarSharp.Desktop.Services;
 public sealed class AgentConnection(IWorkspaceService workspace, IFormatManager formats, ILogger<AgentConnection> logger)
     : IDisposable
 {
+    /// <summary>Name of the server in the agent's configuration.</summary>
+    public const string ServerName = "cinnabarsharp-live";
+
+    public const string DocsUrl = "https://github.com/pgourlain/CinnabarSharp/blob/main/docs/mcp.md";
+
     private AttachListener? _listener;
 
     public bool IsRunning => _listener is not null;
 
     /// <summary>The socket agents connect to (tests use their own).</summary>
     public string SocketPath { get; set; } = AttachListener.DefaultSocketPath;
+
+    /// <summary>Agents connected right now.</summary>
+    public int ConnectedAgents => _listener?.ClientCount ?? 0;
+
+    /// <summary>Raised on the UI thread when the server starts or stops, or an agent connects or disconnects.</summary>
+    public event Action? Changed;
 
     /// <summary>Where agents may open and save files: the user's Pictures, Documents, Desktop and Downloads folders.</summary>
     public static IReadOnlyList<string> AllowedFolders
@@ -52,16 +65,54 @@ public sealed class AgentConnection(IWorkspaceService workspace, IFormatManager 
         var policy = new FileAccessPolicy(folders.Count > 0 ? folders : [Path.GetTempPath()]);
         var context = new McpContext(workspace, formats, policy, new UiThreadDispatcher(), attached: true);
         _listener = AttachListener.Start(context, SocketPath, logger);
-        return _listener is not null;
+        if (_listener is null)
+            return false;
+        _listener.ClientsChanged += () => Dispatcher.UIThread.Post(() => Changed?.Invoke());
+        Changed?.Invoke();
+        return true;
     }
 
     public void Stop()
     {
-        _listener?.Dispose();
+        if (_listener is null)
+            return;
+        _listener.Dispose();
         _listener = null;
+        Changed?.Invoke();
     }
 
     public void Dispose() => Stop();
+
+    /// <summary>
+    /// The command an agent runs to reach this app: this executable with "--mcp --attach", or "dotnet CinnabarSharp.dll"
+    /// when the app runs from a build folder.
+    /// </summary>
+    public static IReadOnlyList<string> LaunchCommand(string? processPath = null, string? appAssembly = null)
+    {
+        processPath ??= Environment.ProcessPath ?? "CinnabarSharp";
+        // Either separator: a Windows path must be recognized whatever the OS running this code.
+        var name = processPath[(processPath.LastIndexOfAny(['/', '\\']) + 1)..];
+        var viaDotnet = name.Equals("dotnet", StringComparison.OrdinalIgnoreCase)
+                        || name.Equals("dotnet.exe", StringComparison.OrdinalIgnoreCase);
+        return viaDotnet
+            ? [processPath, appAssembly ?? typeof(AgentConnection).Assembly.Location, "--mcp", "--attach"]
+            : [processPath, "--mcp", "--attach"];
+    }
+
+    /// <summary>Shell command that registers this app with Claude Code.</summary>
+    public static string ClaudeCodeCommand(IReadOnlyList<string> launch) =>
+        $"claude mcp add {ServerName} -- " + string.Join(" ", launch.Select(a => a.StartsWith("--") ? a : $"\"{a}\""));
+
+    /// <summary>The "mcpServers" entry for claude_desktop_config.json.</summary>
+    public static string ClaudeDesktopConfig(IReadOnlyList<string> launch) => JsonSerializer.Serialize(
+        new Dictionary<string, object>
+        {
+            ["mcpServers"] = new Dictionary<string, object>
+            {
+                [ServerName] = new { command = launch[0], args = launch.Skip(1).ToArray() },
+            },
+        },
+        new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
     private sealed class UiThreadDispatcher : IMcpDispatcher
     {

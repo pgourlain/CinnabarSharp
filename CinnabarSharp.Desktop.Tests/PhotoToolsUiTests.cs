@@ -163,4 +163,41 @@ public sealed class PhotoToolsUiTests : IDisposable
         Assert.Equal(["Auto-Enhance", "Adjust Photo", "Photo Filter", "Straighten"], names);
         Assert.DoesNotContain(EffectCatalog.Effects, e => names.Contains(e.Name));
     }
+
+    [AvaloniaFact]
+    public async Task Status_bar_shows_progress_while_auto_enhance_runs()
+    {
+        await OpenSample();
+
+        var running = Vm.RunEffect(Photo<AutoEnhanceEffect>());
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(Vm.IsBusy);
+        Assert.Equal("Auto-Enhance…", Vm.BusyText);
+        var bar = _h.Window.FindControl<ProgressBar>("BusyBar")!;
+        Assert.True(bar.IsEffectivelyVisible);
+        Assert.True(bar.IsIndeterminate);
+        Assert.False(_h.Canvas.IsEffectivelyEnabled); // no other edit while it runs
+        _h.Capture("70-busy-auto-enhance");
+
+        await running;
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(Vm.IsBusy);
+        Assert.False(bar.IsEffectivelyVisible);
+        Assert.True(_h.Canvas.IsEffectivelyEnabled);
+        Assert.Equal("Auto-Enhance", Vm.History[^1].Text);
+    }
+
+    [AvaloniaFact]
+    public async Task Effect_result_is_dropped_if_the_image_changed_while_computing()
+    {
+        await OpenSample();
+        Vm.SelectAllCommand.Execute(null);
+
+        var running = Vm.RunEffect(Photo<AutoEnhanceEffect>());
+        Doc.Workspace.History.Undo(); // e.g. from the macOS menu, which stays usable
+        await running;
+
+        Assert.Equal(["Open Image", "Select All"], Vm.History.Select(h => h.Text));
+        Assert.False(Vm.IsBusy);
+    }
 }

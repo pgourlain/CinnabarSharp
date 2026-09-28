@@ -143,6 +143,14 @@ public sealed class AttachListener : IDisposable
 
     public string SocketPath => _path;
 
+    private int _clients;
+
+    /// <summary>Agents connected right now.</summary>
+    public int ClientCount => Volatile.Read(ref _clients);
+
+    /// <summary>Raised (on a background thread) when an agent connects or disconnects.</summary>
+    public event Action? ClientsChanged;
+
     private async Task AcceptLoopAsync()
     {
         while (!_stop.IsCancellationRequested)
@@ -156,6 +164,8 @@ public sealed class AttachListener : IDisposable
             {
                 return;
             }
+            Interlocked.Increment(ref _clients);
+            ClientsChanged?.Invoke();
             _ = Task.Run(async () =>
             {
                 await using var stream = new NetworkStream(client, ownsSocket: true);
@@ -166,6 +176,11 @@ public sealed class AttachListener : IDisposable
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
                     _logger?.LogWarning(e, "MCP client session ended with an error");
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _clients);
+                    ClientsChanged?.Invoke();
                 }
             });
         }
