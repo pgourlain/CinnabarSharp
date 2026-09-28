@@ -10,6 +10,7 @@ public static class EffectCategories
     public const string Distort = "Distort";
     public const string Stylize = "Stylize";
     public const string Render = "Render";
+    public const string Artistic = "Artistic";
 }
 
 // ---------------------------------------------------------------- Blurs
@@ -516,6 +517,158 @@ public sealed class EdgeDetectEffect : DirectionalEffect
     }
 }
 
+// ---------------------------------------------------------------- Artistic
+
+/// <summary>
+/// Cartoon / comic look: colors smoothed while keeping edges (bilateral filter), reduced to flat colors (a few steps of
+/// hue, saturation and brightness), then dark outlines where the brightness changes sharply.
+/// </summary>
+public sealed class CartoonEffect : Effect
+{
+    public override string Name => "Cartoon";
+    public override string Category => EffectCategories.Artistic;
+
+    public override IReadOnlyList<EffectParameter> Parameters =>
+    [
+        new("Smoothness", 0, 6, 2),
+        new("Colors", 2, 16, 6),
+        new("Saturation", 0, 200, 130),
+        new("Edge threshold", 1, 100, 20),
+        new("Edge width", 1, 5, 2),
+        new("Edge strength", 0, 100, 100),
+    ];
+
+    public override void Render(EffectContext ctx, RectangleI region, byte[] dst, IReadOnlyList<double> v, CancellationToken ct)
+    {
+        var smoothRadius = (int)v[0];
+        var levels = (int)v[1];
+        var saturation = v[2] / 100;
+        var threshold = v[3];
+        var dilate = (int)v[4] - 1;
+        var strength = v[5] / 100;
+
+        // Work on the region plus the margin the filters read around it (reads outside the image are clamped).
+        var margin = dilate + 1;
+        var (ex, ey) = (region.X - margin, region.Y - margin);
+        var (ew, eh) = (region.Width + 2 * margin, region.Height + 2 * margin);
+        var smooth = Smooth(ctx, ex, ey, ew, eh, smoothRadius, ct);
+
+        var luma = new double[ew * eh];
+        for (var i = 0; i < luma.Length; i++)
+            luma[i] = 0.114 * smooth[i * 3] + 0.587 * smooth[i * 3 + 1] + 0.299 * smooth[i * 3 + 2];
+
+        // Sobel magnitude of the smoothed brightness, normalized to 0-255; edges above the threshold.
+        var edge = new bool[ew * eh];
+        for (var y = 1; y < eh - 1; y++)
+        {
+            ct.ThrowIfCancellationRequested();
+            for (var x = 1; x < ew - 1; x++)
+            {
+                double L(int dx, int dy) => luma[(y + dy) * ew + x + dx];
+                var gx = L(1, -1) + 2 * L(1, 0) + L(1, 1) - L(-1, -1) - 2 * L(-1, 0) - L(-1, 1);
+                var gy = L(-1, 1) + 2 * L(0, 1) + L(1, 1) - L(-1, -1) - 2 * L(0, -1) - L(1, -1);
+                edge[y * ew + x] = Math.Sqrt(gx * gx + gy * gy) / 4 > threshold;
+            }
+        }
+
+        ForEachPixel(region, dst, ct, (x, y, px) =>
+        {
+            var (lx, ly) = (x - ex, y - ey);
+            var i = ly * ew + lx;
+            var isEdge = false;
+            for (var dy = -dilate; dy <= dilate && !isEdge; dy++)
+                for (var dx = -dilate; dx <= dilate && !isEdge; dx++)
+                    isEdge = edge[(ly + dy) * ew + lx + dx];
+
+            // Flat colors: hue, saturation and brightness each reduced to a few steps (brightness to the chosen number
+            // of tones), with the saturation boosted.
+            var (h, sat, val) = ToHsv(smooth[i * 3 + 2] / 255, smooth[i * 3 + 1] / 255, smooth[i * 3] / 255);
+            h = Math.Round(h / HueStep) * HueStep % 360;
+            sat = Math.Clamp(Math.Round(sat * (SaturationSteps - 1)) / (SaturationSteps - 1) * saturation, 0, 1);
+            var band = Math.Min(levels - 1, Math.Floor(val * levels));
+            // The brightest band is white, the darkest keeps a little light so dark areas keep their hue.
+            val = (band + 0.5) / (levels - 0.5);
+            var (r, g, b) = FromHsv(h, sat, val);
+            var ink = isEdge ? 1 - strength : 1;
+            (px[0], px[1], px[2]) = (Sampling.ToByte(b * ink * 255), Sampling.ToByte(g * ink * 255), Sampling.ToByte(r * ink * 255));
+            px[3] = ctx.Source[ctx.Index(x, y) + 3];
+        });
+    }
+
+    private const double HueStep = 15;
+    private const int SaturationSteps = 4;
+
+    /// <summary>Hue 0-360, saturation and value 0-1.</summary>
+    private static (double H, double S, double V) ToHsv(double r, double g, double b)
+    {
+        var max = Math.Max(r, Math.Max(g, b));
+        var min = Math.Min(r, Math.Min(g, b));
+        var d = max - min;
+        if (d <= 0)
+            return (0, 0, max);
+        var h = max == r ? (g - b) / d % 6 : max == g ? (b - r) / d + 2 : (r - g) / d + 4;
+        return ((h * 60 + 360) % 360, d / max, max);
+    }
+
+    private static (double R, double G, double B) FromHsv(double h, double s, double v)
+    {
+        var c = v * s;
+        var x = c * (1 - Math.Abs(h / 60 % 2 - 1));
+        var m = v - c;
+        var (r, g, b) = (int)(h / 60) switch
+        {
+            0 => (c, x, 0.0),
+            1 => (x, c, 0.0),
+            2 => (0.0, c, x),
+            3 => (0.0, x, c),
+            4 => (x, 0.0, c),
+            _ => (c, 0.0, x),
+        };
+        return (r + m, g + m, b + m);
+    }
+
+    /// <summary>Bilateral filter (BGR, 0-255): averages neighbors of similar color, so edges stay sharp.</summary>
+    private static double[] Smooth(EffectContext ctx, int ex, int ey, int ew, int eh, int radius, CancellationToken ct)
+    {
+        var result = new double[ew * eh * 3];
+        // Color similarity by the sum of absolute channel differences (0-765): a table keeps it fast and deterministic.
+        var range = new double[766];
+        for (var d = 0; d < range.Length; d++)
+            range[d] = Math.Exp(-(d / 60.0) * (d / 60.0));
+        var spatial = new double[(2 * radius + 1) * (2 * radius + 1)];
+        for (var dy = -radius; dy <= radius; dy++)
+            for (var dx = -radius; dx <= radius; dx++)
+                spatial[(dy + radius) * (2 * radius + 1) + dx + radius] =
+                    Math.Exp(-(dx * dx + dy * dy) / (2.0 * Math.Max(1, radius * radius / 2.0)));
+
+        for (var y = 0; y < eh; y++)
+        {
+            ct.ThrowIfCancellationRequested();
+            for (var x = 0; x < ew; x++)
+            {
+                var ci = ctx.Index(ex + x, ey + y);
+                int cb = ctx.Source[ci], cg = ctx.Source[ci + 1], cr = ctx.Source[ci + 2];
+                double b = 0, g = 0, r = 0, total = 0;
+                for (var dy = -radius; dy <= radius; dy++)
+                    for (var dx = -radius; dx <= radius; dx++)
+                    {
+                        var ni = ctx.Index(ex + x + dx, ey + y + dy);
+                        int nb = ctx.Source[ni], ng = ctx.Source[ni + 1], nr = ctx.Source[ni + 2];
+                        var w = spatial[(dy + radius) * (2 * radius + 1) + dx + radius]
+                                * range[Math.Abs(nb - cb) + Math.Abs(ng - cg) + Math.Abs(nr - cr)];
+                        b += w * nb;
+                        g += w * ng;
+                        r += w * nr;
+                        total += w;
+                    }
+                var o = (y * ew + x) * 3;
+                (result[o], result[o + 1], result[o + 2]) = (b / total, g / total, r / total);
+            }
+        }
+        return result;
+    }
+}
+
 // ---------------------------------------------------------------- Render
 
 /// <summary>Fractal value noise blended from the primary to the secondary color.</summary>
@@ -605,6 +758,7 @@ public static class EffectCatalog
         new AddNoiseEffect(), new MedianEffect(),
         new BulgeEffect(), new FrostedGlassEffect(), new PixelateEffect(), new TwistEffect(),
         new EdgeDetectEffect(), new EmbossEffect(), new ReliefEffect(),
+        new CartoonEffect(),
         new CloudsEffect(), new MandelbrotEffect(),
     ];
 

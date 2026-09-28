@@ -164,6 +164,21 @@ public class DocumentActions(ImageDocument document)
                     (bgra[i * 4], bgra[i * 4 + 1], bgra[i * 4 + 2], bgra[i * 4 + 3]) = (color.B, color.G, color.R, color.A);
         });
 
+    /// <summary>
+    /// Replaces the current layer's pixels with <paramref name="bgra"/> (image-sized, straight-alpha BGRA) as one
+    /// step, e.g. a comic page composed into a new image.
+    /// </summary>
+    public void ReplaceLayerPixels(string text, byte[] bgra)
+    {
+        if (bgra.Length != Width * Height * 4)
+            throw new ArgumentException("The pixels must be the size of the image.", nameof(bgra));
+        var layer = Layers.CurrentUserLayer;
+        var before = layer.Surface;
+        layer.Surface = Utility.FromBgra(bgra, Width, Height);
+        document.Workspace.Invalidate();
+        History.PushNewItem(new SwapSurfaceHistoryItem(text, layer, before, layer.Surface));
+    }
+
     private delegate void PixelEdit(Span<byte> bgra, ReadOnlySpan<byte> mask);
 
     private void EditCurrentLayerPixels(string text, PixelEdit edit)

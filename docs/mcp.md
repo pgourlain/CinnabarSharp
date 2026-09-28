@@ -74,12 +74,17 @@ Add the server to `claude_desktop_config.json` (Settings › Developer › Edit 
 | Adjustments and effects | `list_effects`, `apply_effect` (any adjustment, effect or Photo tool, with named parameters), `suggest_effect_values` (the dialog's Auto values) |
 | Image | `resize_image`, `resize_canvas`, `crop` (rectangle, aspect ratio such as `16:9`, or the selection), `rotate_image`, `flip_image` |
 | TV | `prepare_for_tv` (2K/4K/8K; crop to fill, fit with plain or blurred borders, or stretch), `prepare_folder_for_tv` |
+| Comics | `compose_comic_page` (open images into a comic page: layout, A4/square/16:9, gutter, borders, white or black page; each image framed on its selection or its center). The Cartoon effect is available through `apply_effect`. |
 
 Resources: `cinnabar://documents`, `cinnabar://effects` (every effect with its parameter ranges, defaults and choices), and `cinnabar://documents/{id}/history`.
 
 Images are identified by the `id` that `open_image`, `new_image` and `list_documents` return. When you give no id, the tool uses the active image. Layers are numbered from 0, the bottom layer.
 
 ## Examples
+
+> Make a comic page with the four photos I have open, in cartoon style.
+
+For each image, the agent calls `apply_effect {"effect": "Cartoon", "document": "<id>"}`, then `compose_comic_page {"layout": "2x2 grid"}` → `render_preview` → `save_image {"path": "comic.png"}`.
 
 > Open ~/Pictures/beach.jpg, enhance it, crop it to 16:9 and save it as a 4K JPEG for my TV.
 

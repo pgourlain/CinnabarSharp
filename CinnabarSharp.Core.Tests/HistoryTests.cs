@@ -96,6 +96,7 @@ public sealed class HistoryTests : BaseTests, IDisposable
         { "Rotate 180°", a => a.RotateImage180() },
         { "Canvas Size", a => a.ResizeCanvas(new ImageSize(6, 5), Anchor.Center, ColorBgra.Black) },
         { "Resize Image", a => a.ResizeImage(new ImageSize(8, 6), ResamplingMode.NearestNeighbor) },
+        { "Comic Page", a => a.ReplaceLayerPixels("Comic Page", Enumerable.Repeat((byte)77, 4 * 3 * 4).ToArray()) },
     };
 
     [Fact]

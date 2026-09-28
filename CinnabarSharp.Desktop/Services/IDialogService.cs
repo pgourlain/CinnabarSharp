@@ -57,6 +57,9 @@ public interface IDialogService
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 
+    /// <summary>Page de BD: photos, page format and layout. Returns true for OK.</summary>
+    Task<bool> ShowComicPageAsync(ComicPageViewModel comic);
+
     /// <summary>How to connect an AI agent to this window (MCP attached mode).</summary>
     Task ShowAgentConnectionAsync(AgentConnectionViewModel connection);
 

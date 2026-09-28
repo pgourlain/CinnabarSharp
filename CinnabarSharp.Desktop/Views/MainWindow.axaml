@@ -103,7 +103,30 @@
 
         <!-- Tool options (Paint.NET shows these under the toolbar) -->
         <Border DockPanel.Dock="Top" Classes="panel" Padding="8,0" Height="40" IsEnabled="{Binding IsIdle}">
-            <StackPanel Classes="toolOptions" Orientation="Horizontal" Spacing="16">
+            <Panel>
+            <!-- Page de BD: page and selected-panel options while the page is edited on the canvas -->
+            <StackPanel Classes="toolOptions" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsComicMode}">
+                <TextBlock Text="Comic page:" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{x:Static vm:ComicPageViewModel.Layouts}" SelectedItem="{Binding Comic.SelectedLayout}"
+                          DisplayMemberBinding="{Binding Name}" AutomationProperties.Name="Layout" Focusable="False" />
+                <TextBlock Text="Gutter" />
+                <NumericUpDown Value="{Binding Comic.Gutter}" AutomationProperties.Name="Gutter" Minimum="0" Maximum="400" Increment="5"
+                               FormatString="0" Width="64" ShowButtonSpinner="False" HorizontalContentAlignment="Right" />
+                <TextBlock Text="Border" />
+                <NumericUpDown Value="{Binding Comic.BorderWidth}" AutomationProperties.Name="Border width" Minimum="0" Maximum="60" Increment="1"
+                               FormatString="0" Width="56" ShowButtonSpinner="False" HorizontalContentAlignment="Right" />
+                <ComboBox ItemsSource="{x:Static vm:ComicPageViewModel.Backgrounds}" SelectedItem="{Binding Comic.SelectedBackground}"
+                          DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="Page background" Focusable="False" />
+                <TextBlock Text="{Binding Comic.PanelText}" FontWeight="SemiBold" Margin="8,0,0,0" />
+                <ComboBox x:Name="ComicPanelPhoto" ItemsSource="{Binding Comic.PanelChoices}" SelectedItem="{Binding Comic.SelectedPanelChoice}"
+                          DisplayMemberBinding="{Binding Name}" AutomationProperties.Name="Photo in this panel" MaxWidth="170" Focusable="False" />
+                <TextBlock Text="Zoom" />
+                <Slider Minimum="100" Maximum="400" Value="{Binding Comic.PanelZoom}" Width="90" IsEnabled="{Binding Comic.PanelHasPhoto}"
+                        AutomationProperties.Name="Zoom in this panel" ToolTip.Tip="Zoom the photo in this panel" Focusable="False" />
+                <Button Content="Apply" Command="{Binding ApplyComicCommand}" ToolTip.Tip="Create the page (Enter)" />
+                <Button Content="Cancel" Command="{Binding CancelComicCommand}" ToolTip.Tip="Close the page without keeping it (Esc)" />
+            </StackPanel>
+            <StackPanel Classes="toolOptions" Orientation="Horizontal" Spacing="16" IsVisible="{Binding IsNotComicMode}">
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowSelectionOptions}">
                     <TextBlock Text="Selection mode:" />
                     <ComboBox x:Name="SelectionModeCombo" AutomationProperties.Name="Selection mode" ItemsSource="{x:Static vm:MainViewModel.SelectionModes}"
@@ -235,6 +258,7 @@
                               ToolTip.Tip="Pick from all visible layers instead of the current layer" />
                 </StackPanel>
             </StackPanel>
+            </Panel>
         </Border>
 
         <!-- Status bar -->
@@ -264,7 +288,8 @@
             <!-- Tools -->
             <Border Grid.Column="0" BorderThickness="0,0,1,0" Padding="4"
                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-                <ListBox Classes="tools" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}"
+                <ListBox x:Name="ToolsList" Classes="tools" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}"
+                         IsEnabled="{Binding IsNotComicMode}"
                          AutomationProperties.Name="Tools"
                          Width="70" Background="Transparent">
                     <ListBox.ItemsPanel>
@@ -290,6 +315,7 @@
             <!-- Image tabs + canvas -->
             <DockPanel Grid.Column="1">
                 <ListBox DockPanel.Dock="Top" Classes="tabs" ItemsSource="{Binding Documents}" AutomationProperties.Name="Open images"
+                         IsEnabled="{Binding IsNotComicMode}"
                          SelectedItem="{Binding ActiveDocument}" Background="Transparent"
                          IsVisible="{Binding HasDocument}">
                     <ListBox.ItemsPanel>

@@ -189,7 +189,8 @@ public static class TvExport
         return image;
     }
 
-    private static byte[] Resize(BgraImage source, int width, int height)
+    /// <summary>Lanczos resize to exactly width × height (the aspect ratio is not kept).</summary>
+    internal static byte[] Resize(BgraImage source, int width, int height)
     {
         if (source.Width == width && source.Height == height)
             return (byte[])source.Pixels.Clone();

@@ -155,15 +155,78 @@ public sealed class EffectsTests : BaseTests
     }
 
     [Fact]
+    public void Cartoon_reduces_a_gradient_to_a_few_flat_tones()
+    {
+        var px = new byte[W * H * 4];
+        for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
+            {
+                var v = (byte)(x * 255 / (W - 1));
+                var i = (y * W + x) * 4;
+                (px[i], px[i + 1], px[i + 2], px[i + 3]) = (v, v, v, 255);
+            }
+
+        // No smoothing, 4 tones, no saturation change, no outlines.
+        var result = Render(new CartoonEffect(), px, 0, 4, 100, 20, 1, 0);
+
+        var tones = Enumerable.Range(0, W * H).Select(i => result[i * 4]).Distinct().Count();
+        Assert.InRange(tones, 2, 4);
+    }
+
+    [Fact]
+    public void Cartoon_draws_a_dark_outline_on_a_sharp_edge_and_keeps_alpha()
+    {
+        var px = new byte[W * H * 4];
+        for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
+            {
+                var i = (y * W + x) * 4;
+                (px[i], px[i + 1], px[i + 2], px[i + 3]) = x < W / 2 ? ((byte)40, (byte)40, (byte)40, (byte)200) : ((byte)230, (byte)230, (byte)230, (byte)200);
+            }
+
+        var result = Render(new CartoonEffect(), px);
+
+        byte[] At(int x, int y) => result.AsSpan((y * W + x) * 4, 4).ToArray();
+        Assert.Equal(new byte[] { 0, 0, 0, 200 }, At(W / 2, H / 2));     // on the edge: black outline
+        Assert.True(At(W - 2, H / 2)[0] > 150);                          // far from it: the light flat tone
+        Assert.Equal(200, At(2, 2)[3]);                                    // alpha kept
+    }
+
+    [Fact]
+    public void Cartoon_on_part_of_the_image_matches_the_same_part_of_the_whole()
+    {
+        // Colored blocks: flat areas and edges, so both the tones and the outlines are exercised.
+        var source = new byte[W * H * 4];
+        for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
+            {
+                var i = (y * W + x) * 4;
+                (source[i], source[i + 1], source[i + 2], source[i + 3]) =
+                    ((byte)(x / 6 * 60), (byte)(y / 5 * 70 + x), (byte)(200 - x * 3), (byte)255);
+            }
+        var whole = Render(new CartoonEffect(), source);
+        Assert.Contains(whole.Where((_, i) => i % 4 == 0), b => b > 40); // not all outlines
+
+        var region = new RectangleI(5, 3, 10, 8);
+        var part = new byte[region.Width * region.Height * 4];
+        var ctx = new EffectContext(source, W, H, ColorBgra.Black, ColorBgra.White);
+        new CartoonEffect().Render(ctx, region, part, new CartoonEffect().Defaults, CancellationToken.None);
+
+        Assert.Equal(PixelRegion.Extract(whole, W, region), part);
+    }
+
+    [Fact]
     public void Effects_are_bit_identical_across_platforms()
     {
         var output = new List<byte>();
         foreach (var effect in EffectCatalog.Effects)
             output.AddRange(Render(effect, Pattern()));
+        // The pattern is so busy that Cartoon's defaults outline everything: pin its flat tones too.
+        output.AddRange(Render(new CartoonEffect(), Pattern(), 3, 5, 150, 100, 1, 0));
 
         var hash = Convert.ToHexString(SHA256.HashData(output.ToArray()));
         Assert.Equal(ExpectedHash, hash);
     }
 
-    private const string ExpectedHash = "8DB10E8C6D414133E4742A2B8AC84A5C0E40231C4285715E3D9FC74176068DE3";
+    private const string ExpectedHash = "A09A9F1B6B7DEA819ABBE27D412915B784EBF2CD9E25ABB0484EAC12ACAA9AC0";
 }

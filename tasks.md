@@ -259,3 +259,12 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [ ] Windows: the packaged `CinnabarSharp.exe` (GUI subsystem) serves stdio when launched by Claude Code/Desktop; if not, add a small console launcher.
 - [ ] Attached mode with the real app on each OS: toggle File › Allow AI Agents (native menu check mark on macOS), agent edits appear live, undo works.
 
+## Phase 14 — Creative tools
+
+- [x] Cartoon effect (Effects › Artistic): edge-preserving smoothing (bilateral filter), flat colors (hue in 15° steps, 4 saturation steps, N brightness tones), black outlines (Sobel on the smoothed brightness, threshold, width, strength); pure C#, deterministic, pinned by the cross-OS checksum.
+- [x] Comic page (Photo › Comic Page…): a dialog picks the photos (open images, or files added), their order, the page (A4 portrait/landscape, square, 16:9 4K) and one of 10 layouts; then the page is edited on the canvas: click a panel to select it, drag to move the photo in it, zoom slider, change or empty a panel's photo, change the layout, gutter, border width and white/black page live; Enter applies (one history step, flattened), Escape closes the page. Core: `ComicPage` (layouts, geometry, compose), `ComicPageTool`.
+- [x] MCP: `compose_comic_page` (framing from each image's selection or center); Cartoon through `apply_effect`.
+
+**Validation**
+- [ ] Cartoon on real photos (portraits, landscapes, low light): outlines and flat colors look good at the default settings.
+- [ ] Comic page with real photos on each OS: dragging a panel's photo feels responsive on a full A4 page; printed A4 at 300 dpi looks right.

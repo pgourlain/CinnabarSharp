@@ -778,10 +778,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void WithTool(Func<ITool, Action<ImageDocument, ToolPointer>> handler, ToolPointer pointer)
     {
-        if (ActiveDocument is { } d && SelectedTool.Tool is { } tool)
+        if (ActiveDocument is { } d && ActiveTool is { } tool)
             handler(tool)(d.Document, pointer);
         UpdateOverlay();
     }
+
+    /// <summary>The tool that gets the mouse: the page's while a comic page is edited, else the selected tool.</summary>
+    private ITool? ActiveTool => Comic?.Tool ?? SelectedTool?.Tool;
 
     /// <summary>True while keys typed belong to the selected tool (the Text tool is editing).</summary>
     public bool IsTyping => ActiveDocument is { } d && SelectedTool.Tool is IKeyboardTool k && k.IsTyping(d.Document);
@@ -794,6 +797,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (ActiveDocument is not { } d || IsBusy)
             return false;
+        if (IsComicMode && modifiers == ToolModifiers.None && key is ToolKey.Enter or ToolKey.Escape)
+        {
+            if (key == ToolKey.Enter)
+                ApplyComicCommand.Execute(null);
+            else
+                ExitComic(closeDocument: true);
+            return true;
+        }
         if (IsTvMode && modifiers == ToolModifiers.None && key is ToolKey.Enter or ToolKey.Escape)
         {
             if (key == ToolKey.Enter)
@@ -830,6 +841,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void UpdateOverlay()
     {
         Overlay = ActiveDocument is not { } d ? null
+            : Comic?.Tool is { } comic ? comic.GetOverlay(d.Document)
             : Tv is { ShowsFrame: false } tvOptions ? TvOverlay(tvOptions, d.Document)
             : SelectedTool?.Tool is IOverlayTool tool ? tool.GetOverlay(d.Document)
             : null;
@@ -869,6 +881,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue)
     {
+        // Another image (e.g. opened from the menu) ends editing the page, which stays as it is.
+        if (IsComicMode && newValue?.Document != _comicDocument)
+            ExitComic(closeDocument: false);
         ExitTv();
         FinishEditing(SelectedTool?.Tool, oldValue?.Document);
     }
@@ -1227,6 +1242,116 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         UpdateOverlay();
     }
 
+    // ---- Page de BD: photos assembled like a comic page, framed on the canvas ----
+
+    /// <summary>
+    /// Set while a comic page is edited: the canvas shows the page (a preview) on its new document, a click selects a
+    /// panel and a drag moves the photo in it; the options bar has the page and panel options. Apply (Enter) writes
+    /// the page into the document as one step; Cancel (Escape) closes it.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsComicMode), nameof(IsNotComicMode))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyComicCommand), nameof(CancelComicCommand))]
+    public partial ComicPageViewModel? Comic { get; set; }
+
+    public bool IsComicMode => Comic is not null;
+    public bool IsNotComicMode => !IsComicMode;
+
+    private ImageDocument? _comicDocument;
+
+    [RelayCommand]
+    private async Task ComicPage()
+    {
+        if (Dialogs is null || IsBusy || IsTvMode || IsComicMode)
+            return;
+        var sources = Documents.Select(d => new ComicSource(d.Document.DisplayName,
+            new BgraImage(d.Document.Layers.GetFlattenedBgra(includeToolLayer: false), d.Document.ImageSize.Width, d.Document.ImageSize.Height)));
+        var comic = new ComicPageViewModel(sources);
+        if (!await Dialogs.ShowComicPageAsync(comic))
+            return;
+
+        var options = comic.Options;
+        var page = _workspace.NewDocument(options.Page, options.Background);
+        page.DisplayName = "Comic page";
+        FitIfLargerThanViewport(page);
+        var tool = comic.CreateTool();
+        tool.Changed += () => _ = RefreshComicPreviewAsync();
+        tool.SelectionChanged += UpdateOverlay;
+        _comicDocument = page;
+        Comic = comic;
+        UpdateOverlay();
+        await RefreshComicPreviewAsync();
+    }
+
+    [RelayCommand(CanExecute = nameof(IsComicMode))]
+    private async Task ApplyComic()
+    {
+        if (Comic?.Tool is not { } tool || _comicDocument is not { } page)
+            return;
+        var (layout, options, contents) = (tool.Layout, tool.Options, tool.Contents.ToList());
+        ExitComic(closeDocument: false);
+        var result = await RunBusyAsync("Composing the comic page", _ =>
+            Task.Run(() => Core.Photo.ComicPage.Compose(layout, options, contents)));
+        page.Actions.ReplaceLayerPixels("Comic Page", result.Pixels);
+    }
+
+    [RelayCommand(CanExecute = nameof(IsComicMode))]
+    private void CancelComic() => ExitComic(closeDocument: true);
+
+    private void ExitComic(bool closeDocument)
+    {
+        if (Comic is null)
+            return;
+        var page = _comicDocument;
+        Comic = null;
+        _comicDocument = null;
+        UpdateOverlay();
+        if (closeDocument && page is not null && _workspace.OpenDocuments.Contains(page))
+            _workspace.CloseDocument(page);
+    }
+
+    private bool _comicPreviewRunning;
+    private bool _comicPreviewDirty;
+
+    /// <summary>
+    /// Recomputes the page preview in the background. While one is computing, further changes (a drag) are merged into
+    /// one more computation when it ends, so dragging stays responsive.
+    /// </summary>
+    private async Task RefreshComicPreviewAsync()
+    {
+        if (_comicPreviewRunning)
+        {
+            _comicPreviewDirty = true;
+            return;
+        }
+        _comicPreviewRunning = true;
+        try
+        {
+            do
+            {
+                _comicPreviewDirty = false;
+                if (Comic?.Tool is not { } tool || _comicDocument is not { } page)
+                    return;
+                var (layout, options, contents) = (tool.Layout, tool.Options, tool.Contents.ToList());
+                var size = options.Page;
+                // As many pixels as the screen shows (twice for high-DPI displays), never more than the page has.
+                var width = (int)Math.Clamp(size.Width * page.Workspace.Scale * 2, 64, Math.Min(size.Width, 2560));
+                var preview = new ImageSize(width, Math.Max(1, (int)Math.Round((double)width * size.Height / size.Width)));
+                var result = await Task.Run(() => Core.Photo.ComicPage.Compose(layout, options, contents, preview));
+                if (Comic?.Tool != tool)
+                    return;
+                tool.Preview = new OverlayPicture(result.Pixels, result.Width, result.Height,
+                    new RectangleD(0, 0, size.Width, size.Height));
+                UpdateOverlay();
+            }
+            while (_comicPreviewDirty);
+        }
+        finally
+        {
+            _comicPreviewRunning = false;
+        }
+    }
+
     // ---- Prepare for TV: options in the options bar, a 16:9 frame on the canvas ----
 
     /// <summary>
@@ -1245,7 +1370,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(HasDocument))]
     private void PrepareForTv()
     {
-        if (ActiveDocument is not { } d || IsTvMode || IsBusy || CropTool is not { } crop)
+        if (ActiveDocument is not { } d || IsTvMode || IsComicMode || IsBusy || CropTool is not { } crop)
             return;
         var doc = d.Document;
         // The frame is centered on the crop frame, the selection, or the photo.
@@ -1491,7 +1616,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void UpdateCursorPosition(Core.Models.PointD? canvasPoint)
     {
         CursorPositionText = canvasPoint is { } p ? $"{(int)Math.Floor(p.X)}, {(int)Math.Floor(p.Y)}" : "";
-        HoverCursor = canvasPoint is { } point && ActiveDocument is { } d && SelectedTool.Tool is IOverlayTool tool
+        HoverCursor = canvasPoint is { } point && ActiveDocument is { } d && ActiveTool is IOverlayTool tool
             ? tool.CursorAt(d.Document, point)
             : ToolCursor.Default;
     }

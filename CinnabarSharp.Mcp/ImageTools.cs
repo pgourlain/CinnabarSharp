@@ -522,6 +522,67 @@ public sealed class ImageTools(McpContext context)
         }
     }
 
+    // ---------------------------------------------------------------- Comic page
+
+    [McpServerTool(Name = "compose_comic_page"), Description(
+        "Assembles open images into one image like a comic page (panels, gutters, borders) and opens it as a new " +
+        "image named 'Comic page'. Each image fills its panel: its selection if it has one, else its center. Layouts: " +
+        "1 panel, 2 rows, 2 columns, 2x2 grid, 3 rows, 1 large + 2 small, 2 small + 1 large, 1 tall + 2 stacked, " +
+        "Classic (2 + 1 + 2), 3x3 grid. Use apply_effect with \"Cartoon\" first for a comic look.")]
+    public Task<DocumentInfo> ComposeComicPage(
+        [Description("Ids or names of the images, in panel order; all open images when omitted.")] string[]? documents = null,
+        [Description("Layout name; chosen from the number of images when omitted.")] string? layout = null,
+        [Description("Page: A4 portrait (default), A4 landscape, Square, 16:9.")] string? format = null,
+        [Description("Space between panels and around them, in pixels (default 40).")] int gutter = 40,
+        [Description("Panel border width in pixels, 0 for none (default 8).")] int borderWidth = 8,
+        [Description("white (default: black borders) or black (white borders).")] string? background = null) =>
+        context.Run(() =>
+        {
+            var docs = documents is { Length: > 0 }
+                ? documents.Select(context.Document).ToList()
+                : context.Workspace.OpenDocuments.ToList();
+            if (docs.Count == 0)
+                throw new McpException("No image is open. Use open_image first.");
+            var panels = Math.Min(docs.Count, 9);
+            var comicLayout = layout is null
+                ? ComicPage.Layouts.FirstOrDefault(l => l.Panels.Count == panels) ?? ComicPage.Layouts.First(l => l.Panels.Count >= panels)
+                : ComicPage.Layouts.FirstOrDefault(l => LayoutKey(l.Name) == LayoutKey(layout))
+                  ?? throw new McpException($"Unknown layout '{layout}'. Layouts: {string.Join(", ", ComicPage.Layouts.Select(l => l.Name))}.");
+            var page = (format is null ? ComicPage.Formats[0]
+                : ComicPage.Formats.FirstOrDefault(f => Parse.Key(f.Name).StartsWith(Parse.Key(format), StringComparison.Ordinal)))
+                ?? throw new McpException($"Unknown format '{format}'. Formats: {string.Join(", ", ComicPage.Formats.Select(f => f.Name))}.");
+            var dark = Parse.Key(background ?? "white") switch
+            {
+                "white" => false,
+                "black" => true,
+                _ => throw new McpException("background must be white or black."),
+            };
+            var options = new ComicPageOptions(page.Size, Math.Clamp(gutter, 0, 400), Math.Clamp(borderWidth, 0, 60),
+                dark ? ColorBgra.White : ColorBgra.Black, dark ? ColorBgra.Black : ColorBgra.White);
+
+            var rects = ComicPage.PanelRects(comicLayout, page.Size, options.Gutter);
+            var contents = docs.Take(rects.Count).Select((doc, i) => (ComicPanelContent?)Framing(doc, rects[i])).ToList();
+            var result = ComicPage.Compose(comicLayout, options, contents);
+            var comic = context.Workspace.NewDocumentFromImage(new ClipboardImage(result.Pixels, result.Width, result.Height));
+            comic.DisplayName = "Comic page";
+            return Describe.Document(context, comic);
+        });
+
+    private static string LayoutKey(string name) => Parse.Key(name.Replace('×', 'x'));
+
+    /// <summary>The image in a panel: its selection, as large as the panel shape allows, else its center.</summary>
+    private static ComicPanelContent Framing(ImageDocument doc, RectangleI panel)
+    {
+        var (w, h) = (doc.ImageSize.Width, doc.ImageSize.Height);
+        var photo = new BgraImage(doc.Layers.GetFlattenedBgra(includeToolLayer: false), w, h);
+        if (doc.Selection?.Bounds is not { Width: > 0, Height: > 0 } keep)
+            return new ComicPanelContent(photo);
+        var full = ComicPage.VisibleArea(w, h, panel.Width, panel.Height, 1, new PointD(0.5, 0.5));
+        var zoom = Math.Clamp(Math.Min(full.Width / keep.Width, full.Height / keep.Height), 1, 4);
+        return new ComicPanelContent(photo, zoom,
+            new PointD((keep.X + keep.Width / 2.0) / w, (keep.Y + keep.Height / 2.0) / h));
+    }
+
     // ---------------------------------------------------------------- Helpers
 
     private IReadOnlyList<DocumentInfo> Documents() =>

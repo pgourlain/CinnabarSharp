@@ -113,6 +113,11 @@ public class FakeDialogService : IDialogService
 
     public List<string> Messages { get; } = [];
 
+    /// <summary>Answers the Page de BD dialog (can change its choices first); OK by default.</summary>
+    public Func<ComicPageViewModel, bool> ComicPageAnswer { get; set; } = _ => true;
+
+    public Task<bool> ShowComicPageAsync(ComicPageViewModel comic) => Task.FromResult(ComicPageAnswer(comic));
+
     public List<AgentConnectionViewModel> AgentConnectionsShown { get; } = [];
 
     public Task ShowAgentConnectionAsync(AgentConnectionViewModel connection)

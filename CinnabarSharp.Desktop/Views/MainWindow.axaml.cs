@@ -496,6 +496,8 @@ public partial class MainWindow : Window, IViewportService
                 MenuSpec.Separator,
                 new("Prepare for _TV…", vm.PrepareForTvCommand),
                 new("Prepare _Folder for TV…", vm.PrepareFolderForTvCommand),
+                MenuSpec.Separator,
+                new("_Comic Page…", vm.ComicPageCommand),
             ]),
         ];
         if (!isMac)

@@ -8,7 +8,7 @@
     <AssemblyName>CinnabarSharp</AssemblyName>
     <RootNamespace>CinnabarSharp.Desktop</RootNamespace>
     <Product>CinnabarSharp</Product>
-    <Version>0.2.2</Version>
+    <Version>0.3.0</Version>
     <Copyright>Copyright © 2026 Pierrick Gourlain. MIT License. Portions from Pinta (MIT).</Copyright>
   </PropertyGroup>
 

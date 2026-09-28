@@ -4,6 +4,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CinnabarSharp.Core.Effects;
 using Effect = CinnabarSharp.Core.Effects.Effect;
+using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Models;
 using PointD = CinnabarSharp.Core.Models.PointD;
 using CinnabarSharp.Desktop.ViewModels;
@@ -37,7 +38,7 @@ public sealed class EffectsUiTests : IDisposable
     [AvaloniaFact]
     public void Effects_menu_lists_categories()
     {
-        string[] expected = ["Repeat Last Effect", "Blurs", "Photo", "Noise", "Distort", "Stylize", "Render"];
+        string[] expected = ["Repeat Last Effect", "Blurs", "Photo", "Noise", "Distort", "Stylize", "Artistic", "Render"];
         if (OperatingSystem.IsMacOS())
         {
             var effects = NativeMenu.GetMenu(_h.Window)!.Items.OfType<NativeMenuItem>().First(i => i.Header == "Effects");
@@ -134,6 +135,28 @@ public sealed class EffectsUiTests : IDisposable
         Assert.False(dialog.Computing);
         Assert.False(row.IsEffectivelyVisible);
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task Cartoon_turns_a_photo_into_flat_colors_with_outlines()
+    {
+        Assert.True(await Vm.OpenFileAsync(TestHarness.SampleImage));
+        var before = Doc.Layers[0].Surface.ToBgra();
+        _h.Dialogs.EffectAnswer = d =>
+        {
+            Assert.Equal(["Smoothness", "Colors", "Saturation", "Edge threshold", "Edge width", "Edge strength"],
+                d.Parameters.Select(p => p.Name));
+            return true;
+        };
+
+        await Vm.ApplyEffectCommand.ExecuteAsync(Find("Cartoon"));
+
+        Assert.Equal("Cartoon", Vm.History[^1].Text);
+        var after = Doc.Layers[0].Surface.ToBgra();
+        // Fewer distinct colors than the photo: flat tones.
+        int Colors(byte[] px) => Enumerable.Range(0, px.Length / 4).Select(i => (px[i * 4], px[i * 4 + 1], px[i * 4 + 2])).Distinct().Count();
+        Assert.True(Colors(after) < Colors(before) / 2, $"{Colors(after)} colors vs {Colors(before)}");
+        _h.Capture("100-cartoon");
     }
 
     [AvaloniaFact]

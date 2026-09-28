@@ -21,7 +21,7 @@ public class StdioServerTests
             "render_preview", "get_history", "undo", "redo", "add_layer", "delete_layer", "move_layer",
             "set_layer_properties", "select_rectangle", "select_ellipse", "magic_wand", "select_all", "deselect",
             "list_effects", "apply_effect", "resize_image", "resize_canvas", "crop", "rotate_image", "prepare_for_tv",
-            "prepare_folder_for_tv",
+            "prepare_folder_for_tv", "compose_comic_page",
         }, tools.ToHashSet());
 
         var resources = (await server.Client.ListResourcesAsync(cancellationToken: Ct)).Select(r => r.Uri).ToList();
@@ -215,5 +215,26 @@ public class StdioServerTests
         Assert.True(File.Exists(Path.Combine(output, "second_2K.jpg")));
 
         Assert.Contains("overwrite=true", await server.CallError("prepare_folder_for_tv", new { folder = ".", resolution = "2K" }));
+    }
+
+    [Fact]
+    public async Task Cartoon_photos_are_assembled_into_a_comic_page()
+    {
+        await using var server = await McpTestServer.StartAsync();
+        await server.Call("open_image", new { path = "sample1.png" });
+        await server.Call("apply_effect", new { effect = "Cartoon", parameters = new { Colors = 5 } });
+        await server.Call("new_image", new { width = 300, height = 200, background = "#2060A0" });
+        await server.Call("new_image", new { width = 200, height = 300, background = "#A02060" });
+
+        var page = await server.Call("compose_comic_page", new { format = "square", background = "black" });
+        Assert.Equal((3000, 3000), (page.Int("width"), page.Int("height")));
+        Assert.Equal("Comic page", page.Str("name"));
+
+        var two = await server.Call("compose_comic_page", new { documents = new[] { "1", "2" }, layout = "2x2 grid" });
+        Assert.Equal((2480, 3508), (two.Int("width"), two.Int("height"))); // A4 portrait by default
+
+        Assert.Contains("Unknown layout", await server.CallError("compose_comic_page", new { layout = "spiral" }));
+        var effects = await server.Call("list_effects");
+        Assert.Contains(effects.EnumerateArray(), e => e.Str("name") == "Cartoon" && e.Str("menu") == "Effects › Artistic");
     }
 }
