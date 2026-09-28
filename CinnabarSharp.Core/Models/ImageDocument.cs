@@ -47,10 +47,8 @@ namespace CinnabarSharp.Core.Models
         /// <summary>Changes the image size (layers must be resized by the caller), keeping the zoom level.</summary>
         public void Resize(ImageSize size)
         {
-            var scale = Workspace.Scale;
             ImageSize = size;
-            Workspace.ViewSize = new ImageSize(
-                Math.Max(1, (int)(size.Width * scale)), Math.Max(1, (int)(size.Height * scale)));
+            Workspace.UpdateViewSize();
             Workspace.Invalidate();
         }
 

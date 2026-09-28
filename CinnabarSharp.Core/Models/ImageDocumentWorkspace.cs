@@ -37,6 +37,11 @@ namespace CinnabarSharp.Core.Models
         private readonly IDocumentEventsService _documentEventsService;
         private readonly ILogger<ImageDocument> _logger;
         private ImageSize _viewSize;
+
+        // The zoom as requested. Deriving it from ViewSize (whole pixels) loses precision: at 25 % a 1023-pixel-wide
+        // image is 255 pixels wide, i.e. 24.93 %, and "zoom in" then goes back to 25 % forever.
+        private double _scale = 1;
+
         private enum ZoomType
         {
             ZoomIn,
@@ -80,20 +85,34 @@ namespace CinnabarSharp.Core.Models
         }
 
         /// <summary>
-        /// Size of the zoomed image.
+        /// Size of the zoomed image. Setting it directly also sets <see cref="Scale"/> to the width ratio.
         /// </summary>
         public ImageSize ViewSize
         {
             get { return _viewSize; }
             set
             {
-                if (_viewSize.Width != value.Width || _viewSize.Height != value.Height)
-                {
-                    _viewSize = value;
-                    OnViewSizeChanged();
-                }
+                if (document.ImageSize.Width > 0)
+                    _scale = (double)value.Width / document.ImageSize.Width;
+                SetViewSize(value);
             }
         }
+
+        private bool SetViewSize(ImageSize value)
+        {
+            if (_viewSize.Width == value.Width && _viewSize.Height == value.Height)
+                return false;
+            _viewSize = value;
+            OnViewSizeChanged();
+            return true;
+        }
+
+        /// <summary>Recomputes <see cref="ViewSize"/> from <see cref="Scale"/> after the image size changed.</summary>
+        public void UpdateViewSize() => SetViewSize(ScaledSize(_scale));
+
+        private ImageSize ScaledSize(double scale) => new(
+            Math.Max(1, (int)Math.Round(document.ImageSize.Width * scale)),
+            Math.Max(1, (int)Math.Round(document.ImageSize.Height * scale)));
 
         public IImageDocumentHistory History { get; }
 
@@ -126,25 +145,23 @@ namespace CinnabarSharp.Core.Models
         /// </summary>
         public double Scale
         {
-            get { return (double)ViewSize.Width / (double)document.ImageSize.Width; }
+            get { return _scale; }
             set
             {
-                if (value != (double)ViewSize.Width / (double)document.ImageSize.Width || value != (double)ViewSize.Height / (double)document.ImageSize.Height)
+                if (document.ImageSize.Width == 0)
                 {
-                    if (document.ImageSize.Width == 0)
-                    {
-                        document.ImageSize = new ImageSize(1, document.ImageSize.Height);
-                    }
+                    document.ImageSize = new ImageSize(1, document.ImageSize.Height);
+                }
 
-                    if (document.ImageSize.Height == 0)
-                    {
-                        document.ImageSize = new ImageSize(document.ImageSize.Width, 1);
-                    }
+                if (document.ImageSize.Height == 0)
+                {
+                    document.ImageSize = new ImageSize(document.ImageSize.Width, 1);
+                }
 
-                    int newX = Math.Max((int)(document.ImageSize.Width * value), 1);
-                    int newY = Math.Max((int)(((long)newX * document.ImageSize.Height) / document.ImageSize.Width), 1);
-
-                    ViewSize = new ImageSize(newX, newY);
+                var changed = value != _scale;
+                _scale = value;
+                if (SetViewSize(ScaledSize(value)) || changed)
+                {
                     Invalidate();
 
                     //if (PintaCore.Tools.CurrentTool?.CursorChangesOnZoom == true)

@@ -85,6 +85,22 @@ public sealed class ImageMenuActionsTests : BaseTests
     }
 
     [Fact]
+    public void Zoom_is_kept_exactly_when_the_view_size_is_rounded()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(1023, 767), ColorBgra.White);
+        doc.Workspace.Scale = 0.25;
+
+        Assert.Equal(0.25, doc.Workspace.Scale);
+        Assert.Equal(new ImageSize(256, 192), doc.Workspace.ViewSize);
+
+        // Resizing many times must not make the zoom drift.
+        for (var i = 0; i < 10; i++)
+            doc.Actions.RotateImage90(clockwise: true);
+        Assert.Equal(0.25, doc.Workspace.Scale);
+        Assert.Equal(new ImageSize(256, 192), doc.Workspace.ViewSize);
+    }
+
+    [Fact]
     public void Rotating_a_non_square_image_swaps_its_size_and_keeps_zoom()
     {
         var doc = _workspace.NewDocument(new ImageSize(40, 20), ColorBgra.White);

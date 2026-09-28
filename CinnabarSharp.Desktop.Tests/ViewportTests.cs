@@ -43,6 +43,35 @@ public sealed class ViewportTests : IDisposable
         _h.Capture("12-wheel-zoom-around-mouse");
     }
 
+    // Regression: at 25 % a 1023-pixel-wide image is 255.75 pixels wide; the zoom used to be derived from the
+    // truncated width (24.93 %), so Zoom In and Ctrl+wheel up went back to 25 % and never got past it.
+    [AvaloniaFact]
+    public void Zoom_in_works_from_every_zoom_level_with_odd_image_sizes()
+    {
+        NewImage(1023, 767);
+        _h.Vm.ActualSizeCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+
+        for (var i = 0; i < 6; i++) // 75, 66.67, 50, 40, 30, 25
+            _h.Vm.ZoomOutCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal("25%", _h.Vm.ZoomText);
+
+        _h.Vm.ZoomInCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal("30%", _h.Vm.ZoomText);
+
+        _h.Window.MouseWheel(ViewportCenter(), new Vector(0, 1), RawInputModifiers.Control);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal("40%", _h.Vm.ZoomText);
+
+        for (var percent = 1.0; percent < 3200; percent = MainViewModel.NextZoomIn(percent))
+        {
+            _h.Vm.ActiveDocument!.Document.Workspace.Scale = percent / 100;
+            Assert.True(MainViewModel.NextZoomIn(_h.Vm.CurrentZoomPercent) > percent, $"stuck at {percent}%");
+        }
+    }
+
     [AvaloniaFact]
     public void Wheel_without_modifier_scrolls_instead_of_zooming()
     {
