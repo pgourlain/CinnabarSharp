@@ -133,12 +133,24 @@ Allocation roughly halved as expected (one of the two same-size buffers per undo
 
 ## P3 — CPU
 
-- [ ] Parallel effects: `EffectSession.Compute` splits the region into horizontal strips run with `Parallel.For`. The effect contract already allows it (read only `Source`, write every pixel of the region, deterministic). Add a test that every effect in `EffectCatalog.All` gives bit-identical results in one block and in strips; keep the checksum test unchanged.
-- [ ] Effects that analyze the whole image (Auto-Enhance, Auto-Level, Levels/Curves histograms) compute their analysis once per session, not once per strip.
+- [x] Parallel effects: `EffectSession.Compute` splits the region into horizontal strips (64+ rows, up to `Environment.ProcessorCount` strips) run with `Parallel.For`; each strip renders into its own exactly-sized buffer via the existing, unmodified `Effect.Render`, then copies into the shared result — no change to `Effect`, `ForEachPixel`, or any of the ~30 effect implementations. `EffectParallelismTests` (Core.Tests, tall enough image to force multiple strips) pins bit-identical output against a single block for every effect in `EffectCatalog.All` **and** `EffectCatalog.Adjustments`; the existing pinned checksum test is untouched and still passes unchanged, confirming the parallel path is bit-identical to what it pinned.
+- [ ] Effects that analyze the whole image (Auto-Enhance, Auto-Level, Levels/Curves histograms) compute their analysis once per session, not once per strip. **Still not done — and now measurably costing something**: `ColorAdjustment.Render` (the base class `AutoLevel`/`Curves`/etc. share) calls `Create(values, context.Source)` — which does the histogram/LUT work — on *every* `Render` call, so parallelizing by strip means every strip repeats it. This is why `AutoEnhanceEffect` only got ~4.5× faster on 10 cores below (its `Analyze()` samples up to 250k pixels, once per strip) while embarrassingly-parallel effects like `MedianEffect`/`CartoonEffect` got ~6.3–6.4×. The fix is a real optimization, not just cleanup: give `Effect`/`ColorAdjustment` a way to run whole-image analysis once and hand the per-strip `Render` calls its result.
 - [ ] Dialog previews at reduced resolution: compute the preview on the visible part of the canvas at screen resolution (like the TV and comic page previews), and the full resolution only on OK. Effects whose result depends on scale (blur radius, outline width) scale their parameters for the preview.
 - [ ] SIMD compositing: `BlendOps.Composite` with `System.Numerics.Vector<T>` / `Vector128` for Normal, Multiply, Screen, Additive…; keep the pinned checksum (results must stay bit-identical).
 - [ ] Brush and shape coverage (`CoverageMask`): only process the dab's bounding box; check with P0 stroke benchmark.
 - [ ] Cancel stale work everywhere (previews already do): TV and comic page previews during drags, thumbnail generation.
+
+**Before/after (P0's `CinnabarSharp.Benchmarks.EffectBenchmarks`, same 2 MP size/job config as the P0 baseline, Apple M5, 10 cores):**
+
+| Case | Before | After | Speedup |
+|---|---:|---:|---:|
+| MedianEffect | 770.4 ms | 120.3 ms | **6.4×** |
+| CartoonEffect | 468.5 ms | 74.0 ms | **6.3×** |
+| AutoEnhanceEffect | 110.0 ms | 24.3 ms | 4.5× (histogram repeated per strip — see the unchecked item above) |
+| BlackAndWhite | 7.7 ms | 5.2 ms | 1.5× (already fast; strip overhead eats into the win) |
+| Sepia | 7.2 ms | 5.3 ms | 1.4× |
+
+The two effects P0 flagged as outliers are now both comfortably under 200 ms at 2 MP; scaled to the 24 MP target size they'd still be the slowest in the catalog, but no longer several-seconds slow. `AutoEnhanceEffect` — the doc's own named "under 1 s" example — went from a real risk (110 ms at 2 MP, projected over 1 s at 24 MP per the P0 write-up) to comfortably inside budget even before its histogram gets deduplicated across strips.
 
 ## P4 — Rendering and UI
 
