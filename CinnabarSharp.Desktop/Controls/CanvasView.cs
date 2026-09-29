@@ -201,25 +201,88 @@ public class CanvasView : Control
             using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.HighQuality }))
                 context.DrawImage(PictureBitmap(picture), R(picture.Area));
         }
-        foreach (var highlight in overlay.Highlights)
-            context.FillRectangle(HighlightBrush, R(highlight));
-        if (overlay.Frame is { } frame)
+        // Everything below (frame, caret/lines, highlights, handles) is drawn as if unrotated, then rotated as a
+        // whole around the overlay's pivot — same geometry the tool used to compute it, just spun on screen.
+        // The canvas pixels themselves are rotated separately by the tool, not by this transform.
+        var pivot = overlay.Rotation is { } rot ? P(rot.Pivot) : default;
+        var rotation = overlay.Rotation is { } r
+            ? Matrix.CreateTranslation(-pivot.X, -pivot.Y) * Matrix.CreateRotation(r.Angle) * Matrix.CreateTranslation(pivot.X, pivot.Y)
+            : Matrix.Identity;
+        using (context.PushTransform(rotation))
         {
-            context.DrawRectangle(new Pen(AntsLight, 1), R(frame));
-            context.DrawRectangle(new Pen(AntsDark, 1, new DashStyle([3, 3], 0)), R(frame));
+            foreach (var highlight in overlay.Highlights)
+                context.FillRectangle(HighlightBrush, R(highlight));
+            if (overlay.Frame is { } frame)
+            {
+                context.DrawRectangle(new Pen(AntsLight, 1), R(frame));
+                context.DrawRectangle(new Pen(AntsDark, 1, new DashStyle([3, 3], 0)), R(frame));
+            }
+            foreach (var (from, to) in overlay.Lines)
+            {
+                context.DrawLine(OverlayLight, P(from), P(to));
+                context.DrawLine(OverlayDark, P(from), P(to));
+            }
+            foreach (var handle in overlay.Handles)
+            {
+                if (overlay.SquareHandles)
+                    context.DrawRectangle(Brushes.White, OverlayDark, new Rect(P(handle) - new Point(3.5, 3.5), new Size(7, 7)));
+                else
+                    context.DrawEllipse(Brushes.White, OverlayDark, P(handle), 4, 4);
+            }
+            if (overlay.RotateHandle is { } rotateHandle)
+                DrawRotateIcon(context, P(rotateHandle));
         }
-        foreach (var (from, to) in overlay.Lines)
+    }
+
+    /// <summary>Two curved, blended arrows forming a rotate symbol, centered on <paramref name="center"/>.</summary>
+    private static void DrawRotateIcon(DrawingContext context, Point center)
+    {
+        const double radius = 6;
+        const double headLength = 3.5;
+        const double headWidth = 4;
+        var outline = OverlayDark;
+        var stroke = new Pen(Brushes.White, 2, lineCap: PenLineCap.Round);
+
+        // Two ~145° arcs on opposite sides of a small circle, each swept clockwise and capped with an
+        // arrowhead pointing along the arc's own direction — reads as two arrows chasing each other in a loop.
+        void Arrow(double fromDegrees, double toDegrees)
         {
-            context.DrawLine(OverlayLight, P(from), P(to));
-            context.DrawLine(OverlayDark, P(from), P(to));
+            var from = OnCircle(center, radius, fromDegrees);
+            var to = OnCircle(center, radius, toDegrees);
+            var arc = new StreamGeometry();
+            using (var ctx = arc.Open())
+            {
+                ctx.BeginFigure(from, isFilled: false);
+                ctx.ArcTo(to, new Size(radius, radius), 0, isLargeArc: false, SweepDirection.Clockwise);
+                ctx.EndFigure(false);
+            }
+            context.DrawGeometry(null, stroke, arc);
+            context.DrawGeometry(null, outline, arc);
+
+            // Tangent direction of a clockwise arc at its end point, and the arrowhead triangle around it.
+            var tangent = (toDegrees + 90) * Math.PI / 180;
+            var back = new Point(to.X - Math.Cos(tangent) * headLength, to.Y - Math.Sin(tangent) * headLength);
+            var normal = tangent + Math.PI / 2;
+            var side = new Point(Math.Cos(normal) * headWidth / 2, Math.Sin(normal) * headWidth / 2);
+            var head = new StreamGeometry();
+            using (var ctx = head.Open())
+            {
+                ctx.BeginFigure(to, isFilled: true);
+                ctx.LineTo(new Point(back.X + side.X, back.Y + side.Y));
+                ctx.LineTo(new Point(back.X - side.X, back.Y - side.Y));
+                ctx.EndFigure(true);
+            }
+            context.DrawGeometry(Brushes.White, outline, head);
         }
-        foreach (var handle in overlay.Handles)
-        {
-            if (overlay.SquareHandles)
-                context.DrawRectangle(Brushes.White, OverlayDark, new Rect(P(handle) - new Point(3.5, 3.5), new Size(7, 7)));
-            else
-                context.DrawEllipse(Brushes.White, OverlayDark, P(handle), 4, 4);
-        }
+
+        Arrow(200, 345);
+        Arrow(20, 165);
+    }
+
+    private static Point OnCircle(Point center, double radius, double degrees)
+    {
+        var radians = degrees * Math.PI / 180;
+        return new Point(center.X + radius * Math.Cos(radians), center.Y + radius * Math.Sin(radians));
     }
 
     private Geometry OutlineGeometry(SelectionMask selection, double scale)

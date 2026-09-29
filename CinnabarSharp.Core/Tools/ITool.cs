@@ -196,6 +196,15 @@ public sealed record ToolOverlay
 
     /// <summary>A picture drawn over the canvas, e.g. a preview of what a TV will show.</summary>
     public OverlayPicture? Picture { get; init; }
+
+    /// <summary>The rotate grip's position, drawn with a distinct two-arrow rotate icon instead of a plain
+    /// handle (e.g. the Text tool's). In the same unrotated coordinates as everything else in this overlay.</summary>
+    public PointD? RotateHandle { get; init; }
+
+    /// <summary>Rotates every other part of this overlay (<see cref="Frame"/>, <see cref="Lines"/>,
+    /// <see cref="Highlights"/>, <see cref="Handles"/>, <see cref="RotateHandle"/>) by <c>Angle</c> radians
+    /// around <c>Pivot</c> when drawn — the canvas pixels themselves are rotated separately by the tool.</summary>
+    public (double Angle, PointD Pivot)? Rotation { get; init; }
 }
 
 /// <summary>Straight-alpha BGRA pixels drawn stretched over <paramref name="Area"/> (image coordinates).</summary>
@@ -218,6 +227,9 @@ public enum ToolCursor
 
     /// <summary>Top-right or bottom-left corner.</summary>
     ResizeAntiDiagonal,
+
+    /// <summary>Over a rotate handle.</summary>
+    Rotate,
 }
 
 public interface IOverlayTool : ITool
