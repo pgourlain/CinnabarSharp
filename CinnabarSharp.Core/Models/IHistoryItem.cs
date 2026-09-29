@@ -12,6 +12,14 @@ public interface IHistoryItem : IDisposable
     /// <summary>Approximate bytes this step holds in memory (pixel/mask data only), for the history's memory budget.</summary>
     long Bytes { get; }
 
+    /// <summary>
+    /// The rectangle this step's undo/redo changes on the canvas, in image coordinates, when it's narrower than
+    /// the whole image (e.g. a brush stroke or a small fill); null means "the whole image, or unknown" — the
+    /// safe default every step had before this existed. <see cref="ImageDocumentHistory"/> uses this so
+    /// undoing/redoing a small pixel edit redraws only that rectangle instead of re-flattening every layer.
+    /// </summary>
+    RectangleI? TouchedRect { get; }
+
     void Undo();
     void Redo();
 }
@@ -28,6 +36,7 @@ public abstract class HistoryItem(string text) : IHistoryItem
     public string Text { get; } = text;
     public bool IsUndone { get; private set; }
     public virtual long Bytes => 0;
+    public virtual RectangleI? TouchedRect => null;
 
     public void Undo()
     {
@@ -71,6 +80,22 @@ public sealed class BaseHistoryItem(string text) : HistoryItem(text)
 public sealed class CompoundHistoryItem(string text, IReadOnlyList<IHistoryItem> items) : HistoryItem(text)
 {
     public override long Bytes => items.Sum(i => i.Bytes);
+
+    /// <summary>Union of every child's touched rectangle, or null (whole image) if any child doesn't report one.</summary>
+    public override RectangleI? TouchedRect
+    {
+        get
+        {
+            RectangleI? union = null;
+            foreach (var item in items)
+            {
+                if (item.TouchedRect is not { } r)
+                    return null;
+                union = union is { } u ? CoverageMask.Union(u, r) : r;
+            }
+            return union;
+        }
+    }
 
     protected override void OnUndo()
     {
