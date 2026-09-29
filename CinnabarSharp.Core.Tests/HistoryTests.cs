@@ -384,6 +384,90 @@ public sealed class HistoryTests : BaseTests, IDisposable
         Assert.Equal(0, history.Pointer);
     }
 
+    [Fact]
+    public void History_spills_steps_far_from_the_pointer_to_disk()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(4, 3), ColorBgra.White);
+        var events = _sp.GetRequiredService<IDocumentEventsService>();
+        var storage = new FileHistoryStorage(_dir);
+        var history = new ImageDocumentHistory(doc, events, byteBudget: long.MaxValue, maxSteps: 1000,
+            storage: storage, spillDistance: 2);
+        var items = new List<DummySpillableHistoryItem>();
+        for (var i = 0; i < 5; i++)
+        {
+            var item = new DummySpillableHistoryItem($"Step{i}");
+            items.Add(item);
+            history.PushNewItem(item);
+        }
+        // Pointer is at the last item (index 4); items at distance >= 2 (index 0,1,2) must be spilled.
+        Assert.All(items.Take(3), i => Assert.True(i.Spilled));
+        Assert.All(items.Skip(3), i => Assert.False(i.Spilled));
+    }
+
+    [Fact]
+    public void History_with_no_storage_never_spills()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(4, 3), ColorBgra.White);
+        var events = _sp.GetRequiredService<IDocumentEventsService>();
+        var history = new ImageDocumentHistory(doc, events, maxSteps: 1000, storage: null, spillDistance: 1);
+        var items = new List<DummySpillableHistoryItem>();
+        for (var i = 0; i < 5; i++)
+        {
+            var item = new DummySpillableHistoryItem($"Step{i}");
+            items.Add(item);
+            history.PushNewItem(item);
+        }
+
+        Assert.All(items, i => Assert.False(i.Spilled));
+    }
+
+    [Fact]
+    public async Task Fill_selection_pixel_step_can_be_spilled_and_read_back_from_disk()
+    {
+        // A document created through DI with IHistoryStorage registered: the real wiring an app would use to
+        // opt in, not a hand-built ImageDocumentHistory.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddCinnabarSharpServices();
+        services.AddSingleton<IHistoryStorage>(new FileHistoryStorage(_dir));
+        var workspace = services.BuildServiceProvider().GetRequiredService<IWorkspaceService>();
+        var doc = workspace.NewDocument(new ImageSize(4, 3), ColorBgra.White);
+        var before = Snapshot(doc);
+
+        doc.SetSelection(SelectionMask.Rectangle(4, 3, new PointD(1, 0), new PointD(3, 2)));
+        doc.Actions.RecordSelectionChange(null, "Rectangle Select");
+        doc.Actions.FillSelection(ColorBgra.FromBgra(0, 255, 0, 255));
+        var after = Snapshot(doc);
+
+        var item = Assert.IsType<PixelRegionHistoryItem>(doc.Workspace.History.Items[^1]);
+        await item.PendingCompression;
+
+        // Push enough steps after it to cross the default spill distance, then wait for the write to land.
+        var padCount = ImageDocumentHistory.DefaultSpillDistance + 1;
+        for (var i = 0; i < padCount; i++)
+            doc.Workspace.History.PushNewItem(new DummyHistoryItem($"Pad{i}", 0));
+        await item.PendingSpill;
+        Assert.True(item.IsSpilled);
+
+        var stepsSinceBefore = padCount + 2; // the pads, then the fill step, then the selection change
+        for (var i = 0; i < stepsSinceBefore; i++)
+            doc.Workspace.History.Undo();
+        Assert.Equal(before, Snapshot(doc)); // read the diff back from disk
+
+        for (var i = 0; i < stepsSinceBefore; i++)
+            doc.Workspace.History.Redo();
+        Assert.Equal(after, Snapshot(doc));
+    }
+
+    private sealed class DummySpillableHistoryItem(string text) : HistoryItem(text), ISpillableHistoryItem
+    {
+        public bool Spilled { get; private set; }
+        public override long Bytes => Spilled ? 0 : 1;
+        public void Spill(IHistoryDocumentStorage storage) => Spilled = true;
+        protected override void OnUndo() { }
+        protected override void OnRedo() { }
+    }
+
     private sealed class DummyHistoryItem(string text, long bytes) : HistoryItem(text)
     {
         public override long Bytes => bytes;

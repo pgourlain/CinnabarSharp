@@ -1,4 +1,5 @@
 using CinnabarSharp.Core.Extensions;
+using CinnabarSharp.Core.Services;
 
 namespace CinnabarSharp.Core.Models;
 
@@ -169,7 +170,7 @@ public sealed class PaintSession
 /// diff to zero, so the buffer compresses well; it is compressed on a background thread after the step is
 /// created or updated, and decompressed only when undo/redo actually needs it.
 /// </summary>
-public sealed class PixelRegionHistoryItem : HistoryItem
+public sealed class PixelRegionHistoryItem : HistoryItem, ISpillableHistoryItem
 {
     private readonly Layer _layer;
     private RectangleI _rect;
@@ -188,6 +189,10 @@ public sealed class PixelRegionHistoryItem : HistoryItem
     /// <summary>Lets tests wait for the background compression of the current diff instead of racing it.</summary>
     internal Task PendingCompression => _diff.PendingCompression;
 
+    /// <summary>The background disk-spill task for the current diff, for tests to await instead of racing it.</summary>
+    internal Task PendingSpill => _diff.PendingSpill;
+    internal bool IsSpilled => _diff.IsSpilled;
+
     /// <summary>Replaces the stored change while the step is still being edited (it must be done, not undone).</summary>
     internal void Update(RectangleI newRect, byte[] newBefore, byte[] newAfter)
     {
@@ -195,8 +200,11 @@ public sealed class PixelRegionHistoryItem : HistoryItem
         _diff.Set(Xor(newBefore, newAfter));
     }
 
+    void ISpillableHistoryItem.Spill(IHistoryDocumentStorage storage) => _diff.Spill(storage);
+
     protected override void OnUndo() => Swap();
     protected override void OnRedo() => Swap();
+    protected override void OnDispose() => _diff.Dispose();
 
     private void Swap()
     {
