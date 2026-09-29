@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="CinnabarSharp.Benchmarks/CinnabarSharp.Benchmarks.csproj" />
   <Project Path="CinnabarSharp.Core.Tests/CinnabarSharp.Core.Tests.csproj" />
   <Project Path="CinnabarSharp.Core/CinnabarSharp.Core.csproj" />
   <Project Path="CinnabarSharp.Desktop.Tests/CinnabarSharp.Desktop.Tests.csproj" />
