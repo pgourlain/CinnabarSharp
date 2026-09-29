@@ -95,6 +95,32 @@ public sealed class TextAndCurveUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Rotate_handle_rotates_the_text_overlay_and_stays_editable()
+    {
+        NewImage();
+        UseTool("Text");
+        Vm.PrimaryColor = Color.FromRgb(200, 30, 60);
+        Vm.FontSize = 100;
+        Drag((60, 60));
+        Type("Hi");
+
+        var pivot = Vm.Overlay!.Rotation!.Value.Pivot;
+        var handle = Vm.Overlay!.RotateHandle!.Value;
+        // A quarter turn (90°, atan2's clockwise-in-image-coordinates sense) around the pivot.
+        var quarterTurn = new PointD(pivot.X + (handle.Y - pivot.Y), pivot.Y - (handle.X - pivot.X));
+        Drag((handle.X, handle.Y), (quarterTurn.X, quarterTurn.Y));
+
+        var frame = _h.Capture("68-text-rotated");
+        Assert.Equal(-Math.PI / 2, Vm.Overlay!.Rotation!.Value.Angle, 1e-6);
+        Assert.Equal(["New Image", "Text"], Vm.History.Select(h => h.Text)); // still the one live step
+        Assert.True(Vm.IsTyping); // rotating doesn't finish editing
+
+        Type("!");
+        Assert.Equal("Hi!", ((TextTool)Vm.SelectedTool.Tool!).Engine.ToString());
+        Assert.Equal(["New Image", "Text"], Vm.History.Select(h => h.Text));
+    }
+
+    [AvaloniaFact]
     public void Escape_finishes_text_then_letters_are_shortcuts_again()
     {
         NewImage();

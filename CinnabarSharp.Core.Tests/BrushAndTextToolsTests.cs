@@ -404,6 +404,83 @@ public sealed class BrushAndTextToolsTests : BaseTests
         Assert.Equal(new RectangleD(6, 2, 4, 8), Assert.Single(overlay.Highlights));
     }
 
+    [Fact]
+    public void Rotate_handle_sits_at_the_top_right_corner_unrotated_at_first()
+    {
+        var (tool, doc) = StartText();
+        tool.OnTextInput(doc, "A");
+
+        var overlay = tool.GetOverlay(doc)!;
+
+        // Bounds are (2, 2, 4, 8) for one block-glyph; the handle sits just outside its top-right corner.
+        Assert.Equal(new PointD(12, -6), overlay.RotateHandle);
+        Assert.Equal((0.0, new PointD(4, 6)), overlay.Rotation); // unrotated; pivot is the bounds' center
+    }
+
+    [Fact]
+    public void Dragging_the_rotate_handle_sets_the_overlay_angle()
+    {
+        var (tool, doc) = StartText();
+        tool.OnTextInput(doc, "A");
+        var pivot = tool.GetOverlay(doc)!.Rotation!.Value.Pivot; // (4, 6)
+        var handle = tool.GetOverlay(doc)!.RotateHandle!.Value;  // (12, -6): pointer angle atan2(-12, 8) from pivot
+
+        // Drag the handle a quarter turn clockwise (90°) around the pivot.
+        var startAngle = Math.Atan2(handle.Y - pivot.Y, handle.X - pivot.X);
+        var quarterTurn = new PointD(pivot.X + (handle.Y - pivot.Y), pivot.Y - (handle.X - pivot.X));
+        tool.OnPointerDown(doc, P(handle.X, handle.Y));
+        tool.OnPointerMove(doc, P(quarterTurn.X, quarterTurn.Y));
+        tool.OnPointerUp(doc, P(quarterTurn.X, quarterTurn.Y));
+
+        var angle = tool.GetOverlay(doc)!.Rotation!.Value.Angle;
+        Assert.Equal(-Math.PI / 2, angle, 1e-9);
+    }
+
+    [Fact]
+    public void Rotating_180_degrees_flips_the_glyph_to_the_opposite_side_of_its_bounds()
+    {
+        var (tool, doc) = StartText();
+        tool.OnTextInput(doc, "A");
+        // Before rotating: the block-glyph paints image columns 2..4, rows 2..9 (see the plain typing test).
+        Assert.Equal(RedPx, Pixel(doc, 2, 2));
+        Assert.Equal(White, Pixel(doc, 5, 2));
+
+        var pivot = tool.GetOverlay(doc)!.Rotation!.Value.Pivot; // (4, 6)
+        var handle = tool.GetOverlay(doc)!.RotateHandle!.Value;
+        var opposite = new PointD(2 * pivot.X - handle.X, 2 * pivot.Y - handle.Y); // 180° around the pivot
+        tool.OnPointerDown(doc, P(handle.X, handle.Y));
+        tool.OnPointerMove(doc, P(opposite.X, opposite.Y));
+        tool.OnPointerUp(doc, P(opposite.X, opposite.Y));
+
+        Assert.Equal(Math.PI, Math.Abs(tool.GetOverlay(doc)!.Rotation!.Value.Angle), 1e-9);
+        // The bounds' center (the pivot) doesn't move; a 4-px-wide box reflected through its own center swaps
+        // which side the 3-px glyph sits on: it was columns 2-4, it's now columns 3-5.
+        Assert.Equal(White, Pixel(doc, 2, 2));
+        Assert.Equal(RedPx, Pixel(doc, 3, 2));
+        Assert.Equal(RedPx, Pixel(doc, 5, 9));
+    }
+
+    [Fact]
+    public void Rotated_text_stays_editable_and_undoable()
+    {
+        var (tool, doc) = StartText();
+        tool.OnTextInput(doc, "A");
+        var pivot = tool.GetOverlay(doc)!.Rotation!.Value.Pivot;
+        var handle = tool.GetOverlay(doc)!.RotateHandle!.Value;
+        var opposite = new PointD(2 * pivot.X - handle.X, 2 * pivot.Y - handle.Y);
+        Drag(tool, doc, P(handle.X, handle.Y), P(opposite.X, opposite.Y));
+
+        // Still editable: typing more text keeps updating the same one history step.
+        Assert.True(tool.IsTyping(doc));
+        tool.OnTextInput(doc, "B");
+        Assert.Equal("AB", tool.Engine.ToString());
+        Assert.Equal(["New Image", "Text"], Steps(doc));
+
+        doc.Workspace.History.Undo();
+        Assert.Equal(White, Pixel(doc, 3, 2));
+        Assert.Equal(White, Pixel(doc, 5, 9));
+    }
+
     // ---- Cross-platform ----
 
     /// <summary>New brush, shape and curve features must produce the same pixels on every OS.</summary>

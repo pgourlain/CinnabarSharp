@@ -31,9 +31,11 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
     private PaintSession? _session;
     private TextEngine _engine = new();
     private PointD _origin;
+    private double _angle; // radians, around the text's own center; 0 = unrotated
     private ToolButton _button;
     private bool _selecting;
     private (PointD Pointer, PointD Origin)? _moving;
+    private (double PointerAngle, double TextAngle)? _rotating;
 
     public string Name => "Text";
 
@@ -45,20 +47,32 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
 
     public void OnPointerDown(ImageDocument document, ToolPointer pointer)
     {
-        if (IsEditing(document) && MoveHandle().Distance(pointer.Position) <= 8 / Math.Max(document.Workspace.Scale, 0.01))
+        if (IsEditing(document))
         {
-            _moving = (pointer.Position, _origin);
-            return;
-        }
-        if (IsEditing(document) && Contains(pointer.Position, margin: 4))
-        {
-            _engine.SetCursorPosition(PositionAt(pointer.Position), clearSelection: !pointer.Modifiers.HasFlag(ToolModifiers.Shift));
-            _selecting = true;
-            return;
+            var local = ToLocal(pointer.Position);
+            var threshold = 8 / Math.Max(document.Workspace.Scale, 0.01);
+            if (RotateHandle().Distance(local) <= threshold)
+            {
+                var pivot = Pivot(Bounds(Layout()));
+                _rotating = (Math.Atan2(pointer.Position.Y - pivot.Y, pointer.Position.X - pivot.X), _angle);
+                return;
+            }
+            if (MoveHandle().Distance(local) <= threshold)
+            {
+                _moving = (pointer.Position, _origin);
+                return;
+            }
+            if (Contains(local, margin: 4))
+            {
+                _engine.SetCursorPosition(PositionAt(local), clearSelection: !pointer.Modifiers.HasFlag(ToolModifiers.Shift));
+                _selecting = true;
+                return;
+            }
         }
         _session = new PaintSession(document, Name);
         _engine = new TextEngine();
         _origin = new PointD(Math.Floor(pointer.Position.X), Math.Floor(pointer.Position.Y));
+        _angle = 0;
         _button = pointer.Button;
     }
 
@@ -66,7 +80,14 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
     {
         if (!IsEditing(document))
             return;
-        if (_moving is { } move)
+        if (_rotating is { } rotate)
+        {
+            var pivot = Pivot(Bounds(Layout()));
+            var pointerAngle = Math.Atan2(pointer.Position.Y - pivot.Y, pointer.Position.X - pivot.X);
+            _angle = rotate.TextAngle + (pointerAngle - rotate.PointerAngle);
+            Render();
+        }
+        else if (_moving is { } move)
         {
             _origin = new PointD(Math.Round(move.Origin.X + pointer.Position.X - move.Pointer.X),
                 Math.Round(move.Origin.Y + pointer.Position.Y - move.Pointer.Y));
@@ -74,7 +95,7 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
         }
         else if (_selecting)
         {
-            _engine.SetCursorPosition(PositionAt(pointer.Position), clearSelection: false);
+            _engine.SetCursorPosition(PositionAt(ToLocal(pointer.Position)), clearSelection: false);
         }
     }
 
@@ -83,6 +104,7 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
         OnPointerMove(document, pointer);
         _selecting = false;
         _moving = null;
+        _rotating = null;
     }
 
     public void OnTextInput(ImageDocument document, string text)
@@ -205,6 +227,8 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
             Lines = [(caret, new PointD(caret.X, caret.Y + layout.LineHeight))],
             Highlights = highlights,
             Handles = [MoveHandle()],
+            RotateHandle = RotateHandle(),
+            Rotation = (_angle, Pivot(bounds)),
         };
     }
 
@@ -213,6 +237,28 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
     {
         var bounds = Bounds(Layout());
         return new PointD(bounds.X + bounds.Width + 2, bounds.Y + bounds.Height + 2);
+    }
+
+    /// <summary>Dragging the handle at the top-right corner rotates the text around its own center.</summary>
+    private PointD RotateHandle()
+    {
+        var bounds = Bounds(Layout());
+        return new PointD(bounds.X + bounds.Width + 6, bounds.Y - 8);
+    }
+
+    private static PointD Pivot(RectangleD bounds) => new(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
+
+    /// <summary>An image-space point (e.g. the raw pointer position) as it would be before the current rotation —
+    /// everything else (bounds, handles, caret) is computed in that same unrotated space.</summary>
+    private PointD ToLocal(PointD p) => _angle == 0 ? p : RotateAround(p, Pivot(Bounds(Layout())), -_angle);
+
+    private static PointD RotateAround(PointD p, PointD pivot, double angle)
+    {
+        var cos = Math.Cos(angle);
+        var sin = Math.Sin(angle);
+        var dx = p.X - pivot.X;
+        var dy = p.Y - pivot.Y;
+        return new PointD(pivot.X + dx * cos - dy * sin, pivot.Y + dx * sin + dy * cos);
     }
 
     private sealed record TextLayout(double LineHeight, double[] Widths, double MaxWidth);
@@ -313,9 +359,16 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
                     }
                 }
             }
-            var color = settings.ColorFor(_button);
-            session.Apply(region, (x, y, pixel) =>
-                PaintSession.BlendCoverage(pixel, color, coverage[(y - region.Y) * region.Width + x - region.X]));
+
+            if (_angle != 0)
+                (region, coverage) = Rotate(region, coverage, Pivot(Bounds(layout)), _angle, w, h, style.Antialias);
+
+            if (!region.IsEmpty)
+            {
+                var color = settings.ColorFor(_button);
+                session.Apply(region, (x, y, pixel) =>
+                    PaintSession.BlendCoverage(pixel, color, coverage[(y - region.Y) * region.Width + x - region.X]));
+            }
         }
         session.Commit();
     }
@@ -325,5 +378,73 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
         int x0 = Math.Clamp(r.X, 0, w), y0 = Math.Clamp(r.Y, 0, h);
         int x1 = Math.Clamp(r.X + r.Width, 0, w), y1 = Math.Clamp(r.Y + r.Height, 0, h);
         return x1 > x0 && y1 > y0 ? new RectangleI(x0, y0, x1 - x0, y1 - y0) : RectangleI.Zero;
+    }
+
+    /// <summary>
+    /// Rotates a coverage buffer around <paramref name="pivot"/> by <paramref name="angle"/> radians into a new
+    /// buffer sized to the rotated (axis-aligned) bounding box, clipped to the image. Bilinear-sampled when
+    /// <paramref name="antialias"/> (matching the glyphs themselves); nearest-neighbor otherwise, so turning
+    /// antialiasing off gives fully hard edges even on a rotated angle, not just an axis-aligned one.
+    /// </summary>
+    private static (RectangleI Region, byte[] Coverage) Rotate(RectangleI region, byte[] coverage, PointD pivot,
+        double angle, int width, int height, bool antialias)
+    {
+        var cos = Math.Cos(angle);
+        var sin = Math.Sin(angle);
+        PointD Forward(PointD p)
+        {
+            var dx = p.X - pivot.X;
+            var dy = p.Y - pivot.Y;
+            return new PointD(pivot.X + dx * cos - dy * sin, pivot.Y + dx * sin + dy * cos);
+        }
+
+        var corners = new[]
+        {
+            new PointD(region.X, region.Y), new PointD(region.X + region.Width, region.Y),
+            new PointD(region.X, region.Y + region.Height), new PointD(region.X + region.Width, region.Y + region.Height),
+        }.Select(Forward).ToArray();
+        var x0 = Math.Clamp((int)Math.Floor(corners.Min(c => c.X)), 0, width);
+        var y0 = Math.Clamp((int)Math.Floor(corners.Min(c => c.Y)), 0, height);
+        var x1 = Math.Clamp((int)Math.Ceiling(corners.Max(c => c.X)), 0, width);
+        var y1 = Math.Clamp((int)Math.Ceiling(corners.Max(c => c.Y)), 0, height);
+        if (x1 <= x0 || y1 <= y0)
+            return (RectangleI.Zero, []);
+
+        var rotated = new RectangleI(x0, y0, x1 - x0, y1 - y0);
+        var result = new byte[rotated.Width * rotated.Height];
+        for (var ry = 0; ry < rotated.Height; ry++)
+        {
+            for (var rx = 0; rx < rotated.Width; rx++)
+            {
+                // Inverse-rotate this destination pixel's center back into the unrotated source.
+                var dx = rotated.X + rx + 0.5 - pivot.X;
+                var dy = rotated.Y + ry + 0.5 - pivot.Y;
+                var src = new PointD(pivot.X + dx * cos + dy * sin, pivot.Y - dx * sin + dy * cos);
+                result[ry * rotated.Width + rx] = antialias ? Sample(coverage, region, src) : SampleNearest(coverage, region, src);
+            }
+        }
+        return (rotated, result);
+    }
+
+    private static byte Sample(byte[] coverage, RectangleI region, PointD p)
+    {
+        var x = p.X - region.X - 0.5;
+        var y = p.Y - region.Y - 0.5;
+        var x0 = (int)Math.Floor(x);
+        var y0 = (int)Math.Floor(y);
+        var fx = x - x0;
+        var fy = y - y0;
+        double At(int cx, int cy) =>
+            cx >= 0 && cy >= 0 && cx < region.Width && cy < region.Height ? coverage[cy * region.Width + cx] : 0;
+        var top = At(x0, y0) * (1 - fx) + At(x0 + 1, y0) * fx;
+        var bottom = At(x0, y0 + 1) * (1 - fx) + At(x0 + 1, y0 + 1) * fx;
+        return (byte)Math.Round(top * (1 - fy) + bottom * fy);
+    }
+
+    private static byte SampleNearest(byte[] coverage, RectangleI region, PointD p)
+    {
+        var x = (int)Math.Floor(p.X - region.X);
+        var y = (int)Math.Floor(p.Y - region.Y);
+        return x >= 0 && y >= 0 && x < region.Width && y < region.Height ? coverage[y * region.Width + x] : (byte)0;
     }
 }
