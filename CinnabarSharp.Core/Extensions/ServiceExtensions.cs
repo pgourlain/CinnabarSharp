@@ -10,6 +10,8 @@ namespace CinnabarSharp.Core.Extensions
 	{
 		public static IServiceCollection AddCinnabarSharpServices(this IServiceCollection services)
 		{
+			ConfigureMagickResourceLimits();
+
 			services.TryAddSingleton<IDocumentEventsService, DocumentEventsService>();
 			services.TryAddSingleton<IWorkspaceService, WorkspaceManager>();
 			services.TryAddSingleton<IFormatManager, FormatManager>();
@@ -32,6 +34,26 @@ namespace CinnabarSharp.Core.Extensions
 			services.AddTransient<ImageDocument>();
 
 			return services;
+		}
+
+		/// <summary>
+		/// Caps Magick.NET's own unmanaged memory use so a very large image spills to its disk cache instead of
+		/// growing process memory unbounded or failing (performance-tasks.md P2). Global to the process (Magick.NET
+		/// has no per-instance limit) and idempotent, so calling this more than once (every DI container built,
+		/// e.g. once per test) is harmless.
+		/// </summary>
+		private static void ConfigureMagickResourceLimits()
+		{
+			try
+			{
+				var available = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+				if (available > 0)
+					ResourceLimits.Memory = (ulong)(available / 4);
+			}
+			catch
+			{
+				// Leave Magick.NET's own defaults if this isn't available/supported on the current runtime.
+			}
 		}
 
 		private static void AddFormat(IServiceCollection services, string name, string displayName,

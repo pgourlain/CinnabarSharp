@@ -1,3 +1,4 @@
+using System.Buffers;
 using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Services;
 
@@ -208,11 +209,24 @@ public sealed class PixelRegionHistoryItem : HistoryItem, ISpillableHistoryItem
 
     private void Swap()
     {
+        // Magick.NET's pixel export always allocates (no Span-writing overload; see Utility.ReadRegion), so
+        // `current` can't be pooled. The decompressed diff can: rent instead of `_diff.Get()` allocating a
+        // second same-size array every undo/redo (the biggest single cost for a whole-layer edit — see
+        // performance-tasks.md P0's PixelEditWholeLayer finding).
         var current = _layer.Surface.ReadRegion(_rect);
-        var diff = _diff.Get();
-        for (var i = 0; i < current.Length; i++)
-            current[i] ^= diff[i];
-        _layer.Surface.WriteRegion(_rect, current);
+        var pooled = ArrayPool<byte>.Shared.Rent(current.Length);
+        try
+        {
+            var diff = pooled.AsSpan(0, current.Length);
+            _diff.Decompress(diff);
+            for (var i = 0; i < current.Length; i++)
+                current[i] ^= diff[i];
+            _layer.Surface.WriteRegion(_rect, current);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(pooled);
+        }
     }
 
     /// <summary>XORs <paramref name="b"/> into <paramref name="a"/> in place and returns it (same length required).</summary>

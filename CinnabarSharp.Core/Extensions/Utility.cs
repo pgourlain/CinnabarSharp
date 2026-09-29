@@ -40,7 +40,15 @@ namespace CinnabarSharp.Core.Extensions
         }
 
         /// <summary>Overwrites a rectangle of the image in place (the image object stays the same).</summary>
-        public static void WriteRegion(this IImageBuf image, RectangleI rect, byte[] bgra)
+        public static void WriteRegion(this IImageBuf image, RectangleI rect, byte[] bgra) => image.WriteRegion(rect, bgra.AsSpan());
+
+        /// <summary>
+        /// Same as <see cref="WriteRegion(IImageBuf, RectangleI, byte[])"/>, but takes the pixels as a span so a
+        /// caller with a reusable (e.g. <see cref="System.Buffers.ArrayPool{T}"/>-rented) buffer doesn't need an
+        /// array just to call this. Magick.NET's own pixel *export* (<see cref="ReadRegion"/>, <see cref="ToBgra"/>)
+        /// has no such overload — it always allocates a new array — so only the write side avoids the extra copy.
+        /// </summary>
+        public static void WriteRegion(this IImageBuf image, RectangleI rect, ReadOnlySpan<byte> bgra)
         {
             if (!image.HasAlpha)
                 image.Alpha(AlphaOption.Set);

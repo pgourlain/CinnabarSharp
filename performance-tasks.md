@@ -100,7 +100,7 @@ Goal: stay fast and within memory on large photos (24 MP and more), many layers 
    - [x] When over budget, drop the oldest steps; the first step ("Open Image") becomes the oldest remaining one. Fires `DocumentEventEnum.HistoryTrimmed` once per document (UI status-bar message "Oldest steps were removed to save memory" still needs wiring in `CinnabarSharp.Desktop`). Moving old steps to disk first (P1.4) is not implemented yet — trimming drops them outright.
 3. **Compress what stays in memory.**
    - [x] Store the *difference* (XOR of before and after) of pixel steps, then compress it with `System.IO.Compression` (Deflate fastest level, BCL, no new dependency): untouched pixels become zeros and compress to almost nothing. Compress on a background thread after the step is pushed; decompress on undo. (`CinnabarSharp.Core/Models/CompressedDiff.cs`, used by `PixelRegionHistoryItem`.) The XOR trick also means undo and redo are literally the same operation (XOR the layer's current pixels with the diff), so there's no separate "swap in the other copy" bookkeeping any more.
-   - [ ] Measure the ratio on real edits (brush stroke, adjustment, crop) in P0 benchmarks before deciding the default — no P0 benchmark project yet, so this still needs real numbers; `CompressedDiffTests` only pins the synthetic mostly-zero case.
+   - [ ] Measure the actual compression *ratio* on real edits (brush stroke, adjustment, crop) — `CinnabarSharp.Benchmarks` now exists and tracks time/allocation (P0), but nothing yet reports compressed-vs-raw bytes for a real edit; `CompressedDiffTests` only pins the synthetic mostly-zero case.
 4. **Spill to disk.**
    - [x] `IHistoryStorage`/`IHistoryDocumentStorage`/`IHistoryBlob` in Core (`Services/IHistoryStorage.cs`, BCL file I/O only), implemented by `FileHistoryStorage` (`Services/FileHistoryStorage.cs`). Spillable history items implement `ISpillableHistoryItem`; only `PixelRegionHistoryItem` does so far (`CompressedDiff` holds an `IHistoryBlob` handle once spilled instead of a `byte[]`) — `AddLayerHistoryItem`/`SwapSurfaceHistoryItem`/`ResizeImageHistoryItem` hold real `Layer`/`IImageBuf` objects, not a portable buffer, so spilling them is a bigger follow-up.
    - [x] `ImageDocumentHistory.SpillFarSteps` moves steps 10+ away from `Pointer` (`DefaultSpillDistance`) to disk asynchronously (on every push/undo/redo), compressed already by P1.3. Undo/redo call `CompressedDiff.Get()`, which reads the blob back **synchronously** — a deliberate choice over "prefetch the next few steps": `IHistoryItem.Undo`/`Redo` stay synchronous (no ripple into `CinnabarSharp.Desktop`/`CinnabarSharp.Mcp`), and a single compressed rect diff reads well within the 200 ms undo/redo target, so prefetching wasn't needed. Once spilled, a step stays spilled even if it comes back within range (simpler; still fast enough).
@@ -113,12 +113,23 @@ Goal: stay fast and within memory on large photos (24 MP and more), many layers 
 
 ## P2 — Fewer full-image copies
 
-- [ ] Rent large buffers from `ArrayPool<byte>.Shared` (or a pixel-buffer pool sized for the current document) in `ToBgra`, `GetFlattenedBgra`, `PixelRegion.Extract` and effect destinations; return them after use.
-- [ ] Span-based overloads (`ReadRegion(rect, Span<byte>)`, `WriteRegion(rect, ReadOnlySpan<byte>)`) so callers reuse a buffer instead of allocating.
+- [~] Rent large buffers from `ArrayPool<byte>.Shared` in the one place P0's numbers pointed at: `PixelRegionHistoryItem.Swap()` now decompresses the diff into a pooled buffer instead of `CompressedDiff.Get()` allocating a fresh one every undo/redo. **Not done for `ToBgra`/`GetFlattenedBgra`/`PixelRegion.Extract`/effect destinations** — see the Span-based-overloads item below for why: Magick.NET's pixel *export* has no destination-buffer overload, so pooling on the read side would only add a copy, not remove an allocation, for those specific call sites.
+- [~] Span-based overloads: **`WriteRegion(rect, ReadOnlySpan<byte>)`** added (`Utility.cs`) and is a true zero-copy pass-through to Magick.NET's `ImportPixels(ReadOnlySpan<byte>, …)`, which does accept a span. **`ReadRegion(rect, Span<byte>)` turned out not to be possible**: checked Magick.NET 14.17.1's `IPixelCollection<byte>` by reflection — every pixel-export method (`ToByteArray`, `GetArea`, …) returns a freshly allocated `byte[]`; there is no "copy into my buffer" overload for BGRA-mapped export, only `GetReadOnlyArea` (raw quantum data, not BGRA-remapped, would need manual channel handling to use safely). So `ReadRegion` still always allocates — this is the concrete, measured reason the "big refactor" item below exists, not a stylistic preference.
 - [ ] `PaintSession`: read only the rectangle a tool can touch (brush bounds grown during the stroke) instead of the whole layer at pointer down.
 - [ ] Cache the flattened image of the layers below and above the current layer while painting, so each brush dab composites one layer instead of all of them.
-- [ ] Consider storing layers as our own BGRA buffers (`byte[]` or native memory) instead of `IMagickImage<byte>`, and use Magick.NET only for codecs and resampling: removes most `ToBgra`/`FromBgra` round trips. Big refactor: decide after P0 numbers.
-- [ ] Set Magick.NET `ResourceLimits` (memory, disk) explicitly so large files use its disk cache instead of failing or swapping.
+- [ ] Consider storing layers as our own BGRA buffers (`byte[]` or native memory) instead of `IMagickImage<byte>`, and use Magick.NET only for codecs and resampling: removes most `ToBgra`/`FromBgra` round trips. Big refactor: decide after P0 numbers. **Now that P0 numbers and the Span-overload investigation above both exist: this is the only way left to remove `ReadRegion`/`ToBgra`'s per-call allocation** (Magick.NET's own API has no zero-copy export). Still not started — real scope (every `Layer.Surface` consumer, `BlendOps`, every codec path) is too large for this pass; a separate, dedicated pass should decide it.
+- [x] Set Magick.NET `ResourceLimits` explicitly: `ServiceExtensions.ConfigureMagickResourceLimits()` caps `ResourceLimits.Memory` to 25% of `GC.GetGCMemoryInfo().TotalAvailableMemoryBytes` (same fraction/source as `ImageDocumentHistory`'s own budget) so Magick.NET spills to its disk cache instead of growing unbounded; global to the process, so idempotent by design. `Disk`/other limits left at Magick.NET's defaults.
+
+**Before/after (P0's `CinnabarSharp.Benchmarks`, same machine, same job config as the P0 baseline):**
+
+| Benchmark | Before (P0 baseline) | After (this pass) |
+|---|---:|---:|
+| `HistoryUndoRedoBenchmarks.PixelEditWholeLayer` (time) | 576.7 ms | 549.1 ms |
+| `HistoryUndoRedoBenchmarks.PixelEditWholeLayer` (allocated) | 384.0 MB | **187.5 MB (-51%)** |
+| `HistoryUndoRedoBenchmarks.PixelEditSmallRegion` (time) | 830 µs | 814 µs |
+| `HistoryUndoRedoBenchmarks.PixelEditSmallRegion` (allocated) | 626 KB | **314 KB (-50%)** |
+
+Allocation roughly halved as expected (one of the two same-size buffers per undo/redo is now pooled); time barely moved, because this change targets GC pressure, not the scalar XOR loop or Magick.NET's own (unmanaged, not counted above) work — that's P3's SIMD-compositing item, still the right next lever for the 576 ms/200 ms-target gap.
 
 ## P3 — CPU
 

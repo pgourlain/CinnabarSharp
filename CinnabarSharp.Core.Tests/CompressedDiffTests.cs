@@ -23,6 +23,22 @@ public sealed class CompressedDiffTests : IDisposable
     }
 
     [Fact]
+    public async Task Decompress_into_a_caller_buffer_matches_Get_before_and_after_compression()
+    {
+        var raw = new byte[] { 5, 4, 3, 2, 1 };
+        var diff = new CompressedDiff(raw);
+
+        var buffer = new byte[raw.Length];
+        diff.Decompress(buffer);
+        Assert.Equal(raw, buffer);
+
+        await diff.PendingCompression; // now reading from the compressed bytes, not _raw
+        Array.Clear(buffer);
+        diff.Decompress(buffer);
+        Assert.Equal(raw, buffer);
+    }
+
+    [Fact]
     public async Task Mostly_zero_diff_compresses_smaller_once_the_background_task_finishes()
     {
         var raw = new byte[64 * 1024]; // untouched pixels diff to zero
@@ -61,6 +77,10 @@ public sealed class CompressedDiffTests : IDisposable
         Assert.True(diff.IsSpilled);
         Assert.Equal(0, diff.Bytes);
         Assert.Equal(raw, diff.Get());
+
+        var buffer = new byte[raw.Length];
+        diff.Decompress(buffer); // reads the spilled blob back, same as Get()
+        Assert.Equal(raw, buffer);
     }
 
     [Fact]
