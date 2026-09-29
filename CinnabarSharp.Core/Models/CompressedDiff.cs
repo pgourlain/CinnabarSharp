@@ -58,16 +58,29 @@ internal sealed class CompressedDiff : IDisposable
 
     public byte[] Get()
     {
+        var result = new byte[_rawLength];
+        Decompress(result);
+        return result;
+    }
+
+    /// <summary>
+    /// Same as <see cref="Get"/>, but writes into <paramref name="destination"/> (which must be exactly the
+    /// original raw length) instead of allocating: for a caller that already has a reusable buffer, e.g. one
+    /// rented from <see cref="System.Buffers.ArrayPool{T}"/> (see <see cref="PixelRegionHistoryItem"/>).
+    /// </summary>
+    public void Decompress(Span<byte> destination)
+    {
         lock (_gate)
         {
             if (_raw is not null)
-                return _raw;
+            {
+                _raw.AsSpan().CopyTo(destination);
+                return;
+            }
             var compressedBytes = _blob is not null ? _blob.Read() : _compressed!;
-            var result = new byte[_rawLength];
             using var input = new MemoryStream(compressedBytes);
             using var deflate = new DeflateStream(input, CompressionMode.Decompress);
-            deflate.ReadExactly(result);
-            return result;
+            deflate.ReadExactly(destination);
         }
     }
 
