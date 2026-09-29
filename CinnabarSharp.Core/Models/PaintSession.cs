@@ -144,12 +144,12 @@ public sealed class PaintSession
         var after = _layer.Surface.ReadRegion(_touched);
         if (_step is not null && IsLive)
         {
-            _step.Update(_touched, before);
+            _step.Update(_touched, before, after);
             return;
         }
         if (before.AsSpan().SequenceEqual(after))
             return;
-        _step = new PixelRegionHistoryItem(_text, _layer, _touched, before);
+        _step = new PixelRegionHistoryItem(_text, _layer, _touched, before, after);
         _document.Workspace.History.PushNewItem(_step);
     }
 
@@ -163,32 +163,36 @@ public sealed class PaintSession
 }
 
 /// <summary>
-/// Pixels of a rectangle of a layer changed; only that rectangle is stored, and only one copy of it: whatever
-/// is not currently in the layer (the pixels from before the change while the step is done, from after the
-/// change while undone). Undo/redo reads the layer's current pixels out before overwriting them, so the other
-/// copy is never allocated.
+/// Pixels of a rectangle of a layer changed; only that rectangle is stored, and only as the XOR difference
+/// between before and after: XORing the layer's current pixels with it gives the other state, in either
+/// direction, so undo and redo are the same operation and nothing but the diff is ever kept. Untouched pixels
+/// diff to zero, so the buffer compresses well; it is compressed on a background thread after the step is
+/// created or updated, and decompressed only when undo/redo actually needs it.
 /// </summary>
 public sealed class PixelRegionHistoryItem : HistoryItem
 {
     private readonly Layer _layer;
     private RectangleI _rect;
-    private byte[] _stored;
+    private readonly CompressedDiff _diff;
 
-    public PixelRegionHistoryItem(string text, Layer layer, RectangleI rect, byte[] before) : base(text)
+    public PixelRegionHistoryItem(string text, Layer layer, RectangleI rect, byte[] before, byte[] after) : base(text)
     {
         _layer = layer;
         _rect = rect;
-        _stored = before; // the layer already holds "after"
+        _diff = new CompressedDiff(Xor(before, after));
     }
 
     public RectangleI Rect => _rect;
-    public override long Bytes => _stored.Length;
+    public override long Bytes => _diff.Bytes;
+
+    /// <summary>Lets tests wait for the background compression of the current diff instead of racing it.</summary>
+    internal Task PendingCompression => _diff.PendingCompression;
 
     /// <summary>Replaces the stored change while the step is still being edited (it must be done, not undone).</summary>
-    internal void Update(RectangleI newRect, byte[] newBefore)
+    internal void Update(RectangleI newRect, byte[] newBefore, byte[] newAfter)
     {
         _rect = newRect;
-        _stored = newBefore; // the layer already holds the new "after"
+        _diff.Set(Xor(newBefore, newAfter));
     }
 
     protected override void OnUndo() => Swap();
@@ -197,7 +201,17 @@ public sealed class PixelRegionHistoryItem : HistoryItem
     private void Swap()
     {
         var current = _layer.Surface.ReadRegion(_rect);
-        _layer.Surface.WriteRegion(_rect, _stored);
-        _stored = current;
+        var diff = _diff.Get();
+        for (var i = 0; i < current.Length; i++)
+            current[i] ^= diff[i];
+        _layer.Surface.WriteRegion(_rect, current);
+    }
+
+    /// <summary>XORs <paramref name="b"/> into <paramref name="a"/> in place and returns it (same length required).</summary>
+    private static byte[] Xor(byte[] a, byte[] b)
+    {
+        for (var i = 0; i < a.Length; i++)
+            a[i] ^= b[i];
+        return a;
     }
 }
