@@ -60,3 +60,6 @@ x86/
 
 # Packaging output
 artifacts/
+
+# BenchmarkDotNet run output (CinnabarSharp.Benchmarks)
+BenchmarkDotNet.Artifacts/

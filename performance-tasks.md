@@ -25,10 +25,67 @@ Goal: stay fast and within memory on large photos (24 MP and more), many layers 
 
 ## P0 — Measure first
 
-- [ ] `CinnabarSharp.Benchmarks` project (BenchmarkDotNet, not run in CI): open/save 24 MP JPEG and PNG, flatten 10 layers, `GetFlattenedBgra(region)`, a 500-point brush stroke, each effect at defaults, undo/redo of each history item type, TV and comic page compose. Track time **and** allocated bytes (`[MemoryDiagnoser]`).
-- [ ] Sample large images for benchmarks, not in git: a script downloads or generates them (12 MP, 24 MP, 50 MP; photo, screenshot, transparent PNG).
-- [ ] A hidden "Performance" panel or `--diagnostics` flag: working set, managed heap, Magick.NET unmanaged memory (`ResourceLimits`), history size in memory / on disk, last effect/compose time. Also exposed to the MCP server as a resource for agents testing performance.
-- [ ] Record the baseline numbers in this file before starting P1.
+- [x] `CinnabarSharp.Benchmarks` project (BenchmarkDotNet, added to `CinnabarSharp.slnx` so CI *builds* it — catches compile errors — but CI's `dotnet test` never executes it, matching "not run in CI"). Covers: open/save 24 MP JPEG and PNG, flatten 10 layers (full + a region), a 500-point brush stroke, every effect/adjustment/photo-tool at defaults, undo/redo of one instance of every concrete `IHistoryItem` type. `[MemoryDiagnoser]` on every class. Run with `dotnet run --project CinnabarSharp.Benchmarks -c Release -- --filter '*ClassName*'` (Release is required; BenchmarkDotNet refuses/warns on Debug). **Not done: TV and comic page compose** — `TvExport.Compose`/`ComicPage.Compose` need a fully-populated `TvOptions`/`ComicLayout`/panel-contents setup that didn't fit this pass; left for a follow-up.
+- [x] Sample images: generated in-memory (`BenchmarkHelpers.CreateDocument` fills layers with seeded `Random` noise — incompressible, realistic compositing cost — no download script, nothing checked into git). Sizes are named constants in `BenchmarkSizes` (Small ~2 MP, Medium 12 MP, Large 24 MP = 4000×6000, the doc's own target); no 50 MP size yet.
+- [ ] Hidden "Performance" panel / `--diagnostics` flag / MCP resource — not attempted this pass; the benchmark project substitutes for now as the "measure" mechanism, but there's no in-app live diagnostics yet.
+- [x] Baseline numbers recorded below (Apple M5, macOS, arm64, `dotnet run -c Release`, default `[SimpleJob]` overridden per class to `warmupCount:1` + a small `iterationCount` to keep a full run's wall time short — see each class; **not** BenchmarkDotNet's default job, so don't compare these numbers to a run using the default job without re-baselining both).
+
+### Baseline numbers (2026-09-29, before P2/P3/P4/P5)
+
+24 MP = 4000×6000. "Small" (effects sweep) = 1600×1200 (~2 MP) — see `BenchmarkSizes`.
+
+| Benchmark | Scenario | Mean | Allocated |
+|---|---|---:|---:|
+| `FlattenBenchmarks.FlattenFull` | 24 MP, 10 layers, `GetFlattenedBgra()` | 1.50 s | 1.01 GB |
+| `FlattenBenchmarks.FlattenRegion` | same, but a quarter-image region | 373.7 ms | 251.8 MB |
+| `BrushStrokeBenchmarks.Stroke` | 24 MP layer, 500-point stroke, brush width 20 | 54.8 ms | 116.0 MB |
+| `OpenSaveBenchmarks.OpenPng` | 24 MP PNG, real decode (not the "already open" cache) | 465.8 ms | ~11 KB |
+| `OpenSaveBenchmarks.OpenJpeg` | 24 MP JPEG | 324.4 ms | ~21 KB |
+| `OpenSaveBenchmarks.SavePng` | 24 MP PNG | 2.48 s | 187.5 MB |
+| `OpenSaveBenchmarks.SaveJpeg` | 24 MP JPEG | 773.9 ms | 187.5 MB |
+| `HistoryUndoRedoBenchmarks.AddLayer` | Undo+Redo, `AddLayerHistoryItem` | 60 ns | 544 B |
+| `HistoryUndoRedoBenchmarks.DeleteLayer` | `DeleteLayerHistoryItem` | 60 ns | 544 B |
+| `HistoryUndoRedoBenchmarks.MoveLayer` | `MoveLayerHistoryItem` | 55 ns | 512 B |
+| `HistoryUndoRedoBenchmarks.LayerVisibility` | `UpdateLayerPropertiesHistoryItem` | 39 ns | 368 B |
+| `HistoryUndoRedoBenchmarks.Selection` | `SelectionHistoryItem` (Select All, 24 MP mask) | 30 ns | 304 B |
+| `HistoryUndoRedoBenchmarks.Crop` | `ResizeImageHistoryItem` (crop to quarter, 24 MP) | 50 ns | 464 B |
+| `HistoryUndoRedoBenchmarks.MergeDown` | `CompoundHistoryItem` (merge layer down, 24 MP) | 65 ns | 544 B |
+| `HistoryUndoRedoBenchmarks.PixelEditSmallRegion` | `PixelRegionHistoryItem`, 200×200 fill, 24 MP layer | 830 µs | 626 KB |
+| `HistoryUndoRedoBenchmarks.FlipLayer` | `FlipLayerHistoryItem`, 24 MP | **145.3 ms** | 240 B |
+| `HistoryUndoRedoBenchmarks.PixelEditWholeLayer` | `PixelRegionHistoryItem`, whole 24 MP layer (Erase Selection, nothing selected) | **576.7 ms** | **384 MB** |
+
+`EffectBenchmarks.Apply` — every effect/adjustment/photo-tool at defaults, **2 MP** (not 24 MP — see the class's own doc comment):
+
+| Case | Mean | Allocated | | Case | Mean | Allocated |
+|---|---:|---:|---|---|---:|---:|
+| Sepia | 7.2 ms | 14.65 MB | | HueSaturation | 59.9 ms | 14.65 MB |
+| Posterize | 7.6 ms | 14.65 MB | | EmbossEffect | 67.0 ms | 14.65 MB |
+| BlackAndWhite | 7.7 ms | 14.65 MB | | SharpenEffect | 63.0 ms | 82.52 MB |
+| InvertColors | 7.8 ms | 14.65 MB | | PhotoAdjustEffect | 72.3 ms | 14.65 MB |
+| BrightnessContrast | 7.9 ms | 14.65 MB | | GlowEffect | 81.0 ms | 86.43 MB |
+| Curves | 7.9 ms | 14.65 MB | | MandelbrotEffect | 80.6 ms | 14.65 MB |
+| Levels | 7.9 ms | 14.65 MB | | ReliefEffect | 84.4 ms | 14.65 MB |
+| FrostedGlassEffect | 9.5 ms | 14.65 MB | | ZoomBlurEffect | 83.8 ms | 14.65 MB |
+| AutoLevel | 10.8 ms | 14.65 MB | | EdgeDetectEffect | 106.3 ms | 14.65 MB |
+| PixelateEffect | 15.6 ms | 17.44 MB | | PhotoFilterEffect | 109.3 ms | 14.65 MB |
+| BulgeEffect | 17.3 ms | 14.65 MB | | **AutoEnhanceEffect** | **110.0 ms** | 14.65 MB |
+| StraightenEffect | 17.4 ms | 14.65 MB | | RadialBlurEffect | 233.1 ms | 14.65 MB |
+| TwistEffect | 23.3 ms | 14.65 MB | | **CartoonEffect** | **468.5 ms** | 75.44 MB |
+| VignetteEffect | 30.0 ms | 14.65 MB | | **MedianEffect** | **770.4 ms** | 14.66 MB |
+| AddNoiseEffect | 27.1 ms | 14.65 MB | | | | |
+| GaussianBlurEffect | 33.1 ms | 75.20 MB | | | | |
+| CloudsEffect | 45.3 ms | 14.65 MB | | | | |
+| MotionBlurEffect | 45.6 ms | 14.65 MB | | | | |
+
+**What these numbers already say, before touching P2/P3/P4/P5:**
+- The layer-management/selection/crop/merge undo/redo items (`AddLayer`, `DeleteLayer`, `MoveLayer`, `LayerVisibility`, `Selection`, `Crop`, `MergeDown`) are all nanoseconds: their `OnUndo`/`OnRedo` just swap an already-computed reference (list entry, `Layer.Surface` pointer) instead of recomputing or copying pixels. Comfortably inside the 200 ms target, no action needed.
+- `PixelEditSmallRegion` (830 µs) shows P1's XOR-diff + compression approach works exactly as intended for the common case (a bounded brush/fill region): three orders of magnitude under the 200 ms target.
+- **`PixelEditWholeLayer` (576.7 ms) blows the 200 ms undo/redo target by ~3×**, and allocates 384 MB per undo/redo. This is `PixelRegionHistoryItem.Swap()`'s scalar `for` loop XORing a full 24 MP (96 MB) buffer, plus `CompressedDiff.Get()` decompressing it, on every single undo/redo of a whole-layer pixel edit (Erase Selection / Fill Selection with nothing selected — a common action, not an edge case). This is the clearest concrete lead for **P3's SIMD compositing item** (`System.Numerics.Vector`/`Vector128` XOR instead of a byte-at-a-time loop) and for **P2's `ArrayPool`** item (384 MB allocated for what should be one ~96 MB buffer reused, not several fresh ones per call).
+- **`FlipLayer` (145.3 ms)** is a real outlier against the other layer-history items: unlike `Crop`/`MergeDown`/etc., `FlipLayerHistoryItem.OnUndo`/`OnRedo` both call `layer.FlipHorizontal()`/`FlipVertical()` (`Surface.Flop()`/`Surface.Flip()`), which re-runs an actual Magick.NET flip over the full unmanaged 24 MP image on *every* undo/redo, instead of swapping a precomputed result like the other whole-layer items do. Still under 200 ms today, but 3+ orders of magnitude slower than its neighbors and the first thing to regress past the target on a slower machine or a larger image; worth converting to a precompute-once-and-swap item in a future pass.
+- `SavePng` (2.48 s) is markedly slower than `SaveJpeg` (773.9 ms) for the same 24 MP image, as expected for PNG's compression — no action implied, just a baseline to compare Phase-5 background-encode work against.
+- **`AutoEnhanceEffect`, the doc's own named example ("final apply of a simple effect… under 1 s"), is already 110 ms at 2 MP.** Scaled to the 24 MP target size (~12×, effects being roughly linear in pixel count on one core today), that's over 1 s before P3's parallelism work — the target is at real risk without it, not a theoretical concern.
+- **`MedianEffect` (770 ms) and `CartoonEffect` (468 ms) are the standout outliers, already at 2 MP** — both far more expensive per pixel than every other effect (most simple per-pixel adjustments are 7–10 ms; even the other blurs are 30–85 ms). At 24 MP they would almost certainly take several seconds. These two are the clearest priority for **P3's `Parallel.For` strips** item, ahead of the rest of `EffectCatalog`.
+- Effects allocate a near-uniform ~14.65 MB regardless of what they compute (the fixed cost of `PaintSession`/`EffectSession` extracting the base region + writing the result at 2 MP) — `GaussianBlurEffect` (75.2 MB), `SharpenEffect` (82.5 MB), `GlowEffect` (86.4 MB) and `CartoonEffect` (75.4 MB) allocate 5–6× that baseline, worth another look once P2's `ArrayPool`/span work lands, since they're the ones with extra internal buffers (kernels, intermediate passes).
 
 ## P1 — History memory (the biggest win)
 
