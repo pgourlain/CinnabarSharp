@@ -63,6 +63,19 @@ public class MagickImageFormat : ImageFormat
         }
     }
 
+    public override ImageSize? PeekSize(ImageFile file)
+    {
+        try
+        {
+            var info = new MagickImageInfo(file);
+            return new ImageSize((int)info.Width, (int)info.Height);
+        }
+        catch (MagickException)
+        {
+            return null;
+        }
+    }
+
     public override void Import(ImageFile file)
     {
         var img = Utility.OpenImage(file);

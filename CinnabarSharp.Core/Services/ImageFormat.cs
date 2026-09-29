@@ -29,6 +29,13 @@ public abstract class ImageFormat : IImageImporter, IImageExporter
     /// <summary>Whether the file's content is in this format, regardless of its extension.</summary>
     public abstract bool MatchesContent(ImageFile file);
 
+    /// <summary>
+    /// The image's pixel size read from the file's header/metadata, without decoding its pixels — cheap even
+    /// for a very large file. Null when a format can't tell without a full <see cref="Import"/> (the default;
+    /// override where a fast header read is available).
+    /// </summary>
+    public virtual ImageSize? PeekSize(ImageFile file) => null;
+
     public abstract void Import(ImageFile file);
 
     public abstract void Export(ImageDocument document, ImageFile file);

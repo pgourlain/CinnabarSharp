@@ -61,6 +61,27 @@ public class OraFormat : ImageFormat
         }
     }
 
+    /// <summary>Reads just the image size out of stack.xml — no layer image is decoded.</summary>
+    public override ImageSize? PeekSize(ImageFile file)
+    {
+        try
+        {
+            using var zip = ZipFile.OpenRead(file.FullName);
+            if (zip.GetEntry("stack.xml") is not { } stackEntry)
+                return null;
+            using var s = stackEntry.Open();
+            var image = XDocument.Load(s).Root;
+            if (image is null)
+                return null;
+            var size = new ImageSize(IntAttr(image, "w"), IntAttr(image, "h"));
+            return size.Width > 0 && size.Height > 0 ? size : null;
+        }
+        catch (Exception e) when (e is InvalidDataException or IOException)
+        {
+            return null;
+        }
+    }
+
     public override void Import(ImageFile file)
     {
         using var zip = ZipFile.OpenRead(file.FullName);
