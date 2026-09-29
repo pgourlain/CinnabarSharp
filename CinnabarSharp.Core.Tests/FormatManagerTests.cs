@@ -151,6 +151,42 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
     }
 
     [Theory]
+    [InlineData("png")]
+    [InlineData("jpg")]
+    [InlineData("tiff")]
+    public void PeekSize_reads_dimensions_without_a_full_open(string extension)
+    {
+        var file = TempFile("peek." + extension);
+        _formats.Save(NewRedDocument(), file); // 6x4
+
+        var size = _formats.PeekSize(file);
+
+        Assert.Equal(new ImageSize(6, 4), size);
+    }
+
+    [Fact]
+    public void PeekSize_of_an_ora_file_reads_stack_xml_without_decoding_layers()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(8, 5), ColorBgra.White);
+        doc.Layers.AddNewLayer("Second");
+        var file = TempFile("peek.ora");
+        _formats.Save(doc, file);
+
+        var size = _formats.PeekSize(file);
+
+        Assert.Equal(new ImageSize(8, 5), size);
+    }
+
+    [Fact]
+    public void PeekSize_of_an_unrecognized_file_is_null()
+    {
+        var file = TempFile("not-an-image.txt");
+        File.WriteAllText(file.FullName, "hello");
+
+        Assert.Null(_formats.PeekSize(file));
+    }
+
+    [Theory]
     [InlineData("UPPER.PNG")]
     [InlineData("été ✓ 画像.png")]
     [InlineData("no-extension")]

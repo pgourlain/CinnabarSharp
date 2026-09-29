@@ -8,6 +8,7 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ImageMagick;
+using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
 using CinnabarSharp.Core.Adjustments;
@@ -271,10 +272,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public async Task<bool> OpenFileAsync(string path)
     {
+        var file = new FileInfo(path);
         var alreadyOpen = Documents.Any(d => d.Document.File?.FullName == Path.GetFullPath(path));
+        // A cheap header read (performance-tasks.md P5): warn before decoding something this big. No "open
+        // downscaled" option yet, just proceed-or-cancel.
+        if (!alreadyOpen && Dialogs is not null && _formats.PeekSize(file) is { } size && size.IsRiskyToOpen())
+        {
+            var megapixels = size.Width * (long)size.Height / 1_000_000.0;
+            if (!await Dialogs.ConfirmAsync("Large Image",
+                    $"This image is {size.Width} × {size.Height} (~{megapixels:0.#} MP) and may need more memory " +
+                    "than is comfortably available. Opening it could be slow.",
+                    "Open Anyway"))
+                return false;
+        }
         try
         {
-            var doc = _formats.Open(new FileInfo(path));
+            var doc = _formats.Open(file);
             RecentFiles.Add(path);
             if (!alreadyOpen)
                 FitIfLargerThanViewport(doc);

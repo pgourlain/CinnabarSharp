@@ -18,6 +18,10 @@ public interface IFormatManager
     /// <summary>Opens the file as a new active document, or activates it if it is already open.</summary>
     ImageDocument Open(ImageFile file);
 
+    /// <summary>The image's pixel size without decoding it, via the matching format's <see cref="ImageFormat.PeekSize"/>;
+    /// null if the format isn't recognized or can't tell without a full <see cref="Open"/>.</summary>
+    ImageSize? PeekSize(ImageFile file);
+
     /// <summary>Writes the document to the file and makes it the document's file. The format defaults to the file extension's.</summary>
     void Save(ImageDocument document, ImageFile file, ImageFormat? format = null);
 
@@ -69,6 +73,8 @@ public class FormatManager : IFormatManager
         format.Import(file);
         return _workspace.ActiveDocument;
     }
+
+    public ImageSize? PeekSize(ImageFile file) => GetFormatForFile(file)?.PeekSize(file);
 
     public void Save(ImageDocument document, ImageFile file, ImageFormat? format = null)
     {
