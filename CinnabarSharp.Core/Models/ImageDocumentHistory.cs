@@ -74,7 +74,7 @@ public class ImageDocumentHistory : IImageDocumentHistory
         Pointer = _items.Count - 1;
         TrimToBudget();
         SpillFarSteps();
-        Changed(invalidate: false);
+        Changed();
     }
 
     /// <summary>
@@ -126,10 +126,12 @@ public class ImageDocumentHistory : IImageDocumentHistory
     {
         if (!CanUndo)
             throw new InvalidOperationException("Nothing to undo.");
-        _items[Pointer].Undo();
+        var item = _items[Pointer];
+        item.Undo();
         Pointer--;
         SpillFarSteps();
-        Changed(invalidate: true);
+        InvalidateFor(item);
+        Changed();
     }
 
     public void Redo()
@@ -137,9 +139,24 @@ public class ImageDocumentHistory : IImageDocumentHistory
         if (!CanRedo)
             throw new InvalidOperationException("Nothing to redo.");
         Pointer++;
-        _items[Pointer].Redo();
+        var item = _items[Pointer];
+        item.Redo();
         SpillFarSteps();
-        Changed(invalidate: true);
+        InvalidateFor(item);
+        Changed();
+    }
+
+    /// <summary>
+    /// Redraws only what a step actually changed instead of always re-flattening the whole image: steps that
+    /// know their own touched rectangle (e.g. <see cref="PixelRegionHistoryItem"/>) invalidate just that;
+    /// everything else falls back to a full redraw, as every undo/redo did before this existed.
+    /// </summary>
+    private void InvalidateFor(IHistoryItem item)
+    {
+        if (item.TouchedRect is { } rect)
+            _document.Workspace.Invalidate(rect);
+        else
+            _document.Workspace.Invalidate();
     }
 
     public void JumpTo(int index)
@@ -170,11 +187,12 @@ public class ImageDocumentHistory : IImageDocumentHistory
         _events.PushEvent(new DocumentEventItem(_document, DocumentEventEnum.HistoryChanged));
     }
 
-    private void Changed(bool invalidate)
+    /// <summary>Updates <see cref="ImageDocument.IsDirty"/> and raises <see cref="DocumentEventEnum.HistoryChanged"/>.
+    /// Canvas invalidation is the caller's job (<see cref="InvalidateFor"/> for undo/redo; a push doesn't
+    /// invalidate here because the edit that led to it already showed its own live result).</summary>
+    private void Changed()
     {
         _document.IsDirty = Pointer != _cleanPointer;
-        if (invalidate)
-            _document.Workspace.Invalidate();
         _events.PushEvent(new DocumentEventItem(_document, DocumentEventEnum.HistoryChanged));
     }
 }

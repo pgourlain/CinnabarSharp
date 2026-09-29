@@ -475,6 +475,40 @@ public sealed class HistoryTests : BaseTests, IDisposable
         protected override void OnRedo() { }
     }
 
+    [Fact]
+    public void Undo_of_a_pixel_edit_invalidates_only_its_own_rectangle()
+    {
+        var doc = ThreeLayers();
+        doc.SetSelection(SelectionMask.Rectangle(4, 3, new PointD(1, 0), new PointD(3, 2))); // 2x2
+        doc.Actions.RecordSelectionChange(null, "Rectangle Select");
+        doc.Actions.FillSelection(ColorBgra.FromBgra(0, 255, 0, 255));
+
+        var received = new List<EventItem<DocumentEventEnum>>();
+        using var sub = _sp.GetRequiredService<IDocumentEventsService>().DocumentEvents.Subscribe(new Observer(received.Add));
+
+        History(doc).Undo(); // undoes the fill
+
+        var canvasEvents = received.OfType<CanvasEventItem>().ToList();
+        Assert.NotEmpty(canvasEvents);
+        Assert.All(canvasEvents, e => Assert.Equal(new RectangleI(1, 0, 2, 2), e.Rect));
+    }
+
+    [Fact]
+    public void Undo_of_a_structural_step_still_invalidates_the_whole_image()
+    {
+        var doc = ThreeLayers();
+        doc.Actions.AddNewLayer();
+
+        var received = new List<EventItem<DocumentEventEnum>>();
+        using var sub = _sp.GetRequiredService<IDocumentEventsService>().DocumentEvents.Subscribe(new Observer(received.Add));
+
+        History(doc).Undo();
+
+        var canvasEvents = received.OfType<CanvasEventItem>().ToList();
+        Assert.NotEmpty(canvasEvents);
+        Assert.All(canvasEvents, e => Assert.True(e.Rect.IsEmpty)); // empty rect means "the whole image" (see Workspace.Invalidate())
+    }
+
     private sealed class Observer(Action<EventItem<DocumentEventEnum>> onNext) : IObserver<EventItem<DocumentEventEnum>>
     {
         public void OnCompleted() { }

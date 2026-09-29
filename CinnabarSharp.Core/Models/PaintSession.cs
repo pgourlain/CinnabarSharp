@@ -186,6 +186,7 @@ public sealed class PixelRegionHistoryItem : HistoryItem, ISpillableHistoryItem
 
     public RectangleI Rect => _rect;
     public override long Bytes => _diff.Bytes;
+    public override RectangleI? TouchedRect => _rect;
 
     /// <summary>Lets tests wait for the background compression of the current diff instead of racing it.</summary>
     internal Task PendingCompression => _diff.PendingCompression;
