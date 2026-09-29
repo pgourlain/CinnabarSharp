@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using CinnabarSharp.Core.Services;
 using CinnabarSharp.Desktop.Controls;
 using CinnabarSharp.Desktop.Services;
 using CinnabarSharp.Desktop.ViewModels;
@@ -21,7 +22,12 @@ public sealed class TestHarness : IDisposable
     {
         TempDir = Directory.CreateTempSubdirectory("cinnabarsharp-ui-");
         var recentPath = Path.Combine(TempDir.FullName, "recent.json");
-        Services = AppServices.Build(s => s.AddSingleton(new RecentFilesStore(recentPath)));
+        var historyDir = new DirectoryInfo(Path.Combine(TempDir.FullName, "history"));
+        Services = AppServices.Build(s =>
+        {
+            s.AddSingleton(new RecentFilesStore(recentPath));
+            s.AddSingleton<IHistoryStorage>(new FileHistoryStorage(historyDir));
+        });
         Vm = Services.GetRequiredService<MainViewModel>();
         Window = new MainWindow { DataContext = Vm, Width = 1280, Height = 800 };
         Window.Show();

@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using CinnabarSharp.Core.Extensions;
+using CinnabarSharp.Core.Services;
 using CinnabarSharp.Desktop.Services;
 using CinnabarSharp.Desktop.ViewModels;
 
@@ -16,6 +17,9 @@ public static class AppServices
         services.AddCinnabarSharpServices();
         services.AddSingleton(_ => new RecentFilesStore(RecentFilesStore.DefaultPath));
         services.AddSingleton(_ => new SettingsStore(SettingsStore.DefaultPath));
+        // Far-back undo/redo steps spill to disk (performance-tasks.md P1.4); a test overrides this with a
+        // throwaway temp folder (see TestHarness) so it never touches the real user's app data.
+        services.AddSingleton<IHistoryStorage>(_ => FileHistoryStorage.CreateDefault());
         services.AddSingleton<CinnabarSharp.Core.Tools.ITextRasterizer, AvaloniaTextRasterizer>();
         services.AddSingleton<AgentConnection>();
         services.AddSingleton<MainViewModel>();
