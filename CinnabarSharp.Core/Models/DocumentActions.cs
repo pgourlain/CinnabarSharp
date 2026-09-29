@@ -181,15 +181,35 @@ public class DocumentActions(ImageDocument document)
 
     private delegate void PixelEdit(Span<byte> bgra, ReadOnlySpan<byte> mask);
 
+    /// <summary>
+    /// Edits pixels in place within the selection's bounds (the whole layer when nothing is selected) and
+    /// records only that rectangle, instead of a whole-layer copy.
+    /// </summary>
     private void EditCurrentLayerPixels(string text, PixelEdit edit)
     {
         var layer = Layers.CurrentUserLayer;
-        var before = layer.Surface;
-        var bgra = before.ToBgra();
-        edit(bgra, EffectiveSelection.Data);
-        layer.Surface = Utility.FromBgra(bgra, Width, Height);
-        document.Workspace.Invalidate();
-        History.PushNewItem(new SwapSurfaceHistoryItem(text, layer, before, layer.Surface));
+        var selection = EffectiveSelection;
+        var bounds = selection.Bounds;
+        if (bounds.IsEmpty)
+            return;
+        var before = layer.Surface.ReadRegion(bounds);
+        var after = (byte[])before.Clone();
+        edit(after, MaskWithinBounds(selection, bounds));
+        if (after.AsSpan().SequenceEqual(before))
+            return;
+        layer.Surface.WriteRegion(bounds, after);
+        document.Workspace.Invalidate(bounds);
+        History.PushNewItem(new PixelRegionHistoryItem(text, layer, bounds, before));
+    }
+
+    /// <summary>The selection mask's coverage of <paramref name="bounds"/>, re-indexed to that rectangle.</summary>
+    private static byte[] MaskWithinBounds(SelectionMask selection, RectangleI bounds)
+    {
+        var mask = new byte[bounds.Width * bounds.Height];
+        for (var y = 0; y < bounds.Height; y++)
+            for (var x = 0; x < bounds.Width; x++)
+                mask[y * bounds.Width + x] = selection[bounds.X + x, bounds.Y + y];
+        return mask;
     }
 
     /// <summary>Selected pixels of the current layer (or of the whole image when <paramref name="merged"/>), cropped to the selection.</summary>

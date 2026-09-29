@@ -12,6 +12,9 @@ public interface IImageDocumentHistory
     bool CanUndo { get; }
     bool CanRedo { get; }
 
+    /// <summary>Sum of every step's <see cref="IHistoryItem.Bytes"/> currently held in memory.</summary>
+    long Bytes { get; }
+
     /// <summary>Records a change that was already applied, discarding any undone steps.</summary>
     void PushNewItem(IHistoryItem newItem);
 

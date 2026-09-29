@@ -144,12 +144,12 @@ public sealed class PaintSession
         var after = _layer.Surface.ReadRegion(_touched);
         if (_step is not null && IsLive)
         {
-            _step.Update(_touched, before, after);
+            _step.Update(_touched, before);
             return;
         }
         if (before.AsSpan().SequenceEqual(after))
             return;
-        _step = new PixelRegionHistoryItem(_text, _layer, _touched, before, after);
+        _step = new PixelRegionHistoryItem(_text, _layer, _touched, before);
         _document.Workspace.History.PushNewItem(_step);
     }
 
@@ -162,16 +162,42 @@ public sealed class PaintSession
     }
 }
 
-/// <summary>Pixels of a rectangle of a layer changed; only that rectangle is stored.</summary>
-public sealed class PixelRegionHistoryItem(string text, Layer layer, RectangleI rect, byte[] before, byte[] after)
-    : HistoryItem(text)
+/// <summary>
+/// Pixels of a rectangle of a layer changed; only that rectangle is stored, and only one copy of it: whatever
+/// is not currently in the layer (the pixels from before the change while the step is done, from after the
+/// change while undone). Undo/redo reads the layer's current pixels out before overwriting them, so the other
+/// copy is never allocated.
+/// </summary>
+public sealed class PixelRegionHistoryItem : HistoryItem
 {
-    public RectangleI Rect => rect;
+    private readonly Layer _layer;
+    private RectangleI _rect;
+    private byte[] _stored;
+
+    public PixelRegionHistoryItem(string text, Layer layer, RectangleI rect, byte[] before) : base(text)
+    {
+        _layer = layer;
+        _rect = rect;
+        _stored = before; // the layer already holds "after"
+    }
+
+    public RectangleI Rect => _rect;
+    public override long Bytes => _stored.Length;
 
     /// <summary>Replaces the stored change while the step is still being edited (it must be done, not undone).</summary>
-    internal void Update(RectangleI newRect, byte[] newBefore, byte[] newAfter) =>
-        (rect, before, after) = (newRect, newBefore, newAfter);
+    internal void Update(RectangleI newRect, byte[] newBefore)
+    {
+        _rect = newRect;
+        _stored = newBefore; // the layer already holds the new "after"
+    }
 
-    protected override void OnUndo() => layer.Surface.WriteRegion(rect, before);
-    protected override void OnRedo() => layer.Surface.WriteRegion(rect, after);
+    protected override void OnUndo() => Swap();
+    protected override void OnRedo() => Swap();
+
+    private void Swap()
+    {
+        var current = _layer.Surface.ReadRegion(_rect);
+        _layer.Surface.WriteRegion(_rect, _stored);
+        _stored = current;
+    }
 }

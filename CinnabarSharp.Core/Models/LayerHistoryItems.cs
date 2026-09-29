@@ -17,6 +17,8 @@ public record LayerProperties(string Name, bool Hidden, double Opacity, BlendMod
 public sealed class AddLayerHistoryItem(string text, ImageDocumentLayers layers, UserLayer layer, int index)
     : HistoryItem(text)
 {
+    public override long Bytes => layer.Surface.Width * (long)layer.Surface.Height * 4;
+
     protected override void OnUndo() => layers.DeleteLayer(index);
 
     protected override void OnRedo()
@@ -36,6 +38,8 @@ public sealed class AddLayerHistoryItem(string text, ImageDocumentLayers layers,
 public sealed class DeleteLayerHistoryItem(string text, ImageDocumentLayers layers, UserLayer layer, int index)
     : HistoryItem(text)
 {
+    public override long Bytes => layer.Surface.Width * (long)layer.Surface.Height * 4;
+
     protected override void OnUndo()
     {
         layers.Insert(layer, index);
@@ -72,6 +76,9 @@ public sealed class MoveLayerHistoryItem(string text, ImageDocumentLayers layers
 public sealed class SwapSurfaceHistoryItem(string text, Layer layer, IImageBuf before, IImageBuf after)
     : HistoryItem(text)
 {
+    public override long Bytes =>
+        before.Width * (long)before.Height * 4 + after.Width * (long)after.Height * 4;
+
     protected override void OnUndo() => layer.Surface = before;
     protected override void OnRedo() => layer.Surface = after;
 

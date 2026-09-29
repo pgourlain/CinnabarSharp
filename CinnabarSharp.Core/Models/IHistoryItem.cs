@@ -8,6 +8,10 @@ public interface IHistoryItem : IDisposable
 {
     string Text { get; }
     bool IsUndone { get; }
+
+    /// <summary>Approximate bytes this step holds in memory (pixel/mask data only), for the history's memory budget.</summary>
+    long Bytes { get; }
+
     void Undo();
     void Redo();
 }
@@ -16,6 +20,7 @@ public abstract class HistoryItem(string text) : IHistoryItem
 {
     public string Text { get; } = text;
     public bool IsUndone { get; private set; }
+    public virtual long Bytes => 0;
 
     public void Undo()
     {
@@ -58,6 +63,8 @@ public sealed class BaseHistoryItem(string text) : HistoryItem(text)
 /// <summary>Several steps shown as one; undone in reverse order.</summary>
 public sealed class CompoundHistoryItem(string text, IReadOnlyList<IHistoryItem> items) : HistoryItem(text)
 {
+    public override long Bytes => items.Sum(i => i.Bytes);
+
     protected override void OnUndo()
     {
         for (var i = items.Count - 1; i >= 0; i--)

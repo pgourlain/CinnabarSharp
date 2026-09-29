@@ -3,6 +3,8 @@ namespace CinnabarSharp.Core.Models;
 public sealed class SelectionHistoryItem(string text, ImageDocument document, SelectionMask? before, SelectionMask? after)
     : HistoryItem(text)
 {
+    public override long Bytes => (before?.Data.Length ?? 0) + (after?.Data.Length ?? 0);
+
     protected override void OnUndo() => document.SetSelection(before);
     protected override void OnRedo() => document.SetSelection(after);
 }
@@ -18,6 +20,9 @@ public sealed class ResizeImageHistoryItem(
     SelectionMask? selectionAfter)
     : HistoryItem(text)
 {
+    public override long Bytes => surfaces.Sum(s =>
+        s.Before.Width * (long)s.Before.Height * 4 + s.After.Width * (long)s.After.Height * 4);
+
     protected override void OnUndo() => Apply(sizeBefore, s => s.Before, selectionBefore);
     protected override void OnRedo() => Apply(sizeAfter, s => s.After, selectionAfter);
 
