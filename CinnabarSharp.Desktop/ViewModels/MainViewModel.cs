@@ -339,7 +339,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         try
         {
-            _formats.Save(doc, file, format);
+            // Encodes on a background thread (performance-tasks.md P5); RunBusyAsync disables editing for the
+            // duration, so nothing mutates the document while it's being read on that other thread.
+            await RunBusyAsync($"Saving {file.Name}", async _ =>
+            {
+                await _formats.SaveAsync(doc, file, format);
+                return true;
+            });
             RecentFiles.Add(file.FullName);
             return true;
         }
