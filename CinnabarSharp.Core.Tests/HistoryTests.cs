@@ -262,6 +262,113 @@ public sealed class HistoryTests : BaseTests, IDisposable
         Assert.Equal(DocumentEventEnum.HistoryChanged, received[^1]);
     }
 
+    [Fact]
+    public void Fill_selection_records_only_the_selection_bounds()
+    {
+        var doc = ThreeLayers();
+        var before = Snapshot(doc);
+        doc.SetSelection(SelectionMask.Rectangle(4, 3, new PointD(1, 0), new PointD(3, 2))); // 2x2
+        doc.Actions.RecordSelectionChange(null, "Rectangle Select");
+
+        doc.Actions.FillSelection(ColorBgra.FromBgra(0, 255, 0, 255));
+
+        var item = Assert.IsType<PixelRegionHistoryItem>(History(doc).Items[^1]);
+        Assert.Equal(new RectangleI(1, 0, 2, 2), item.Rect);
+        Assert.Equal(2 * 2 * 4, item.Bytes); // one copy of the 2x2 rect, not the whole 4x3 layer
+
+        // Pixel (0,0) is outside the selection ([1,3) x [0,2)) and Solid() makes it black; it must stay untouched.
+        Assert.Equal<byte[]>([0, 0, 0, 255], doc.Layers.CurrentUserLayer.Surface.ReadRegion(new RectangleI(0, 0, 1, 1)));
+
+        History(doc).Undo();
+        History(doc).Undo();
+        Assert.Equal(before, Snapshot(doc));
+    }
+
+    [Fact]
+    public void No_op_pixel_edit_records_nothing()
+    {
+        var doc = ThreeLayers();
+        doc.Actions.EraseSelection(); // whole layer becomes transparent
+        var afterFirstErase = History(doc).Items.Count;
+
+        doc.Actions.EraseSelection(); // already fully transparent: nothing changes, nothing recorded
+
+        Assert.Equal(afterFirstErase, History(doc).Items.Count);
+    }
+
+    [Fact]
+    public void History_drops_oldest_steps_over_the_step_limit()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(4, 3), ColorBgra.White);
+        var events = _sp.GetRequiredService<IDocumentEventsService>();
+        var history = new ImageDocumentHistory(doc, events, byteBudget: long.MaxValue, maxSteps: 3);
+        var received = new List<DocumentEventEnum>();
+        using var sub = events.DocumentEvents.Subscribe(
+            new Observer(e => { if (e.Document == doc) received.Add(e.State); }));
+
+        history.PushNewItem(new DummyHistoryItem("Base", 0));
+        history.PushNewItem(new DummyHistoryItem("A", 0));
+        history.PushNewItem(new DummyHistoryItem("B", 0));
+        history.PushNewItem(new DummyHistoryItem("C", 0)); // 4th step: over the limit of 3
+
+        Assert.Equal(["A", "B", "C"], history.Items.Select(i => i.Text));
+        Assert.Equal(2, history.Pointer);
+        Assert.False(history.CanUndo && history.Pointer == 0);
+        Assert.Contains(DocumentEventEnum.HistoryTrimmed, received);
+    }
+
+    [Fact]
+    public void History_drops_oldest_steps_over_the_byte_budget()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(4, 3), ColorBgra.White);
+        var events = _sp.GetRequiredService<IDocumentEventsService>();
+        var history = new ImageDocumentHistory(doc, events, byteBudget: 250, maxSteps: 1000);
+
+        history.PushNewItem(new DummyHistoryItem("Base", 100));
+        history.PushNewItem(new DummyHistoryItem("A", 100));
+        history.PushNewItem(new DummyHistoryItem("B", 100)); // 300 > 250: drop "Base"
+
+        Assert.Equal(["A", "B"], history.Items.Select(i => i.Text));
+        Assert.Equal(200, history.Bytes);
+    }
+
+    [Fact]
+    public void History_trim_warning_fires_only_once()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(4, 3), ColorBgra.White);
+        var events = _sp.GetRequiredService<IDocumentEventsService>();
+        var history = new ImageDocumentHistory(doc, events, byteBudget: long.MaxValue, maxSteps: 2);
+        var received = new List<DocumentEventEnum>();
+        using var sub = events.DocumentEvents.Subscribe(
+            new Observer(e => { if (e.Document == doc) received.Add(e.State); }));
+
+        for (var i = 0; i < 5; i++)
+            history.PushNewItem(new DummyHistoryItem($"Step{i}", 0));
+
+        Assert.Equal(1, received.Count(e => e == DocumentEventEnum.HistoryTrimmed));
+    }
+
+    [Fact]
+    public void History_never_trims_below_the_current_step()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(4, 3), ColorBgra.White);
+        var events = _sp.GetRequiredService<IDocumentEventsService>();
+        // A single huge step must never be dropped just because it's the only one over budget.
+        var history = new ImageDocumentHistory(doc, events, byteBudget: 10, maxSteps: 1000);
+
+        history.PushNewItem(new DummyHistoryItem("Base", 1_000_000));
+
+        Assert.Single(history.Items);
+        Assert.Equal(0, history.Pointer);
+    }
+
+    private sealed class DummyHistoryItem(string text, long bytes) : HistoryItem(text)
+    {
+        public override long Bytes => bytes;
+        protected override void OnUndo() { }
+        protected override void OnRedo() { }
+    }
+
     private sealed class Observer(Action<EventItem<DocumentEventEnum>> onNext) : IObserver<EventItem<DocumentEventEnum>>
     {
         public void OnCompleted() { }

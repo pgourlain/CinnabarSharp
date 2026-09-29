@@ -15,7 +15,8 @@
         ViewSizeChanged,
         DocumentCreated,
         DocumentClosed,
-        HistoryChanged
+        HistoryChanged,
+        HistoryTrimmed
     }
 
 }
