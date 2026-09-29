@@ -94,6 +94,62 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
         Assert.False(doc.IsDirty);
     }
 
+    [Fact]
+    public async Task SaveAsync_round_trips_like_the_synchronous_Save()
+    {
+        var file = TempFile("async.png");
+
+        await _formats.SaveAsync(NewRedDocument(), file);
+
+        var reopened = _formats.Open(new FileInfo(file.FullName));
+        Assert.Equal(new ImageSize(6, 4), reopened.ImageSize);
+        var pixel = PixelOf(reopened, 2, 2);
+        Assert.InRange(pixel.R, 240, 255);
+        Assert.InRange(pixel.G, 0, 15);
+        Assert.InRange(pixel.B, 0, 15);
+    }
+
+    [Fact]
+    public async Task SaveAsync_sets_file_name_and_clears_dirty_flag()
+    {
+        var doc = NewRedDocument();
+        doc.IsDirty = true;
+        var file = TempFile("saved-async.png");
+
+        await _formats.SaveAsync(doc, file);
+
+        Assert.Equal(file.FullName, doc.File!.FullName);
+        Assert.Equal("saved-async.png", doc.DisplayName);
+        Assert.Equal("png", doc.FileType);
+        Assert.False(doc.IsDirty);
+    }
+
+    [Fact]
+    public async Task SaveAsync_runs_the_encode_off_the_calling_thread()
+    {
+        var doc = NewRedDocument();
+        var file = TempFile("thread.png");
+        var callingThread = Environment.CurrentManagedThreadId;
+        var encodeThread = -1;
+        var probe = new ThreadProbingFormat(_workspace, t => encodeThread = t);
+
+        await _formats.SaveAsync(doc, file, probe);
+
+        Assert.NotEqual(callingThread, encodeThread);
+    }
+
+    /// <summary>Records which thread its <see cref="Export"/> actually runs on, to pin that
+    /// <see cref="IFormatManager.SaveAsync"/> really moves the encode off the calling thread.</summary>
+    private sealed class ThreadProbingFormat(IWorkspaceService workspace, Action<int> onExport) : MagickImageFormat(
+        nameof(ThreadProbingFormat), "PNG", ["png"], [ImageMagick.MagickFormat.Png], workspace)
+    {
+        public override void Export(ImageDocument document, FileInfo file)
+        {
+            onExport(Environment.CurrentManagedThreadId);
+            base.Export(document, file);
+        }
+    }
+
     [Theory]
     [InlineData("UPPER.PNG")]
     [InlineData("été ✓ 画像.png")]
