@@ -16,6 +16,13 @@ public interface IHistoryItem : IDisposable
     void Redo();
 }
 
+/// <summary>A step that can move the memory it holds to disk when it's far from the current position (see
+/// <see cref="ImageDocumentHistory"/>).</summary>
+public interface ISpillableHistoryItem
+{
+    void Spill(Services.IHistoryDocumentStorage storage);
+}
+
 public abstract class HistoryItem(string text) : IHistoryItem
 {
     public string Text { get; } = text;

@@ -12,22 +12,31 @@ public class ImageDocumentHistory : IImageDocumentHistory
     /// <summary>Fraction of the machine's available memory one document's history may use by default.</summary>
     private const double DefaultBudgetFraction = 0.25;
 
+    /// <summary>Steps this far (or farther) from <see cref="Pointer"/> are spilled to disk when storage is available.</summary>
+    public const int DefaultSpillDistance = 10;
+
     private readonly ImageDocument _document;
     private readonly IDocumentEventsService _events;
     private readonly List<IHistoryItem> _items = [];
     private readonly long _byteBudget;
     private readonly int _maxSteps;
+    private readonly IHistoryStorage? _storageFactory;
+    private readonly int _spillDistance;
+    private IHistoryDocumentStorage? _storage;
     private bool _trimWarningShown;
     // The first step (index 0) is the state the document was created or opened in.
     private int _cleanPointer = 0;
 
     public ImageDocumentHistory(ImageDocument document, IDocumentEventsService events,
-        long? byteBudget = null, int maxSteps = DefaultMaxSteps)
+        long? byteBudget = null, int maxSteps = DefaultMaxSteps,
+        IHistoryStorage? storage = null, int spillDistance = DefaultSpillDistance)
     {
         _document = document;
         _events = events;
         _byteBudget = byteBudget ?? DefaultByteBudget();
         _maxSteps = maxSteps;
+        _storageFactory = storage;
+        _spillDistance = spillDistance;
     }
 
     private static long DefaultByteBudget()
@@ -64,7 +73,27 @@ public class ImageDocumentHistory : IImageDocumentHistory
         _items.Add(newItem);
         Pointer = _items.Count - 1;
         TrimToBudget();
+        SpillFarSteps();
         Changed(invalidate: false);
+    }
+
+    /// <summary>
+    /// Moves steps <see cref="_spillDistance"/> or more away from <see cref="Pointer"/> to disk when storage is
+    /// configured, freeing their <see cref="IHistoryItem.Bytes"/> from memory (see <see cref="CompressedDiff"/>).
+    /// Steps that come back within range are not moved back; they just stay spilled, which is still fast enough
+    /// to undo/redo. The storage folder itself is only created the first time there's actually something to spill.
+    /// </summary>
+    private void SpillFarSteps()
+    {
+        if (_storageFactory is null)
+            return;
+        for (var i = 0; i < _items.Count; i++)
+        {
+            if (Math.Abs(i - Pointer) < _spillDistance)
+                continue;
+            if (_items[i] is ISpillableHistoryItem spillable)
+                spillable.Spill(_storage ??= _storageFactory.OpenDocumentStorage());
+        }
     }
 
     /// <summary>
@@ -99,6 +128,7 @@ public class ImageDocumentHistory : IImageDocumentHistory
             throw new InvalidOperationException("Nothing to undo.");
         _items[Pointer].Undo();
         Pointer--;
+        SpillFarSteps();
         Changed(invalidate: true);
     }
 
@@ -108,6 +138,7 @@ public class ImageDocumentHistory : IImageDocumentHistory
             throw new InvalidOperationException("Nothing to redo.");
         Pointer++;
         _items[Pointer].Redo();
+        SpillFarSteps();
         Changed(invalidate: true);
     }
 
@@ -134,6 +165,8 @@ public class ImageDocumentHistory : IImageDocumentHistory
         _items.Clear();
         Pointer = -1;
         _cleanPointer = 0;
+        _storage?.Dispose();
+        _storage = null;
         _events.PushEvent(new DocumentEventItem(_document, DocumentEventEnum.HistoryChanged));
     }
 

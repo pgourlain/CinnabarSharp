@@ -15,13 +15,15 @@ namespace CinnabarSharp.Core.Models
         private ImageFile file = null;
         private string display_name = string.Empty;
 
-        public ImageDocument(IDocumentEventsService documentEventsService, ILogger<ImageDocument> logger)
+        public ImageDocument(IDocumentEventsService documentEventsService, ILogger<ImageDocument> logger,
+            IHistoryStorage? historyStorage = null)
 		{
             is_dirty = false;
             _documentEventsService = documentEventsService;
             this.logger = logger;
             Layers = new (this, _documentEventsService, logger);
-            Workspace = new(this, new ImageDocumentHistory(this, _documentEventsService), _documentEventsService, logger);
+            Workspace = new(this, new ImageDocumentHistory(this, _documentEventsService, storage: historyStorage),
+                _documentEventsService, logger);
             Actions = new DocumentActions(this);
         }
 
