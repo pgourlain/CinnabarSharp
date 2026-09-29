@@ -273,8 +273,7 @@ public sealed class HistoryTests : BaseTests, IDisposable
         doc.Actions.FillSelection(ColorBgra.FromBgra(0, 255, 0, 255));
 
         var item = Assert.IsType<PixelRegionHistoryItem>(History(doc).Items[^1]);
-        Assert.Equal(new RectangleI(1, 0, 2, 2), item.Rect);
-        Assert.Equal(2 * 2 * 4, item.Bytes); // one copy of the 2x2 rect, not the whole 4x3 layer
+        Assert.Equal(new RectangleI(1, 0, 2, 2), item.Rect); // the 2x2 selection bounds, not the whole 4x3 layer
 
         // Pixel (0,0) is outside the selection ([1,3) x [0,2)) and Solid() makes it black; it must stay untouched.
         Assert.Equal<byte[]>([0, 0, 0, 255], doc.Layers.CurrentUserLayer.Surface.ReadRegion(new RectangleI(0, 0, 1, 1)));
@@ -282,6 +281,29 @@ public sealed class HistoryTests : BaseTests, IDisposable
         History(doc).Undo();
         History(doc).Undo();
         Assert.Equal(before, Snapshot(doc));
+    }
+
+    [Theory]
+    [InlineData("Erase Selection")]
+    [InlineData("Fill Selection")]
+    public async Task Pixel_edit_undoes_and_redoes_exactly_after_background_compression_finishes(string text)
+    {
+        var doc = ThreeLayers();
+        var before = Snapshot(doc);
+
+        if (text == "Erase Selection")
+            doc.Actions.EraseSelection();
+        else
+            doc.Actions.FillSelection(ColorBgra.FromBgra(0, 255, 0, 255));
+        var after = Snapshot(doc);
+
+        var item = Assert.IsType<PixelRegionHistoryItem>(History(doc).Items[^1]);
+        await item.PendingCompression; // undo/redo must still be correct once the diff is compressed, not just raw
+
+        History(doc).Undo();
+        Assert.Equal(before, Snapshot(doc));
+        History(doc).Redo();
+        Assert.Equal(after, Snapshot(doc));
     }
 
     [Fact]

@@ -199,7 +199,7 @@ public class DocumentActions(ImageDocument document)
             return;
         layer.Surface.WriteRegion(bounds, after);
         document.Workspace.Invalidate(bounds);
-        History.PushNewItem(new PixelRegionHistoryItem(text, layer, bounds, before));
+        History.PushNewItem(new PixelRegionHistoryItem(text, layer, bounds, before, after));
     }
 
     /// <summary>The selection mask's coverage of <paramref name="bounds"/>, re-indexed to that rectangle.</summary>
