@@ -83,6 +83,60 @@ public sealed class ComicPageTests : BaseTests
         Assert.Equal(new byte[] { 0, 0, 0, 255 }, At(page, 189, 50));         // with its border
     }
 
+    /// <summary>300 × 100: blue, green and red thirds.</summary>
+    private static BgraImage Thirds()
+    {
+        var px = new byte[300 * 100 * 4];
+        for (var y = 0; y < 100; y++)
+            for (var x = 0; x < 300; x++)
+            {
+                var i = (y * 300 + x) * 4;
+                (px[i], px[i + 1], px[i + 2], px[i + 3]) = x < 100 ? ((byte)255, (byte)0, (byte)0, (byte)255)
+                    : x < 200 ? ((byte)0, (byte)255, (byte)0, (byte)255) : ((byte)0, (byte)0, (byte)255, (byte)255);
+            }
+        return new BgraImage(px, 300, 100);
+    }
+
+    [Fact]
+    public void A_stretched_photo_shows_whole_in_its_panel_instead_of_cropped()
+    {
+        var options = new ComicPageOptions(new ImageSize(200, 200), 0, 0, ColorBgra.Black, ColorBgra.White);
+        var cropped = new ComicPanelContent(Thirds());
+
+        // Cropped to the square panel: only the green middle third shows.
+        var page = ComicPage.Compose(Layout("1 panel"), options, [cropped]);
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, At(page, 5, 100));
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, At(page, 195, 100));
+
+        // Stretched: the whole photo, squeezed to the square (blue left, red right).
+        page = ComicPage.Compose(Layout("1 panel"), options, [cropped with { Stretch = true }]);
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, At(page, 5, 100));
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, At(page, 100, 100));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, At(page, 195, 100));
+    }
+
+    [Fact]
+    public void A_stretched_photo_cannot_be_dragged()
+    {
+        var doc = NewPage(200, 200);
+        var options = new ComicPageOptions(new ImageSize(200, 200), 0, 0, ColorBgra.Black, ColorBgra.White);
+        var tool = new ComicPageTool(Layout("1 panel"), options, [new ComicPanelContent(Thirds())]);
+        var changes = 0;
+        tool.Changed += () => changes++;
+
+        tool.SetStretch(0, true);
+        Assert.True(tool.Contents[0]!.Stretch);
+        Assert.Equal(1, changes);
+        Assert.Equal(ToolCursor.Default, tool.CursorAt(doc, new PointD(100, 100)));
+        Drag(tool, doc, (100, 100), (150, 100));
+        Assert.Equal(1, changes);
+        Assert.Equal(new PointD(0.5, 0.5), tool.Contents[0]!.Center);
+
+        tool.SetStretch(0, false);
+        Assert.False(tool.Contents[0]!.Stretch);
+        Assert.Equal(ToolCursor.Move, tool.CursorAt(doc, new PointD(100, 100)));
+    }
+
     [Fact]
     public void A_smaller_size_renders_the_same_page_as_a_preview()
     {
@@ -108,6 +162,32 @@ public sealed class ComicPageTests : BaseTests
         tool.OnPointerDown(doc, P(from));
         tool.OnPointerMove(doc, P(to));
         tool.OnPointerUp(doc, P(to));
+    }
+
+    [Fact]
+    public void Double_clicking_a_panel_selects_it_and_asks_for_another_photo_without_moving_the_current_one()
+    {
+        var doc = NewPage(200, 100);
+        var options = new ComicPageOptions(new ImageSize(200, 100), 10, 2, ColorBgra.Black, ColorBgra.White);
+        var tool = new ComicPageTool(Layout("2 columns"), options, [new ComicPanelContent(Solid(400, 100, 0, 0, 255)), null]);
+        var activated = new List<int>();
+        tool.PanelActivated += activated.Add;
+
+        ToolPointer P(double x, int clicks) => new(new PointD(x, 50), ToolButton.Left, ToolModifiers.None, 1, clicks);
+        tool.OnPointerDown(doc, P(150, 1));
+        tool.OnPointerUp(doc, P(150, 1));
+        Assert.Empty(activated);
+        tool.OnPointerDown(doc, P(150, 2));
+        tool.OnPointerUp(doc, P(150, 2));
+        Assert.Equal([1], activated);
+        Assert.Equal(1, tool.Selected);
+
+        var center = tool.Contents[0]!.Center;
+        tool.OnPointerDown(doc, P(50, 2));
+        tool.OnPointerMove(doc, P(70, 2));
+        tool.OnPointerUp(doc, P(70, 2));
+        Assert.Equal([1, 0], activated);
+        Assert.Equal(center, tool.Contents[0]!.Center);
     }
 
     [Fact]

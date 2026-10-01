@@ -35,6 +35,9 @@ public sealed class ComicPageTool(ComicLayout layout, ComicPageOptions options, 
     /// <summary>Raised when another panel is selected.</summary>
     public event Action? SelectionChanged;
 
+    /// <summary>Raised on a double click on a panel (the caller lets the user pick another photo for it).</summary>
+    public event Action<int>? PanelActivated;
+
     public IReadOnlyList<RectangleI> PanelRects => ComicPage.PanelRects(Layout, Options.Page, Options.Gutter);
 
     public int PanelAt(PointD point)
@@ -94,13 +97,29 @@ public sealed class ComicPageTool(ComicLayout layout, ComicPageOptions options, 
         Changed?.Invoke();
     }
 
+    /// <summary>Stretches a panel's whole photo to the panel (proportions change), or crops it to fill (the default).</summary>
+    public void SetStretch(int panel, bool stretch)
+    {
+        if (panel < 0 || panel >= _contents.Count || _contents[panel] is not { } content || content.Stretch == stretch)
+            return;
+        _contents[panel] = content with { Stretch = stretch };
+        Changed?.Invoke();
+    }
+
     public void OnPointerDown(ImageDocument document, ToolPointer pointer)
     {
         var panel = PanelAt(pointer.Position);
         if (panel < 0)
             return;
         Select(panel);
-        if (panel < _contents.Count && _contents[panel] is { } content)
+        if (pointer.ClickCount >= 2)
+        {
+            _dragged = -1;
+            PanelActivated?.Invoke(panel);
+            return;
+        }
+        // A stretched photo shows all of itself: nothing to move.
+        if (panel < _contents.Count && _contents[panel] is { Stretch: false } content)
         {
             _dragged = panel;
             _dragStart = pointer.Position;
@@ -145,11 +164,12 @@ public sealed class ComicPageTool(ComicLayout layout, ComicPageOptions options, 
         {
             Picture = Preview is { } preview && preview.Area == page ? preview : null,
             Frame = selected,
+            EmphasizeFrame = true,
         };
     }
 
     public ToolCursor CursorAt(ImageDocument document, PointD point) =>
-        PanelAt(point) is var panel and >= 0 && panel < _contents.Count && _contents[panel] is not null
+        PanelAt(point) is var panel and >= 0 && panel < _contents.Count && _contents[panel] is { Stretch: false }
             ? ToolCursor.Move
             : ToolCursor.Default;
 }

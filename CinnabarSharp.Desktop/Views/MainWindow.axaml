@@ -36,6 +36,13 @@
             <Setter Property="Margin" Value="6,4" />
             <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
         </Style>
+        <!-- Locked toolbox (comic page mode): dimmed, and no tool shown as selected since none applies. -->
+        <Style Selector="ListBox.tools:disabled">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+        <Style Selector="ListBox.tools:disabled ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
         <Style Selector="ListBox.tools ListBoxItem">
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="1" />
@@ -126,8 +133,11 @@
                 <TextBlock Text="{Binding Comic.PanelText}" FontWeight="SemiBold" Margin="8,0,0,0" />
                 <ComboBox x:Name="ComicPanelPhoto" ItemsSource="{Binding Comic.PanelChoices}" SelectedItem="{Binding Comic.SelectedPanelChoice}"
                           DisplayMemberBinding="{Binding Name}" AutomationProperties.Name="Photo in this panel" MaxWidth="170" Focusable="False" />
+                <CheckBox Content="Stretch" IsChecked="{Binding Comic.PanelStretch}" IsEnabled="{Binding Comic.PanelHasPhoto}"
+                          AutomationProperties.Name="Stretch the photo in this panel" Focusable="False"
+                          ToolTip.Tip="Show the whole photo stretched to the panel (its proportions change) instead of cropping it" />
                 <TextBlock Text="Zoom" />
-                <Slider Minimum="100" Maximum="400" Value="{Binding Comic.PanelZoom}" Width="90" IsEnabled="{Binding Comic.PanelHasPhoto}"
+                <Slider Minimum="100" Maximum="400" Value="{Binding Comic.PanelZoom}" Width="90" IsEnabled="{Binding Comic.PanelCanZoom}"
                         AutomationProperties.Name="Zoom in this panel" ToolTip.Tip="Zoom the photo in this panel" Focusable="False" />
                 <Button Content="Apply" Command="{Binding ApplyComicCommand}" ToolTip.Tip="Create the page (Enter)" />
                 <Button Content="Cancel" Command="{Binding CancelComicCommand}" ToolTip.Tip="Close the page without keeping it (Esc)" />
@@ -295,7 +305,7 @@
         <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" Padding="8,4"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
             <Grid ColumnDefinitions="*,Auto,180,140,140,80">
-                <TextBlock Grid.Column="0" Text="{Binding SelectedTool.Name}" IsVisible="{Binding IsIdle}" />
+                <TextBlock Grid.Column="0" Text="{Binding StatusToolName}" IsVisible="{Binding IsIdle}" />
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsBusy}">
                     <ProgressBar x:Name="BusyBar" Width="140" MinWidth="140" VerticalAlignment="Center"
                                  IsIndeterminate="{Binding BusyIndeterminate}" Value="{Binding BusyProgress}"

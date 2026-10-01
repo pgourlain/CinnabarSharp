@@ -23,6 +23,9 @@ public sealed record ComicPanelContent(BgraImage Photo, double Zoom, PointD Cent
     public ComicPanelContent(BgraImage photo) : this(photo, 1, new PointD(0.5, 0.5))
     {
     }
+
+    /// <summary>The whole photo is stretched to the panel (its proportions change); zoom and center are ignored.</summary>
+    public bool Stretch { get; init; }
 }
 
 /// <summary>Assembles photos into one image like a comic page: panels, gutters, borders.</summary>
@@ -96,8 +99,14 @@ public static class ComicPage
         return new RectangleD(x, y, w, h);
     }
 
+    /// <summary>The part of the content's photo drawn in a panel: the whole photo when stretched, else <see cref="VisibleArea"/>.</summary>
+    public static RectangleD SourceArea(ComicPanelContent content, int panelWidth, int panelHeight) =>
+        content.Stretch
+            ? new RectangleD(0, 0, content.Photo.Width, content.Photo.Height)
+            : VisibleArea(content.Photo.Width, content.Photo.Height, panelWidth, panelHeight, content.Zoom, content.Center);
+
     /// <summary>
-    /// The page: background, each photo cropped to fill its panel (Lanczos), and panel borders. Panels without a
+    /// The page: background, each photo cropped to fill its panel or stretched to it (Lanczos), and panel borders. Panels without a
     /// photo stay empty with their border. <paramref name="size"/> renders the same page smaller (a preview).
     /// </summary>
     public static BgraImage Compose(ComicLayout layout, ComicPageOptions options, IReadOnlyList<ComicPanelContent?> contents,
@@ -118,7 +127,7 @@ public static class ComicPage
             if (i < contents.Count && contents[i] is { } content)
             {
                 var photo = content.Photo;
-                var area = VisibleArea(photo.Width, photo.Height, rects[i].Width, rects[i].Height, content.Zoom, content.Center);
+                var area = SourceArea(content, rects[i].Width, rects[i].Height);
                 var crop = new RectangleI((int)Math.Round(area.X), (int)Math.Round(area.Y),
                     Math.Max(1, (int)Math.Round(area.Width)), Math.Max(1, (int)Math.Round(area.Height)));
                 crop = crop with

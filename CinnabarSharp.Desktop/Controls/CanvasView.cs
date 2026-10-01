@@ -39,6 +39,7 @@ public class CanvasView : Control
     private static readonly Pen OverlayDark = new(Brushes.Black, 1);
     private Point? _pointer;
 
+    private static readonly IBrush EmphasisBrush = new SolidColorBrush(Color.FromRgb(255, 140, 0));
     private static readonly IBrush AntsLight = Brushes.White;
     private static readonly IBrush AntsDark = Brushes.Black;
 
@@ -212,10 +213,16 @@ public class CanvasView : Control
         {
             foreach (var highlight in overlay.Highlights)
                 context.FillRectangle(HighlightBrush, R(highlight));
-            if (overlay.Frame is { } frame)
+            if (overlay.Frame is { } frame && overlay.EmphasizeFrame)
             {
-                context.DrawRectangle(new Pen(AntsLight, 1), R(frame));
-                context.DrawRectangle(new Pen(AntsDark, 1, new DashStyle([3, 3], 0)), R(frame));
+                var box = R(frame).Deflate(2);
+                context.DrawRectangle(new Pen(Brushes.White, 5), box);
+                context.DrawRectangle(new Pen(EmphasisBrush, 3), box);
+            }
+            else if (overlay.Frame is { } thin)
+            {
+                context.DrawRectangle(new Pen(AntsLight, 1), R(thin));
+                context.DrawRectangle(new Pen(AntsDark, 1, new DashStyle([3, 3], 0)), R(thin));
             }
             foreach (var (from, to) in overlay.Lines)
             {
@@ -317,7 +324,8 @@ public class CanvasView : Control
             mods |= ToolModifiers.Shift;
         // Mice report a fixed pressure (0.5); only pens have a meaningful one.
         var pressure = e.Pointer.Type == PointerType.Pen ? e.GetCurrentPoint(this).Properties.Pressure : 1;
-        return new ToolPointer(new PointD(pos.X / scale, pos.Y / scale), button, mods, pressure);
+        return new ToolPointer(new PointD(pos.X / scale, pos.Y / scale), button, mods, pressure,
+            e is PointerPressedEventArgs pressed ? pressed.ClickCount : 1);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

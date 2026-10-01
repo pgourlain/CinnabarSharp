@@ -107,6 +107,51 @@ public sealed class ComicPageUiTests : IDisposable
         Assert.NotNull(dialog);
     }
 
+    [AvaloniaTheory]
+    [InlineData("Pan")]
+    [InlineData("Zoom")]
+    [InlineData("Pencil")]
+    public async Task Clicks_reach_the_page_whatever_tool_was_selected_and_double_click_loads_a_photo(string toolName)
+    {
+        await OpenTwoImages();
+        Vm.SelectedTool = Vm.Tools.First(t => t.Name == toolName);
+        await Vm.ComicPageCommand.ExecuteAsync(null);
+        var tool = Vm.Comic!.Tool!;
+        var scale = Doc.Workspace.Scale;
+        var rects = tool.PanelRects;
+
+        // The locked toolbox is dimmed, and the selected tool's cursor (a drawing cross for Pencil) isn't used.
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(_h.Window.FindControl<ListBox>("ToolsList")!.Opacity < 1);
+        Assert.Null(_h.Window.FindControl<CinnabarSharp.Desktop.Controls.CanvasView>("Canvas")!.Cursor);
+        Assert.Equal("Comic page", Vm.StatusToolName);
+        _h.Capture($"102-comic-page-locked-toolbox-{toolName}");
+
+        var (x2, y2) = Center(rects[1]);
+        Drag(x2, y2, x2, y2);
+        Assert.Equal(1, tool.Selected);
+        Assert.Equal(scale, Doc.Workspace.Scale); // the Zoom tool didn't zoom
+
+        // Double click the first panel: pick a file, it goes in that panel.
+        _h.Dialogs.FilesToOpen.Enqueue([TestHarness.SampleImage]);
+        var (x1, y1) = Center(rects[0]);
+        var point = _h.CanvasToWindow(x1 * scale, y1 * scale);
+        var before = tool.Contents[0]!.Photo;
+        _h.Window.MouseDown(point, MouseButton.Left);
+        _h.Window.MouseUp(point, MouseButton.Left);
+        _h.Window.MouseDown(point, MouseButton.Left);
+        _h.Window.MouseUp(point, MouseButton.Left);
+        for (var i = 0; i < 100 && ReferenceEquals(before, tool.Contents[0]!.Photo); i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(10);
+        }
+        Assert.Equal(0, tool.Selected);
+        Assert.Empty(_h.Dialogs.FilesToOpen);
+        Assert.NotSame(before, tool.Contents[0]!.Photo);
+        Assert.Same(Vm.Comic.Sources[^1].Source.Photo, tool.Contents[0]!.Photo);
+    }
+
     [AvaloniaFact]
     public async Task A_panel_can_be_emptied_and_the_layout_changed()
     {
@@ -114,6 +159,14 @@ public sealed class ComicPageUiTests : IDisposable
         await Vm.ComicPageCommand.ExecuteAsync(null);
         var comic = Vm.Comic!;
         var tool = comic.Tool!;
+
+        // Stretch the first panel's photo: zoom no longer applies; then back to cropped.
+        Assert.True(comic.PanelCanZoom);
+        comic.PanelStretch = true;
+        Assert.True(tool.Contents[0]!.Stretch);
+        Assert.False(comic.PanelCanZoom);
+        comic.PanelStretch = false;
+        Assert.False(tool.Contents[0]!.Stretch);
 
         comic.SelectedPanelChoice = ComicPageViewModel.Empty;
         Assert.Null(tool.Contents[0]);

@@ -22,7 +22,8 @@ public enum ToolModifiers
 
 /// <summary>Pointer input in image coordinates (pixels, fractional); independent of any UI framework.</summary>
 /// <param name="Pressure">Pen pressure, 0–1; always 1 for a mouse.</param>
-public readonly record struct ToolPointer(PointD Position, ToolButton Button, ToolModifiers Modifiers, double Pressure = 1);
+/// <param name="ClickCount">1 for a single click, 2 for a double click (on press).</param>
+public readonly record struct ToolPointer(PointD Position, ToolButton Button, ToolModifiers Modifiers, double Pressure = 1, int ClickCount = 1);
 
 public enum ShapeKind
 {
@@ -227,6 +228,10 @@ public sealed record ToolOverlay
 
     /// <summary>Dashed frame, e.g. around the text being edited.</summary>
     public RectangleD? Frame { get; init; }
+
+    /// <summary>Draws <see cref="Frame"/> as a thick accent-colored outline (screen pixels) instead of the thin dashed one,
+    /// for a selection that must be easy to see.</summary>
+    public bool EmphasizeFrame { get; init; }
 
     /// <summary>Highlighted areas, e.g. selected text.</summary>
     public IReadOnlyList<RectangleD> Highlights { get; init; } = [];

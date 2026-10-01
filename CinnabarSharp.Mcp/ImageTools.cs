@@ -569,7 +569,8 @@ public sealed class ImageTools(McpContext context)
 
     [McpServerTool(Name = "compose_comic_page"), Description(
         "Assembles open images into one image like a comic page (panels, gutters, borders) and opens it as a new " +
-        "image named 'Comic page'. Each image fills its panel: its selection if it has one, else its center. Layouts: " +
+        "image named 'Comic page'. Each image fills its panel: its selection if it has one, else its center (or, with " +
+        "stretch, the whole image stretched to the panel). Layouts: " +
         "1 panel, 2 rows, 2 columns, 2x2 grid, 3 rows, 1 large + 2 small, 2 small + 1 large, 1 tall + 2 stacked, " +
         "Classic (2 + 1 + 2), 3x3 grid. Use apply_effect with \"Cartoon\" first for a comic look.")]
     public Task<DocumentInfo> ComposeComicPage(
@@ -578,7 +579,8 @@ public sealed class ImageTools(McpContext context)
         [Description("Page: A4 portrait (default), A4 landscape, Square, 16:9.")] string? format = null,
         [Description("Space between panels and around them, in pixels (default 40).")] int gutter = 40,
         [Description("Panel border width in pixels, 0 for none (default 8).")] int borderWidth = 8,
-        [Description("white (default: black borders) or black (white borders).")] string? background = null) =>
+        [Description("white (default: black borders) or black (white borders).")] string? background = null,
+        [Description("Stretch each whole image to its panel (proportions change) instead of cropping it (default false).")] bool stretch = false) =>
         context.Run(() =>
         {
             var docs = documents is { Length: > 0 }
@@ -604,7 +606,8 @@ public sealed class ImageTools(McpContext context)
                 dark ? ColorBgra.White : ColorBgra.Black, dark ? ColorBgra.Black : ColorBgra.White);
 
             var rects = ComicPage.PanelRects(comicLayout, page.Size, options.Gutter);
-            var contents = docs.Take(rects.Count).Select((doc, i) => (ComicPanelContent?)Framing(doc, rects[i])).ToList();
+            var contents = docs.Take(rects.Count)
+                .Select((doc, i) => (ComicPanelContent?)(Framing(doc, rects[i]) with { Stretch = stretch })).ToList();
             var result = ComicPage.Compose(comicLayout, options, contents);
             var comic = context.Workspace.NewDocumentFromImage(new ClipboardImage(result.Pixels, result.Width, result.Height));
             comic.DisplayName = "Comic page";

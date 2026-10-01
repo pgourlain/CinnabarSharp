@@ -140,6 +140,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public partial LayerViewModel? SelectedLayer { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusToolName))]
     public partial ToolViewModel SelectedTool { get; set; }
 
     public Color PrimaryColor
@@ -1351,12 +1352,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// the page into the document as one step; Cancel (Escape) closes it.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsComicMode), nameof(IsNotComicMode))]
+    [NotifyPropertyChangedFor(nameof(IsComicMode), nameof(IsNotComicMode), nameof(StatusToolName))]
     [NotifyCanExecuteChangedFor(nameof(ApplyComicCommand), nameof(CancelComicCommand))]
     public partial ComicPageViewModel? Comic { get; set; }
 
     public bool IsComicMode => Comic is not null;
     public bool IsNotComicMode => !IsComicMode;
+
+    /// <summary>Status bar: the selected tool, or the comic page while it gets the mouse instead.</summary>
+    public string StatusToolName => IsComicMode ? "Comic page" : SelectedTool?.Name ?? "";
 
     private ImageDocument? _comicDocument;
 
@@ -1378,10 +1382,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var tool = comic.CreateTool();
         tool.Changed += () => _ = RefreshComicPreviewAsync();
         tool.SelectionChanged += UpdateOverlay;
+        tool.PanelActivated += panel => _ = ReplacePanelPhotoAsync(comic, tool, panel);
         _comicDocument = page;
         Comic = comic;
         UpdateOverlay();
         await RefreshComicPreviewAsync();
+    }
+
+    /// <summary>Double click on a panel: pick another image file and put it in that panel.</summary>
+    private async Task ReplacePanelPhotoAsync(ComicPageViewModel comic, ComicPageTool tool, int panel)
+    {
+        if (Dialogs is null || IsBusy)
+            return;
+        var files = await Dialogs.PickFilesToOpenAsync(_formats.Formats);
+        if (files.Count == 0 || Comic != comic || comic.AddFiles(files.Take(1)) == 0)
+            return;
+        tool.SetPhoto(panel, comic.Sources[^1].Source.Photo);
     }
 
     [RelayCommand(CanExecute = nameof(IsComicMode))]

@@ -182,6 +182,20 @@ public partial class ComicPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>The selected panel's photo is stretched to the panel instead of cropped to fill it.</summary>
+    public bool PanelStretch
+    {
+        get => Tool is { Selected: >= 0 } tool && tool.Contents[tool.Selected] is { Stretch: true };
+        set
+        {
+            if (!_syncing && Tool is { Selected: >= 0 } tool)
+                tool.SetStretch(tool.Selected, value);
+        }
+    }
+
+    /// <summary>Zoom only applies to a cropped photo.</summary>
+    public bool PanelCanZoom => PanelHasPhoto && !PanelStretch;
+
     /// <summary>The selected panel's zoom, 100-400 %.</summary>
     public double PanelZoom
     {
@@ -202,6 +216,8 @@ public partial class ComicPageViewModel : ViewModelBase
             OnPropertyChanged(nameof(PanelHasPhoto));
             OnPropertyChanged(nameof(SelectedPanelChoice));
             OnPropertyChanged(nameof(PanelZoom));
+            OnPropertyChanged(nameof(PanelStretch));
+            OnPropertyChanged(nameof(PanelCanZoom));
         }
         finally
         {

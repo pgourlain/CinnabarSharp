@@ -96,7 +96,7 @@ public partial class MainWindow : Window, IViewportService
         }
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(MainViewModel.SelectedTool) or nameof(MainViewModel.HoverCursor))
+            if (e.PropertyName is nameof(MainViewModel.SelectedTool) or nameof(MainViewModel.HoverCursor) or nameof(MainViewModel.IsComicMode))
                 Canvas.Cursor = CanvasCursor(vm);
             if (e.PropertyName == nameof(MainViewModel.IsBusy))
                 Cursor = vm.IsBusy ? new Cursor(StandardCursorType.Wait) : null;
@@ -113,6 +113,8 @@ public partial class MainWindow : Window, IViewportService
         CinnabarSharp.Core.Tools.ToolCursor.ResizeAntiDiagonal => new Cursor(StandardCursorType.TopRightCorner),
         CinnabarSharp.Core.Tools.ToolCursor.Rotate => new Cursor(StandardCursorType.Hand),
         CinnabarSharp.Core.Tools.ToolCursor.Text => new Cursor(StandardCursorType.Ibeam),
+        // The comic page gets the mouse, not the selected tool: no text or drawing cursor.
+        _ when vm.IsComicMode => null,
         _ when vm.SelectedTool.IsText => new Cursor(StandardCursorType.Ibeam),
         _ when vm.SelectedTool.IsPaintingTool => new Cursor(StandardCursorType.Cross),
         _ => null,
@@ -313,13 +315,14 @@ public partial class MainWindow : Window, IViewportService
     private bool IsPanGesture(PointerPressedEventArgs e)
     {
         var props = e.GetCurrentPoint(CanvasScroller).Properties;
+        // In comic page mode the page gets the mouse whatever tool was selected; Space still pans.
         return props.IsMiddleButtonPressed
-               || (props.IsLeftButtonPressed && (_spaceHeld || Vm?.SelectedTool.Name == "Pan"));
+               || (props.IsLeftButtonPressed && (_spaceHeld || Vm is { IsComicMode: false, SelectedTool.Name: "Pan" }));
     }
 
     private void OnCanvasPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (Vm is { HasDocument: true } zoomVm && zoomVm.SelectedTool.Name == "Zoom" && !_spaceHeld)
+        if (Vm is { HasDocument: true, IsComicMode: false } zoomVm && zoomVm.SelectedTool.Name == "Zoom" && !_spaceHeld)
         {
             var props = e.GetCurrentPoint(CanvasScroller).Properties;
             if (props.IsLeftButtonPressed || props.IsRightButtonPressed)
