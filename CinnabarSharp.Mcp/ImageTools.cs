@@ -5,6 +5,7 @@ using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Photo;
 using CinnabarSharp.Core.Services;
+using CinnabarSharp.Core.Tools;
 using ImageMagick;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -338,6 +339,48 @@ public sealed class ImageTools(McpContext context)
     [McpServerTool(Name = "erase_selection"), Description("Makes the selected pixels (or the whole layer) of the current layer transparent.")]
     public Task<DocumentInfo> EraseSelection([Description(DocumentHelp)] string? document = null) =>
         Edit(document, doc => doc.Actions.EraseSelection());
+
+    [McpServerTool(Name = "add_speech_bubble"), Description(
+        "Adds a comic speech bubble with text whose tail points at (x, y), like the Speech Bubble tool: outline and text " +
+        "in 'color', inside in 'fill'. Use one per thing to explain on a photo. By default bubbles go to a \"Bubbles\" " +
+        "layer at the top (created when needed). One undoable step. Needs fonts, so only in attached mode (the app running).")]
+    public Task<DocumentInfo> AddSpeechBubble(
+        [Description("Text; \\n for line breaks.")] string text,
+        [Description("X of the tail's tip: the point the bubble is about.")] double x,
+        [Description("Y of the tail's tip.")] double y,
+        [Description("X of the bubble's center; above-right of the tip when omitted.")] double? bubbleX = null,
+        [Description("Y of the bubble's center.")] double? bubbleY = null,
+        [Description("Square, Rounded (default), Oval or Thought (cloud with a trail of circles).")] string? style = null,
+        [Description("Bubble width in pixels (text wraps); fitted to the text when omitted.")] double? width = null,
+        [Description("Font size in pixels (default 24).")] double? fontSize = null,
+        bool bold = false,
+        [Description("Outline and text color (default black).")] string? color = null,
+        [Description("Inside color (default white).")] string? fill = null,
+        [Description("Outline width in pixels (default 2).")] int? outlineWidth = null,
+        [Description("Number shown in a badge on the bubble's corner (for numbered explanations).")] int? number = null,
+        [Description("False to draw on the current layer instead of the \"Bubbles\" layer.")] bool ownLayer = true,
+        [Description(DocumentHelp)] string? document = null) =>
+        Edit(document, doc =>
+        {
+            var rasterizer = context.TextRasterizer ?? throw new McpException(
+                "Speech bubbles need the app's fonts: run CinnabarSharp, turn on File › Allow AI Agents and connect with --mcp --attach.");
+            if (bubbleX.HasValue != bubbleY.HasValue)
+                throw new McpException("Give both bubbleX and bubbleY, or neither.");
+            var settings = new ToolSettings
+            {
+                PrimaryColor = Parse.Color(color, ColorBgra.Black),
+                SecondaryColor = Parse.Color(fill, ColorBgra.White),
+                BubbleStyle = Parse.Enum(style, BubbleStyle.Rounded, "bubble style"),
+                FontSize = Math.Clamp(fontSize ?? 24, 1, 1000),
+                Bold = bold,
+                BrushWidth = Math.Clamp(outlineWidth ?? 2, 1, 50),
+                BubbleNumbered = number.HasValue,
+                BubbleNextNumber = number ?? 1,
+                BubbleOwnLayer = ownLayer,
+            };
+            var center = bubbleX is { } bx && bubbleY is { } by ? new PointD(bx, by) : (PointD?)null;
+            new SpeechBubbleTool(settings, rasterizer).Place(doc, new PointD(x, y), center, text, width);
+        });
 
     // ---------------------------------------------------------------- Adjustments and effects
 

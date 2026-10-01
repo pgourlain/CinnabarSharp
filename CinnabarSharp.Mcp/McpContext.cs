@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
+using CinnabarSharp.Core.Tools;
 using ImageMagick;
 using ModelContextProtocol;
 
@@ -36,7 +37,7 @@ public sealed class SerialDispatcher : IMcpDispatcher
 
 /// <summary>What the MCP tools work on: the workspace (shared with the window in attached mode) and the rules.</summary>
 public sealed class McpContext(IWorkspaceService workspace, IFormatManager formats, FileAccessPolicy files,
-    IMcpDispatcher dispatcher, bool attached = false)
+    IMcpDispatcher dispatcher, bool attached = false, ITextRasterizer? textRasterizer = null)
 {
     private readonly ConditionalWeakTable<ImageDocument, object> _ids = new();
     private int _nextId = 1;
@@ -47,6 +48,9 @@ public sealed class McpContext(IWorkspaceService workspace, IFormatManager forma
 
     /// <summary>True when the desktop app hosts the server and the user sees the edits.</summary>
     public bool Attached { get; } = attached;
+
+    /// <summary>The app's fonts, for tools that draw text; null in headless mode, which has no font rendering.</summary>
+    public ITextRasterizer? TextRasterizer { get; } = textRasterizer;
 
     /// <summary>Stable id of a document for the whole session ("1", "2"…), even when other documents are closed.</summary>
     public string IdOf(ImageDocument document) =>

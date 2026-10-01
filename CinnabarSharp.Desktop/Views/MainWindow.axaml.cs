@@ -112,6 +112,7 @@ public partial class MainWindow : Window, IViewportService
         CinnabarSharp.Core.Tools.ToolCursor.ResizeDiagonal => new Cursor(StandardCursorType.TopLeftCorner),
         CinnabarSharp.Core.Tools.ToolCursor.ResizeAntiDiagonal => new Cursor(StandardCursorType.TopRightCorner),
         CinnabarSharp.Core.Tools.ToolCursor.Rotate => new Cursor(StandardCursorType.Hand),
+        CinnabarSharp.Core.Tools.ToolCursor.Text => new Cursor(StandardCursorType.Ibeam),
         _ when vm.SelectedTool.IsText => new Cursor(StandardCursorType.Ibeam),
         _ when vm.SelectedTool.IsPaintingTool => new Cursor(StandardCursorType.Cross),
         _ => null,

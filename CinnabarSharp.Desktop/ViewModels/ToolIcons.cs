@@ -29,6 +29,7 @@ public static class ToolIcons
         ["Clone Stamp"] = ("M9 13V8a3 3 0 1 1 6 0v5 M5 13h14v4H5z M4 21h16", false),
         ["Recolor"] = ("M4 12a8 8 0 0 1 14-5 M20 12a8 8 0 0 1-14 5 M18 3v4h-4 M6 21v-4h4", false),
         ["Text"] = ("M5 5h14 M12 5v14 M9 19h6", false),
+        ["Speech Bubble"] = ("M5 4h14a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-8l-5 4v-4H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z", false),
         ["Line / Curve"] = ("M4 20L20 4 M4 20a1 1 0 1 0 0.1 0 M20 4a1 1 0 1 0 0.1 0", false),
         ["Shapes"] = ("M3 3h10v10H3z M17 21a5 5 0 1 0 0-10a5 5 0 1 0 0 10", false),
     };

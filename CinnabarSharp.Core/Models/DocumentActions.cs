@@ -13,9 +13,10 @@ public class DocumentActions(ImageDocument document)
     private ImageDocumentLayers Layers => document.Layers;
     private IImageDocumentHistory History => document.Workspace.History;
 
-    public UserLayer AddNewLayer()
+    /// <summary>Adds a layer above the current one and selects it; <paramref name="name"/> null gives "Layer N".</summary>
+    public UserLayer AddNewLayer(string? name = null)
     {
-        var layer = Layers.AddNewLayer(string.Empty);
+        var layer = Layers.AddNewLayer(name ?? string.Empty);
         Layers.SetCurrentUserLayer(layer);
         History.PushNewItem(new AddLayerHistoryItem("Add New Layer", Layers, layer, Layers.IndexOf(layer)));
         return layer;

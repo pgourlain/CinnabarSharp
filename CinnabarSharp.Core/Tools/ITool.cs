@@ -40,6 +40,17 @@ public enum ShapeStyle
     OutlineAndFill,
 }
 
+/// <summary>Body of a speech bubble.</summary>
+public enum BubbleStyle
+{
+    Square,
+    Rounded,
+    Oval,
+
+    /// <summary>A cloud with a trail of small circles instead of a pointed tail.</summary>
+    Thought,
+}
+
 public enum GradientKind
 {
     Linear,
@@ -99,6 +110,26 @@ public class ToolSettings
     public bool Italic { get; set; }
     public bool Underline { get; set; }
     public TextAlignment TextAlignment { get; set; } = TextAlignment.Left;
+
+    public BubbleStyle BubbleStyle { get; set; } = BubbleStyle.Rounded;
+
+    /// <summary>Speech bubbles get a numbered badge (1, 2, 3...), for step-by-step explanations.</summary>
+    public bool BubbleNumbered { get; set; }
+
+    private int _bubbleNextNumber = 1;
+
+    /// <summary>Raised when a speech bubble takes a number (<see cref="BubbleNextNumber"/> changed).</summary>
+    public event Action? BubbleNumberChanged;
+
+    /// <summary>Number of the next numbered speech bubble.</summary>
+    public int BubbleNextNumber
+    {
+        get => _bubbleNextNumber;
+        set { _bubbleNextNumber = Math.Max(1, value); BubbleNumberChanged?.Invoke(); }
+    }
+
+    /// <summary>Speech bubbles are drawn on a "Bubbles" layer at the top, created when needed.</summary>
+    public bool BubbleOwnLayer { get; set; } = true;
 
     /// <summary>Aspect ratio the crop frame is locked to.</summary>
     public CropAspect CropAspect { get; set; } = CropAspect.Wide;
@@ -173,6 +204,15 @@ public interface IKeyboardTool : IEditingTool
     void OnTextInput(ImageDocument document, string text) { }
 }
 
+/// <summary>A tool editing text: the Edit menu's Select All and clipboard commands go to its text.</summary>
+public interface ITextEditingTool : IKeyboardTool
+{
+    void SelectAll(ImageDocument document);
+    Task Copy(Services.IClipboardService clipboard);
+    Task Cut(ImageDocument document, Services.IClipboardService clipboard);
+    Task Paste(ImageDocument document, Services.IClipboardService clipboard);
+}
+
 /// <summary>What a tool draws over the canvas (in image coordinates); the canvas renders it at the current zoom.</summary>
 public sealed record ToolOverlay
 {
@@ -230,6 +270,9 @@ public enum ToolCursor
 
     /// <summary>Over a rotate handle.</summary>
     Rotate,
+
+    /// <summary>Over editable text (I-beam).</summary>
+    Text,
 }
 
 public interface IOverlayTool : ITool

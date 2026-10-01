@@ -42,6 +42,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RecentFiles = recentFiles;
         Tools = ToolViewModel.CreatePaintDotNetTools(ToolSettings, textRasterizer);
         ToolSettings.ColorsChanged += OnColorsChanged;
+        ToolSettings.BubbleNumberChanged += () => OnPropertyChanged(nameof(BubbleNextNumber));
         SelectedTool = Tools.First(t => t.Name == "Rectangle Select");
         _eventsSubscription = events.DocumentEvents.Subscribe(new EventObserver(OnDocumentEvent));
     }
@@ -617,7 +618,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public int CornerRadius
     {
         get => ToolSettings.CornerRadius;
-        set { ToolSettings.CornerRadius = Math.Clamp(value, 0, 1000); OnPropertyChanged(); }
+        set { ToolSettings.CornerRadius = Math.Clamp(value, 0, 1000); OnPropertyChanged(); RefreshEditingTool(); }
     }
 
     public bool GradientTransparency
@@ -687,6 +688,39 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         set { ToolSettings.ShapeStyle = value; OnPropertyChanged(); }
     }
 
+    public static IReadOnlyList<BubbleStyle> BubbleStyles { get; } = Enum.GetValues<BubbleStyle>();
+
+    public BubbleStyle BubbleStyle
+    {
+        get => ToolSettings.BubbleStyle;
+        set
+        {
+            ToolSettings.BubbleStyle = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowBubbleRadius));
+            RefreshEditingTool();
+        }
+    }
+
+    public bool BubbleNumbered
+    {
+        get => ToolSettings.BubbleNumbered;
+        set { ToolSettings.BubbleNumbered = value; OnPropertyChanged(); RefreshEditingTool(); }
+    }
+
+    /// <summary>Number the next numbered bubble gets; set it back to 1 to start a new series.</summary>
+    public int BubbleNextNumber
+    {
+        get => ToolSettings.BubbleNextNumber;
+        set => ToolSettings.BubbleNextNumber = value;
+    }
+
+    public bool BubbleOwnLayer
+    {
+        get => ToolSettings.BubbleOwnLayer;
+        set { ToolSettings.BubbleOwnLayer = value; OnPropertyChanged(); }
+    }
+
     public GradientKind GradientKind
     {
         get => ToolSettings.GradientKind;
@@ -725,6 +759,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShapeKind = settings.ShapeKind;
         ShapeStyle = settings.ShapeStyle;
         GradientKind = settings.GradientKind;
+        BubbleStyle = settings.BubbleStyle;
+        BubbleNumbered = settings.BubbleNumbered;
+        BubbleOwnLayer = settings.BubbleOwnLayer;
         _restoringSettings = true;
         try
         {
@@ -766,6 +803,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShapeKind = ShapeKind,
         ShapeStyle = ShapeStyle,
         GradientKind = GradientKind,
+        BubbleStyle = BubbleStyle,
+        BubbleNumbered = BubbleNumbered,
+        BubbleOwnLayer = BubbleOwnLayer,
         AllowAgents = AllowAgents,
     };
 
@@ -850,8 +890,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         UpdateOverlay();
     }
 
-    private (TextTool Tool, ImageDocument Document)? EditingText =>
-        ActiveDocument is { } d && SelectedTool.Tool is TextTool t && t.IsEditing(d.Document) ? (t, d.Document) : null;
+    private (ITextEditingTool Tool, ImageDocument Document)? EditingText =>
+        ActiveDocument is { } d && SelectedTool.Tool is ITextEditingTool t && t.IsEditing(d.Document) ? (t, d.Document) : null;
 
     /// <summary>What the selected tool draws over the canvas (curve handles, text caret...).</summary>
     [ObservableProperty]
@@ -914,7 +954,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      nameof(ShowSelectionOptions), nameof(ShowToleranceOptions), nameof(ShowBrushOptions),
                      nameof(ShowShapeOptions), nameof(ShowGradientOptions), nameof(ShowColorPickerOptions),
                      nameof(ShowHardnessOptions), nameof(ShowCornerRadiusOptions), nameof(ShowTextOptions),
-                     nameof(ShowCropOptions),
+                     nameof(ShowCropOptions), nameof(ShowBubbleOptions),
                      nameof(BrushOutlineSize),
                  })
             OnPropertyChanged(name);
@@ -927,9 +967,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool ShowHardnessOptions => SelectedTool.IsBrush;
     public bool ShowShapeOptions => SelectedTool.IsShapes;
     public bool ShowCornerRadiusOptions => SelectedTool.IsShapes && ShapeKind == ShapeKind.RoundedRectangle;
+    public bool ShowBubbleRadius => BubbleStyle == BubbleStyle.Rounded;
     public bool ShowGradientOptions => SelectedTool.IsGradient;
     public bool ShowColorPickerOptions => SelectedTool.IsColorPicker;
-    public bool ShowTextOptions => SelectedTool.IsText;
+    public bool ShowTextOptions => SelectedTool.IsText || SelectedTool.IsBubble;
+    public bool ShowBubbleOptions => SelectedTool.IsBubble;
     public bool ShowCropOptions => SelectedTool.Tool is CropTool && !IsTvMode;
 
     // ---- Selection and clipboard ----

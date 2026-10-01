@@ -225,12 +225,36 @@
                     <TextBlock Text="{Binding Tv.Hint}" Foreground="Gray" IsVisible="{Binding !Tv.HasWarning}"
                                TextTrimming="CharacterEllipsis" MaxWidth="520" ToolTip.Tip="{Binding Tv.Hint}" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowBubbleOptions}">
+                    <TextBlock Text="Bubble:" ToolTip.Tip="Press on the subject, drag to where the bubble goes, then type. Click elsewhere for the next bubble." />
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.BubbleStyles}" AutomationProperties.Name="Bubble style" SelectedItem="{Binding BubbleStyle}"
+                              MinWidth="100" Focusable="False">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="Radius:" IsVisible="{Binding ShowBubbleRadius}" />
+                    <NumericUpDown Value="{Binding CornerRadius}" ToolTip.Tip="Corner radius (pixels). Click it, then use the mouse wheel or ↑/↓ keys" AutomationProperties.Name="Bubble corner radius" Minimum="0" Maximum="1000" Increment="1"
+                                   FormatString="0" Width="60" ShowButtonSpinner="False" HorizontalContentAlignment="Right" IsVisible="{Binding ShowBubbleRadius}" />
+                    <TextBlock Text="Outline:" />
+                    <NumericUpDown Value="{Binding BrushWidth}" AutomationProperties.Name="Bubble outline width" Minimum="1" Maximum="50" Increment="1"
+                                   FormatString="0" Width="52" ShowButtonSpinner="False" HorizontalContentAlignment="Right" ToolTip.Tip="Outline width (pixels). Click it, then use the mouse wheel or ↑/↓ keys. Outline and text: primary color; inside: secondary color" />
+                    <CheckBox Content="Numbered" IsChecked="{Binding BubbleNumbered}" Focusable="False"
+                              ToolTip.Tip="Add a numbered badge (1, 2, 3...) to each new bubble" />
+                    <NumericUpDown Value="{Binding BubbleNextNumber}" AutomationProperties.Name="Next bubble number" Minimum="1" Maximum="999" Increment="1"
+                                   FormatString="0" Width="56" ShowButtonSpinner="False" HorizontalContentAlignment="Right" IsVisible="{Binding BubbleNumbered}" ToolTip.Tip="Number of the next bubble. Click it, then use the mouse wheel or ↑/↓ keys" />
+                    <CheckBox Content="Own layer" IsChecked="{Binding BubbleOwnLayer}" Focusable="False"
+                              ToolTip.Tip="Draw bubbles on a &quot;Bubbles&quot; layer at the top (created when needed)" />
+                </StackPanel>
+                <Border Classes="toolbarSeparator" IsVisible="{Binding ShowBubbleOptions}" />
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowTextOptions}">
                     <TextBlock Text="Font:" />
                     <ComboBox x:Name="FontFamilyCombo" AutomationProperties.Name="Font" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}"
                               Width="180" MaxDropDownHeight="400" Focusable="False" />
                     <NumericUpDown Value="{Binding FontSize}" AutomationProperties.Name="Font size" Minimum="1" Maximum="1000" Increment="1"
-                                   FormatString="0" Width="100" ToolTip.Tip="Font size (pixels)" />
+                                   FormatString="0" Width="64" ShowButtonSpinner="False" HorizontalContentAlignment="Right" ToolTip.Tip="Font size (pixels). Click it, then use the mouse wheel or ↑/↓ keys" />
                     <ToggleButton Content="B" FontWeight="Bold" AutomationProperties.Name="Bold" IsChecked="{Binding Bold}" ToolTip.Tip="Bold" Focusable="False" />
                     <ToggleButton Content="I" FontStyle="Italic" AutomationProperties.Name="Italic" IsChecked="{Binding Italic}" ToolTip.Tip="Italic" Focusable="False" />
                     <ToggleButton IsChecked="{Binding Underline}" ToolTip.Tip="Underline" Focusable="False" AutomationProperties.Name="Underline">

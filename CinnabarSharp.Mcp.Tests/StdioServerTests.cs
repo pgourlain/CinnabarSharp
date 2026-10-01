@@ -237,4 +237,13 @@ public class StdioServerTests
         var effects = await server.Call("list_effects");
         Assert.Contains(effects.EnumerateArray(), e => e.Str("name") == "Cartoon" && e.Str("menu") == "Effects › Artistic");
     }
+
+    [Fact]
+    public async Task Speech_bubbles_need_the_app_fonts_in_headless_mode()
+    {
+        await using var server = await McpTestServer.StartAsync();
+        await server.Call("new_image", new { width = 100, height = 80 });
+
+        Assert.Contains("Allow AI Agents", await server.CallError("add_speech_bubble", new { text = "Hi", x = 10, y = 70 }));
+    }
 }

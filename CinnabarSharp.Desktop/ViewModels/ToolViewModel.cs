@@ -24,9 +24,10 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
     public bool IsGradient => Tool is GradientTool;
     public bool IsColorPicker => Tool is ColorPickerTool;
     public bool IsText => Tool is TextTool;
+    public bool IsBubble => Tool is SpeechBubbleTool;
 
     /// <summary>Tools that paint get a crosshair cursor.</summary>
-    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or LineTool or PaintBucketTool or ColorPickerTool or CropTool;
+    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or LineTool or PaintBucketTool or ColorPickerTool or CropTool or SpeechBubbleTool;
 
     public static ToolViewModel[] CreatePaintDotNetTools(ToolSettings settings, ITextRasterizer textRasterizer) =>
     [
@@ -48,6 +49,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
         new("Clone Stamp", "CS", "L", new CloneStampTool(settings)),
         new("Recolor", "Rc", "R", new RecolorTool(settings)),
         new("Text", "Tx", "T", new TextTool(settings, textRasterizer)),
+        new("Speech Bubble", "Bu", "U", new SpeechBubbleTool(settings, textRasterizer)),
         new("Line / Curve", "Ln", "O", new LineTool(settings)),
         new("Shapes", "Sh", "O", new ShapesTool(settings)),
     ];

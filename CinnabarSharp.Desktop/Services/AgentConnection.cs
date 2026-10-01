@@ -16,7 +16,8 @@ namespace CinnabarSharp.Desktop.Services;
 /// MCP attached mode: while enabled, AI agents connected with "CinnabarSharp --mcp --attach" edit the open documents
 /// and the user watches the changes. Edits run on the UI thread and are undoable like the user's own.
 /// </summary>
-public sealed class AgentConnection(IWorkspaceService workspace, IFormatManager formats, ILogger<AgentConnection> logger)
+public sealed class AgentConnection(IWorkspaceService workspace, IFormatManager formats,
+    CinnabarSharp.Core.Tools.ITextRasterizer textRasterizer, ILogger<AgentConnection> logger)
     : IDisposable
 {
     /// <summary>Name of the server in the agent's configuration.</summary>
@@ -63,7 +64,7 @@ public sealed class AgentConnection(IWorkspaceService workspace, IFormatManager 
             return true;
         var folders = AllowedFolders;
         var policy = new FileAccessPolicy(folders.Count > 0 ? folders : [Path.GetTempPath()]);
-        var context = new McpContext(workspace, formats, policy, new UiThreadDispatcher(), attached: true);
+        var context = new McpContext(workspace, formats, policy, new UiThreadDispatcher(), attached: true, textRasterizer);
         _listener = AttachListener.Start(context, SocketPath, logger);
         if (_listener is null)
             return false;

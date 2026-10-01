@@ -41,6 +41,9 @@ public record AppSettings
     public ShapeKind ShapeKind { get; init; }
     public ShapeStyle ShapeStyle { get; init; }
     public GradientKind GradientKind { get; init; }
+    public BubbleStyle BubbleStyle { get; init; } = BubbleStyle.Rounded;
+    public bool BubbleNumbered { get; init; }
+    public bool BubbleOwnLayer { get; init; } = true;
     public bool AllowAgents { get; init; }
 }
 

@@ -1,4 +1,3 @@
-using System.Globalization;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
 
@@ -26,7 +25,7 @@ public interface ITextRasterizer
 /// alignment changes) until it is finished: Escape, a click outside it, another tool, or any other edit.
 /// It is painted into the current layer and recorded as one history step that is updated while editing.
 /// </summary>
-public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) : IKeyboardTool, IOverlayTool
+public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) : ITextEditingTool, IOverlayTool
 {
     private PaintSession? _session;
     private TextEngine _engine = new();
@@ -122,46 +121,19 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
     {
         if (!IsEditing(document))
             return false;
-        var shift = modifiers.HasFlag(ToolModifiers.Shift);
-        // Word-wise moves: Alt on macOS, Ctrl elsewhere; accept both.
-        var word = (modifiers & (ToolModifiers.Command | ToolModifiers.Alt)) != 0;
-        switch (key)
+        switch (TextBlock.HandleKey(_engine, key, modifiers))
         {
-            case ToolKey.Escape:
+            case TextBlock.KeyResult.Escape:
                 Finish(document);
                 return true;
-            case ToolKey.Enter:
-                _engine.PerformEnter();
-                break;
-            case ToolKey.Backspace:
-                _engine.PerformBackspace();
-                break;
-            case ToolKey.Delete:
-                _engine.PerformDelete();
-                break;
-            case ToolKey.Left:
-                _engine.PerformLeft(word, shift);
+            case TextBlock.KeyResult.Edited:
+                Render();
                 return true;
-            case ToolKey.Right:
-                _engine.PerformRight(word, shift);
-                return true;
-            case ToolKey.Up:
-                _engine.PerformUp(shift);
-                return true;
-            case ToolKey.Down:
-                _engine.PerformDown(shift);
-                return true;
-            case ToolKey.Home:
-                _engine.PerformHome(word, shift);
-                return true;
-            case ToolKey.End:
-                _engine.PerformEnd(word, shift);
+            case TextBlock.KeyResult.Moved:
                 return true;
             default:
                 return false;
         }
-        Render();
-        return true;
     }
 
     public void Finish(ImageDocument document)
@@ -207,19 +179,8 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
         if (!IsEditing(document))
             return null;
         var layout = Layout();
-        var caret = CaretPoint(layout, _engine.CurrentPosition);
-        var highlights = new List<RectangleD>();
-        if (_engine.HasSelection)
-        {
-            var start = TextPosition.Min(_engine.CurrentPosition, _engine.SelectionStart);
-            var end = TextPosition.Max(_engine.CurrentPosition, _engine.SelectionStart);
-            for (var line = start.Line; line <= end.Line; line++)
-            {
-                var from = CaretPoint(layout, new TextPosition(line, line == start.Line ? start.Offset : 0));
-                var to = CaretPoint(layout, new TextPosition(line, line == end.Line ? end.Offset : _engine.Lines[line].Length));
-                highlights.Add(new RectangleD(from.X, from.Y, Math.Max(2, to.X - from.X), layout.LineHeight));
-            }
-        }
+        var caret = layout.CaretPoint(_engine.CurrentPosition);
+        var highlights = _engine.HasSelection ? layout.SelectionRects(_engine.CurrentPosition, _engine.SelectionStart) : [];
         var bounds = Bounds(layout);
         return new ToolOverlay
         {
@@ -261,33 +222,9 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
         return new PointD(pivot.X + dx * cos - dy * sin, pivot.Y + dx * sin + dy * cos);
     }
 
-    private sealed record TextLayout(double LineHeight, double[] Widths, double MaxWidth);
+    private TextBlock Layout() => new(_engine.Lines, settings.TextStyle, settings.TextAlignment, rasterizer, _origin);
 
-    private TextLayout Layout()
-    {
-        var style = settings.TextStyle;
-        var widths = _engine.Lines.Select(l => rasterizer.MeasureWidth(l, style)).ToArray();
-        return new TextLayout(rasterizer.LineHeight(style), widths, widths.DefaultIfEmpty(0).Max());
-    }
-
-    private double LineX(TextLayout layout, int line) => _origin.X + settings.TextAlignment switch
-    {
-        TextAlignment.Center => (layout.MaxWidth - layout.Widths[line]) / 2,
-        TextAlignment.Right => layout.MaxWidth - layout.Widths[line],
-        _ => 0,
-    };
-
-    private PointD CaretPoint(TextLayout layout, TextPosition p)
-    {
-        var line = Math.Clamp(p.Line, 0, _engine.LineCount - 1);
-        var text = _engine.Lines[line];
-        var prefix = text[..Math.Clamp(p.Offset, 0, text.Length)];
-        return new PointD(LineX(layout, line) + rasterizer.MeasureWidth(prefix, settings.TextStyle),
-            _origin.Y + line * layout.LineHeight);
-    }
-
-    private RectangleD Bounds(TextLayout layout) =>
-        new(_origin.X, _origin.Y, Math.Max(layout.MaxWidth, 1), layout.LineHeight * _engine.LineCount);
+    private static RectangleD Bounds(TextBlock layout) => layout.Bounds;
 
     private bool Contains(PointD p, double margin)
     {
@@ -296,72 +233,20 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
     }
 
     /// <summary>The caret position closest to an image point.</summary>
-    private TextPosition PositionAt(PointD p)
-    {
-        var layout = Layout();
-        var line = Math.Clamp((int)Math.Floor((p.Y - _origin.Y) / layout.LineHeight), 0, _engine.LineCount - 1);
-        var text = _engine.Lines[line];
-        var x = p.X - LineX(layout, line);
-        var best = 0;
-        var bestDistance = double.MaxValue;
-        foreach (var offset in StringInfo.ParseCombiningCharacters(text).Append(text.Length))
-        {
-            var d = Math.Abs(rasterizer.MeasureWidth(text[..offset], settings.TextStyle) - x);
-            if (d < bestDistance)
-                (best, bestDistance) = (offset, d);
-        }
-        return new TextPosition(line, best);
-    }
+    private TextPosition PositionAt(PointD p) => Layout().PositionAt(p);
 
     private void Render()
     {
         var session = _session!;
         session.Reset();
 
-        var style = settings.TextStyle;
         var layout = Layout();
         var (w, h) = (session.Width, session.Height);
-        var lines = new List<(TextRaster Raster, int X, int Y)>();
-        var region = RectangleI.Zero;
-        for (var i = 0; i < _engine.LineCount; i++)
-        {
-            if (_engine.Lines[i].Length == 0)
-                continue;
-            var raster = rasterizer.RenderLine(_engine.Lines[i], style);
-            var x = (int)Math.Round(LineX(layout, i)) - raster.OriginX;
-            var y = (int)Math.Round(_origin.Y + i * layout.LineHeight) - raster.OriginY;
-            lines.Add((raster, x, y));
-            region = CoverageMask.Union(region, Clip(new RectangleI(x, y, raster.Width, raster.Height), w, h));
-        }
-
+        var (region, coverage) = layout.Rasterize(w, h);
         if (!region.IsEmpty)
         {
-            // Lines don't overlap much, but combine them with "max" like brush dabs.
-            var coverage = new byte[region.Width * region.Height];
-            foreach (var (raster, lx, ly) in lines)
-            {
-                for (var ry = 0; ry < raster.Height; ry++)
-                {
-                    var y = ly + ry - region.Y;
-                    if (y < 0 || y >= region.Height)
-                        continue;
-                    for (var rx = 0; rx < raster.Width; rx++)
-                    {
-                        var x = lx + rx - region.X;
-                        if (x < 0 || x >= region.Width)
-                            continue;
-                        var c = raster.Coverage[ry * raster.Width + rx];
-                        if (!style.Antialias)
-                            c = c >= 128 ? (byte)255 : (byte)0;
-                        ref var cell = ref coverage[y * region.Width + x];
-                        if (c > cell)
-                            cell = c;
-                    }
-                }
-            }
-
             if (_angle != 0)
-                (region, coverage) = Rotate(region, coverage, Pivot(Bounds(layout)), _angle, w, h, style.Antialias);
+                (region, coverage) = Rotate(region, coverage, Pivot(Bounds(layout)), _angle, w, h, layout.Style.Antialias);
 
             if (!region.IsEmpty)
             {
@@ -371,13 +256,6 @@ public sealed class TextTool(ToolSettings settings, ITextRasterizer rasterizer) 
             }
         }
         session.Commit();
-    }
-
-    private static RectangleI Clip(RectangleI r, int w, int h)
-    {
-        int x0 = Math.Clamp(r.X, 0, w), y0 = Math.Clamp(r.Y, 0, h);
-        int x1 = Math.Clamp(r.X + r.Width, 0, w), y1 = Math.Clamp(r.Y + r.Height, 0, h);
-        return x1 > x0 && y1 > y0 ? new RectangleI(x0, y0, x1 - x0, y1 - y0) : RectangleI.Zero;
     }
 
     /// <summary>

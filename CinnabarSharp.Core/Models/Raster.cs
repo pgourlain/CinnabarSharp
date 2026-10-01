@@ -120,7 +120,7 @@ public sealed class CoverageMask(int width, int height)
     }
 
     // Signed distance to a rounded box (negative inside).
-    private static double RoundedBoxDistance(double x, double y, double l, double t, double r, double b, double radius)
+    internal static double RoundedBoxDistance(double x, double y, double l, double t, double r, double b, double radius)
     {
         var hx = (r - l) / 2;
         var hy = (b - t) / 2;
@@ -150,6 +150,15 @@ public sealed class CoverageMask(int width, int height)
         return Paint(cx - rx - half - 1, cy - ry - half - 1, cx + rx + half + 1, cy + ry + half + 1, (x, y) =>
             Edge(half - Math.Abs(EllipseDistance(x - cx, y - cy, rx, ry)), antialias));
     }
+
+    /// <summary>
+    /// Any shape given by its signed distance (negative inside, in pixels) within the box
+    /// [<paramref name="left"/>, <paramref name="right"/>] × [<paramref name="top"/>, <paramref name="bottom"/>];
+    /// <paramref name="inset"/> shrinks it by that many pixels (to fill inside an outline).
+    /// </summary>
+    public RectangleI FillDistance(double left, double top, double right, double bottom,
+        Func<double, double, double> signedDistance, bool antialias, double inset = 0) =>
+        Paint(left - 1, top - 1, right + 1, bottom + 1, (x, y) => Edge(-signedDistance(x, y) - inset, antialias));
 
     /// <summary>Marks every pixel of <paramref name="mask"/> (e.g. a flood fill) as fully covered.</summary>
     public RectangleI Fill(SelectionMask mask)
@@ -283,7 +292,7 @@ public sealed class CoverageMask(int width, int height)
         ((a.X + b.X) / 2, (a.Y + b.Y) / 2, Math.Abs(b.X - a.X) / 2, Math.Abs(b.Y - a.Y) / 2);
 
     // First-order signed distance to an ellipse's outline (negative inside).
-    private static double EllipseDistance(double x, double y, double rx, double ry)
+    internal static double EllipseDistance(double x, double y, double rx, double ry)
     {
         var f = x * x / (rx * rx) + y * y / (ry * ry) - 1;
         var gx = 2 * x / (rx * rx);
