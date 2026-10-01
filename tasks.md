@@ -219,6 +219,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Filters (Vivid, Vivid Warm/Cool, Dramatic, Dramatic Warm/Cool, Mono, Silvertone, Noir) with an intensity slider and thumbnails of the current photo in each style.
 - [x] Before/after comparison: "Hold to compare" in every effect/adjustment dialog shows the original while pressed.
 - [x] Straighten: rotate by −45…45° with automatic zoom so no empty corners appear.
+- [x] Straighten › Auto: detects the tilt of the dominant horizontal/vertical lines (horizon, buildings) and sets the angle.
 - [x] All in Core as effects (`PhotoEffects.cs`, pure C#, cross-OS checksum test); list parameters (`EffectParameter.Choices`) and suggested values (`Effect.SuggestValues`) added to the effect framework.
 
 **Crop and resize for 16:9 TVs (e.g. Samsung TV / The Frame art mode)**

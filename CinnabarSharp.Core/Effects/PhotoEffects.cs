@@ -285,6 +285,99 @@ public sealed class StraightenEffect : Effect
         return Math.Cos(a) + ratio * Math.Sin(a);
     }
 
+    /// <summary>The angle that levels the photo's dominant horizontal/vertical lines (Auto button).</summary>
+    public override IReadOnlyList<double>? SuggestValues(EffectContext context) => [DetectAngle(context)];
+
+    /// <summary>Longer side of the downscaled copy the detection works on.</summary>
+    private const int DetectSize = 512;
+
+    /// <summary>
+    /// Finds the tilt of the photo (horizon, buildings, door frames) and returns the Straighten angle that cancels it,
+    /// rounded to 0.1°; 0 when there are no clear edges. Strong edges are split into horizontal-ish and vertical-ish
+    /// ones by their gradient; for each candidate tilt they are projected across their direction, and the tilt whose
+    /// projection is the most concentrated (edges falling on the same lines) wins: coarse 0.5° steps, then 0.05°.
+    /// </summary>
+    public static double DetectAngle(EffectContext context)
+    {
+        var (px, w, h) = PhotoMath.Downscale(context.Source, context.Width, context.Height, DetectSize);
+        if (w < 8 || h < 8)
+            return 0;
+
+        var luma = new double[w * h];
+        for (var i = 0; i < luma.Length; i++)
+        {
+            var a = px[i * 4 + 3] / 255.0;
+            luma[i] = a * PhotoMath.Luma(px[i * 4 + 2], px[i * 4 + 1], px[i * 4]);
+        }
+
+        // Sobel gradients; keep the strongest edges (top 10%, and not just noise).
+        var edges = new List<(int X, int Y, double Weight, bool Horizontal)>();
+        var magnitudes = new double[w * h];
+        var gradients = new (double Gx, double Gy)[w * h];
+        for (var y = 1; y < h - 1; y++)
+            for (var x = 1; x < w - 1; x++)
+            {
+                double L(int dx, int dy) => luma[(y + dy) * w + x + dx];
+                var gx = L(1, -1) + 2 * L(1, 0) + L(1, 1) - L(-1, -1) - 2 * L(-1, 0) - L(-1, 1);
+                var gy = L(-1, 1) + 2 * L(0, 1) + L(1, 1) - L(-1, -1) - 2 * L(0, -1) - L(1, -1);
+                gradients[y * w + x] = (gx, gy);
+                magnitudes[y * w + x] = Math.Sqrt(gx * gx + gy * gy);
+            }
+        var sorted = magnitudes.Where(m => m > 0).Order().ToArray();
+        if (sorted.Length == 0)
+            return 0;
+        var threshold = Math.Max(40, sorted[(int)(sorted.Length * 0.9)]);
+        for (var y = 1; y < h - 1; y++)
+            for (var x = 1; x < w - 1; x++)
+            {
+                var m = magnitudes[y * w + x];
+                if (m < threshold)
+                    continue;
+                var (gx, gy) = gradients[y * w + x];
+                edges.Add((x, y, m, Math.Abs(gy) > Math.Abs(gx)));
+            }
+        if (edges.Count < 20)
+            return 0;
+
+        // Tilt t (image y down, positive = lines going down to the right) maps to Straighten angle -t.
+        var diagonal = (int)Math.Ceiling(Math.Sqrt((double)w * w + h * h));
+        var bins = new double[2 * (2 * diagonal + 1)];
+        double Score(double degrees)
+        {
+            var t = degrees * Math.PI / 180;
+            var (cos, sin) = (Math.Cos(t), Math.Sin(t));
+            Array.Clear(bins);
+            foreach (var (x, y, weight, horizontal) in edges)
+            {
+                // Distance across the tilted line direction: (cos t, sin t) for horizontal lines, (-sin t, cos t) for vertical.
+                var across = horizontal ? y * cos - x * sin : x * cos + y * sin;
+                bins[(horizontal ? 0 : 2 * diagonal + 1) + (int)Math.Round(across) + diagonal] += weight;
+            }
+            double score = 0;
+            foreach (var b in bins)
+                score += b * b;
+            return score;
+        }
+
+        double Best(double from, double to, double step)
+        {
+            var (best, bestScore) = (0.0, double.MinValue);
+            for (var i = 0; from + i * step <= to + 1e-9; i++)
+            {
+                var degrees = from + i * step;
+                var score = Score(degrees);
+                // Ties go to the smaller tilt: a flat profile means nothing to straighten.
+                if (score > bestScore + 1e-9 || (Math.Abs(score - bestScore) <= 1e-9 && Math.Abs(degrees) < Math.Abs(best)))
+                    (best, bestScore) = (degrees, score);
+            }
+            return best;
+        }
+
+        var coarse = Best(-45, 45, 0.5);
+        var fine = Best(Math.Max(-45, coarse - 0.5), Math.Min(45, coarse + 0.5), 0.05);
+        return Math.Clamp(Math.Round(-fine, 1), -45, 45) + 0.0;
+    }
+
     public override void Render(EffectContext ctx, RectangleI region, byte[] dst, IReadOnlyList<double> values,
         CancellationToken ct)
     {

@@ -154,6 +154,55 @@ public sealed class PhotoEffectsTests
         Assert.Equal(1, StraightenEffect.CoverScale(0, W, H));
     }
 
+    /// <summary>A level scene: sky over ground (horizon) with a dark post and a window frame (verticals).</summary>
+    private static EffectContext Scene(int w, int h)
+    {
+        var px = new byte[w * h * 4];
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var i = (y * w + x) * 4;
+                (byte b, byte g, byte r) c = y < h * 0.55 ? ((byte)220, (byte)170, (byte)110) : ((byte)40, (byte)120, (byte)60);
+                if (x >= w * 0.3 && x < w * 0.33 && y > h * 0.2)
+                    c = (30, 30, 70);
+                if (x >= w * 0.6 && x < w * 0.8 && y >= h * 0.2 && y < h * 0.45)
+                    c = (240, 240, 250);
+                (px[i], px[i + 1], px[i + 2], px[i + 3]) = (c.b, c.g, c.r, 255);
+            }
+        return new EffectContext(px, w, h, ColorBgra.Black, ColorBgra.White);
+    }
+
+    private static EffectContext Tilted(EffectContext scene, double degrees)
+    {
+        var dst = new byte[scene.Source.Length];
+        new StraightenEffect().Render(scene, new RectangleI(0, 0, scene.Width, scene.Height), dst, [degrees],
+            CancellationToken.None);
+        return new EffectContext(dst, scene.Width, scene.Height, ColorBgra.Black, ColorBgra.White);
+    }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(-12)]
+    [InlineData(2.4)]
+    [InlineData(-30)]
+    public void Straighten_auto_finds_the_angle_that_levels_a_tilted_photo(double tilt)
+    {
+        var photo = Tilted(Scene(600, 400), tilt);
+
+        var suggested = new StraightenEffect().SuggestValues(photo)!;
+
+        Assert.Equal(-tilt, suggested[0], 0.3);
+    }
+
+    [Fact]
+    public void Straighten_auto_suggests_zero_for_a_level_or_flat_photo()
+    {
+        Assert.Equal(0, StraightenEffect.DetectAngle(Scene(600, 400)), 0.1);
+        var flat = new byte[100 * 80 * 4];
+        Array.Fill(flat, (byte)128);
+        Assert.Equal(0, StraightenEffect.DetectAngle(new EffectContext(flat, 100, 80, ColorBgra.Black, ColorBgra.White)));
+    }
+
     [Fact]
     public void Tiles_render_the_same_pixels_as_the_whole_image()
     {
