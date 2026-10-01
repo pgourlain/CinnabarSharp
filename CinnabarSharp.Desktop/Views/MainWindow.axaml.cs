@@ -423,6 +423,7 @@ public partial class MainWindow : Window, IViewportService
                 new("_Paste", vm.PasteCommand, G(Key.V)),
                 new("Paste Into New _Layer", vm.PasteIntoNewLayerCommand, G(Key.V, KeyModifiers.Shift)),
                 new("Paste Into New _Image", vm.PasteIntoNewImageCommand, G(Key.V, KeyModifiers.Alt)),
+                new("Paste _Beside…", vm.PasteBesideCommand),
                 MenuSpec.Separator,
                 new("_Erase Selection", vm.EraseSelectionCommand, new KeyGesture(Key.Delete)),
                 new("_Fill Selection", vm.FillSelectionCommand, new KeyGesture(Key.Back)),

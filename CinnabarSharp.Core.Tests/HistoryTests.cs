@@ -95,6 +95,7 @@ public sealed class HistoryTests : BaseTests, IDisposable
         { "Rotate 90° Counter-Clockwise", a => a.RotateImage90(clockwise: false) },
         { "Rotate 180°", a => a.RotateImage180() },
         { "Canvas Size", a => a.ResizeCanvas(new ImageSize(6, 5), Anchor.Center, ColorBgra.Black) },
+        { "Paste Beside", a => a.PasteBeside(new ClipboardImage([9, 9, 9, 255, 9, 9, 9, 255], 1, 2), PasteSide.Left, EdgeAlignment.End, ColorBgra.Black) },
         { "Resize Image", a => a.ResizeImage(new ImageSize(8, 6), ResamplingMode.NearestNeighbor) },
         { "Comic Page", a => a.ReplaceLayerPixels("Comic Page", Enumerable.Repeat((byte)77, 4 * 3 * 4).ToArray()) },
     };

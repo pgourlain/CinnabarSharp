@@ -57,6 +57,9 @@ public interface IDialogService
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 
+    /// <summary>Paste Beside: side and alignment of the pasted image, or null if canceled.</summary>
+    Task<PasteBesideOptions?> ShowPasteBesideAsync(ImageSize current, ImageSize pasted);
+
     /// <summary>Page de BD: photos, page format and layout. Returns true for OK.</summary>
     Task<bool> ShowComicPageAsync(ComicPageViewModel comic);
 

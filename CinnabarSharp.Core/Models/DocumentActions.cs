@@ -360,8 +360,48 @@ public class DocumentActions(ImageDocument document)
             Utility.FromBgra(transform(layer.Surface.ToBgra(), size), newSize.Width, newSize.Height));
     }
 
+    /// <summary>
+    /// Puts <paramref name="image"/> next to the image (left, right, above or below), growing the canvas to fit both, in
+    /// a new layer above the current one that becomes current, with the pasted area selected. Neither image is scaled;
+    /// the new area of the bottom layer gets <paramref name="background"/>, other layers get transparency.
+    /// </summary>
+    public UserLayer PasteBeside(ClipboardImage image, PasteSide side, EdgeAlignment alignment, ColorBgra background)
+    {
+        var from = document.ImageSize;
+        var layout = PasteBesideLayout.For(from, new ImageSize(image.Width, image.Height), side, alignment);
+        var bottom = Layers[0];
+        var resize = ResizeAllLayers("", layout.Size, l => Utility.FromBgra(
+            ImageTransforms.ResizeCanvas(l.Surface.ToBgra(), from, layout.Size, layout.ImageAt,
+                l == bottom ? background : ColorBgra.Transparent),
+            layout.Size.Width, layout.Size.Height));
+
+        var bgra = new byte[Width * Height * 4];
+        var area = PixelRegion.Place(bgra, Width, Height, image.Bgra, image.Width, image.Height,
+            layout.PastedAt.X, layout.PastedAt.Y, composite: false);
+        var layer = Layers.CreateLayer();
+        layer.Surface.Dispose();
+        layer.Surface = Utility.FromBgra(bgra, Width, Height);
+        var index = Layers.CurrentUserLayerIndex + 1;
+        Layers.Insert(layer, index);
+        Layers.SetCurrentUserLayer(layer);
+
+        document.SetSelection(RectangleSelection(area));
+        document.Workspace.Invalidate();
+        History.PushNewItem(new CompoundHistoryItem("Paste Beside",
+        [
+            resize,
+            new AddLayerHistoryItem("", Layers, layer, index),
+            new SelectionHistoryItem("", document, null, document.Selection),
+        ]));
+        return layer;
+    }
+
     /// <summary>Replaces every layer's surface, sets the new size, deselects, and records one undoable step.</summary>
-    private void ReplaceAllLayers(string text, ImageSize newSize, Func<Layer, IImageBuf> create)
+    private void ReplaceAllLayers(string text, ImageSize newSize, Func<Layer, IImageBuf> create) =>
+        History.PushNewItem(ResizeAllLayers(text, newSize, create));
+
+    /// <summary>Same as <see cref="ReplaceAllLayers"/>, returning the step instead of recording it.</summary>
+    private ResizeImageHistoryItem ResizeAllLayers(string text, ImageSize newSize, Func<Layer, IImageBuf> create)
     {
         var sizeBefore = document.ImageSize;
         var selectionBefore = document.Selection;
@@ -371,7 +411,7 @@ public class DocumentActions(ImageDocument document)
         foreach (var (layer, _, after) in surfaces)
             layer.Surface = after;
         document.Resize(newSize);
-        History.PushNewItem(new ResizeImageHistoryItem(text, document, sizeBefore, newSize, surfaces, selectionBefore, null));
+        return new ResizeImageHistoryItem(text, document, sizeBefore, newSize, surfaces, selectionBefore, null);
     }
 
     private SelectionMask RectangleSelection(RectangleI area) =>

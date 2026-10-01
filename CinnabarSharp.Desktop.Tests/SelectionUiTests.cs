@@ -168,6 +168,34 @@ public sealed class SelectionUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Paste_beside_puts_the_clipboard_image_next_to_the_image_in_a_new_layer()
+    {
+        NewImage(300, 200);
+        var blue = ColorBgra.FromBgra(255, 80, 0, 255);
+        _h.Clipboard.Image = new ClipboardImage(
+            Enumerable.Range(0, 120 * 260).SelectMany(_ => new[] { blue.B, blue.G, blue.R, blue.A }).ToArray(), 120, 260);
+        _h.Dialogs.PasteBesideAnswers.Enqueue(new PasteBesideOptions(PasteSide.Left, EdgeAlignment.End));
+
+        await Vm.PasteBesideCommand.ExecuteAsync(null);
+
+        Assert.Equal("420 × 260", Vm.ImageSizeText);
+        Assert.Equal(2, Vm.Layers.Count);
+        Assert.Equal("Move Selected Pixels", Vm.SelectedTool.Name);
+        Assert.Equal("Paste Beside", Vm.History[^1].Text);
+        var doc = Vm.ActiveDocument!.Document;
+        Assert.Equal(new RectangleI(0, 0, 120, 260), doc.Selection!.Bounds);
+        _h.Capture("42-paste-beside");
+
+        // Canceling the dialog changes nothing.
+        await Vm.PasteBesideCommand.ExecuteAsync(null);
+        Assert.Equal("420 × 260", Vm.ImageSizeText);
+
+        Vm.UndoCommand.Execute(null);
+        Assert.Equal("300 × 200", Vm.ImageSizeText);
+        Assert.Single(Vm.Layers);
+    }
+
+    [AvaloniaFact]
     public async Task Paste_with_empty_clipboard_tells_the_user()
     {
         NewImage();

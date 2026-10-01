@@ -8,6 +8,7 @@ namespace CinnabarSharp.Desktop.ViewModels;
 
 public record ResizeImageOptions(ImageSize Size, ResamplingMode Resampling);
 public record CanvasSizeOptions(ImageSize Size, Anchor Anchor);
+public record PasteBesideOptions(PasteSide Side, EdgeAlignment Alignment);
 
 /// <summary>Size by percentage or absolute pixels, keeping the aspect ratio when asked (Paint.NET's dialogs).</summary>
 public abstract partial class SizeDialogViewModel : ViewModelBase
@@ -123,4 +124,40 @@ public partial class CanvasSizeViewModel : SizeDialogViewModel
     private void SetAnchor(Anchor anchor) => Anchor = anchor;
 
     public CanvasSizeOptions? ToOptions() => NewSize is { } size ? new CanvasSizeOptions(size, Anchor) : null;
+}
+
+/// <summary>Paste Beside: which side of the image the clipboard image goes to, and how the shorter one is aligned.</summary>
+public partial class PasteBesideViewModel(ImageSize current, ImageSize pasted) : ViewModelBase
+{
+    public string CurrentSizeText => $"Image: {current.Width} × {current.Height} pixels";
+    public string PastedSizeText => $"Pasted: {pasted.Width} × {pasted.Height} pixels";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ResultSizeText), nameof(StartLabel), nameof(MiddleLabel), nameof(EndLabel))]
+    public partial PasteSide Side { get; set; } = PasteSide.Right;
+
+    [ObservableProperty]
+    public partial EdgeAlignment Alignment { get; set; } = EdgeAlignment.Middle;
+
+    private bool Vertical => Side is PasteSide.Left or PasteSide.Right;
+    public string StartLabel => Vertical ? "Top" : "Left";
+    public string MiddleLabel => Vertical ? "Middle" : "Center";
+    public string EndLabel => Vertical ? "Bottom" : "Right";
+
+    public string ResultSizeText
+    {
+        get
+        {
+            var size = PasteBesideLayout.For(current, pasted, Side, Alignment).Size;
+            return $"New size: {size.Width} × {size.Height} pixels";
+        }
+    }
+
+    [RelayCommand]
+    private void SetSide(PasteSide side) => Side = side;
+
+    [RelayCommand]
+    private void SetAlignment(EdgeAlignment alignment) => Alignment = alignment;
+
+    public PasteBesideOptions ToOptions() => new(Side, Alignment);
 }

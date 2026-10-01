@@ -141,6 +141,11 @@ public class FakeDialogService : IDialogService
     public Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current) =>
         Task.FromResult(CanvasSizeAnswers.TryDequeue(out var a) ? a : null);
 
+    public Queue<PasteBesideOptions?> PasteBesideAnswers { get; } = new();
+
+    public Task<PasteBesideOptions?> ShowPasteBesideAsync(ImageSize current, ImageSize pasted) =>
+        Task.FromResult(PasteBesideAnswers.TryDequeue(out var a) ? a : null);
+
     public Queue<Avalonia.Media.Color?> ColorAnswers { get; } = new();
 
     public Task<Avalonia.Media.Color?> PickColorAsync(string title, Avalonia.Media.Color initial) =>

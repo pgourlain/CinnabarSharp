@@ -71,13 +71,16 @@ public static class ImageTransforms
     }
 
     /// <summary>New canvas of <paramref name="to"/> filled with <paramref name="background"/>, old pixels placed at the anchor.</summary>
-    public static byte[] ResizeCanvas(ReadOnlySpan<byte> src, ImageSize from, ImageSize to, Anchor anchor, ColorBgra background)
+    public static byte[] ResizeCanvas(ReadOnlySpan<byte> src, ImageSize from, ImageSize to, Anchor anchor, ColorBgra background) =>
+        ResizeCanvas(src, from, to, AnchorOffset(from, to, anchor), background);
+
+    /// <summary>New canvas of <paramref name="to"/> filled with <paramref name="background"/>, old pixels placed at <paramref name="at"/>.</summary>
+    public static byte[] ResizeCanvas(ReadOnlySpan<byte> src, ImageSize from, ImageSize to, PointI at, ColorBgra background)
     {
         var dst = new byte[to.Width * to.Height * 4];
         if (background.A != 0)
             for (var i = 0; i < dst.Length; i += 4)
                 (dst[i], dst[i + 1], dst[i + 2], dst[i + 3]) = (background.B, background.G, background.R, background.A);
-        var at = AnchorOffset(from, to, anchor);
         PixelRegion.Place(dst, to.Width, to.Height, src, from.Width, from.Height, at.X, at.Y, composite: false);
         return dst;
     }

@@ -21,7 +21,7 @@ public class StdioServerTests
             "render_preview", "get_history", "undo", "redo", "add_layer", "delete_layer", "move_layer",
             "set_layer_properties", "select_rectangle", "select_ellipse", "magic_wand", "select_all", "deselect",
             "list_effects", "apply_effect", "resize_image", "resize_canvas", "crop", "rotate_image", "prepare_for_tv",
-            "prepare_folder_for_tv", "compose_comic_page",
+            "prepare_folder_for_tv", "compose_comic_page", "place_beside",
         }, tools.ToHashSet());
 
         var resources = (await server.Client.ListResourcesAsync(cancellationToken: Ct)).Select(r => r.Uri).ToList();
@@ -236,6 +236,23 @@ public class StdioServerTests
         Assert.Contains("Unknown layout", await server.CallError("compose_comic_page", new { layout = "spiral" }));
         var effects = await server.Call("list_effects");
         Assert.Contains(effects.EnumerateArray(), e => e.Str("name") == "Cartoon" && e.Str("menu") == "Effects › Artistic");
+    }
+
+    [Fact]
+    public async Task An_image_is_placed_beside_another_in_a_new_layer()
+    {
+        await using var server = await McpTestServer.StartAsync();
+        var first = await server.Call("new_image", new { width = 300, height = 200, background = "#2060A0" });
+        var second = await server.Call("new_image", new { width = 100, height = 250, background = "#A02060" });
+
+        var result = await server.Call("place_beside", new
+        {
+            document = first.Str("id"), source = second.Str("id"), side = "left", alignment = "end",
+        });
+
+        Assert.Equal((400, 250), (result.Int("width"), result.Int("height")));
+        Assert.Equal(2, result.Get("layers").GetArrayLength());
+        Assert.Contains("side", await server.CallError("place_beside", new { source = first.Str("id"), side = "diagonal" }));
     }
 
     [Fact]

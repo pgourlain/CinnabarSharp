@@ -72,7 +72,7 @@ Add the server to `claude_desktop_config.json` (Settings › Developer › Edit 
 | Layers | `add_layer`, `import_layer`, `delete_layer`, `duplicate_layer`, `merge_layer_down`, `flatten`, `move_layer`, `select_layer`, `set_layer_properties` (name, visibility, opacity, blend mode), `flip_layer` |
 | Selection | `select_rectangle`, `select_ellipse`, `magic_wand`, `select_all`, `deselect`, `invert_selection`, `fill_selection`, `erase_selection` |
 | Adjustments and effects | `list_effects`, `apply_effect` (any adjustment, effect or Photo tool, with named parameters), `suggest_effect_values` (the dialog's Auto values) |
-| Image | `resize_image`, `resize_canvas`, `crop` (rectangle, aspect ratio such as `16:9`, or the selection), `rotate_image`, `flip_image` |
+| Image | `resize_image`, `resize_canvas`, `place_beside` (another open image stitched to the left, right, top or bottom, in a new layer, aligned start/middle/end), `crop` (rectangle, aspect ratio such as `16:9`, or the selection), `rotate_image`, `flip_image` |
 | TV | `prepare_for_tv` (2K/4K/8K; crop to fill, fit with plain or blurred borders, or stretch), `prepare_folder_for_tv` |
 | Annotations | `add_speech_bubble` (comic bubble with text pointing at a spot: square, rounded, oval or thought; colors, font size, fixed width, numbered badge; on a "Bubbles" layer by default). Attached mode only: it needs the app's fonts. |
 | Comics | `compose_comic_page` (open images into a comic page: layout, A4/square/16:9, gutter, borders, white or black page; each image framed on its selection or its center, or stretched whole to its panel with `stretch`). The Cartoon effect is available through `apply_effect`. |

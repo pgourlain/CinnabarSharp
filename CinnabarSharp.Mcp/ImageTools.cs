@@ -465,6 +465,28 @@ public sealed class ImageTools(McpContext context)
                 Parse.Color(background, ColorBgra.White));
         });
 
+    [McpServerTool(Name = "place_beside"), Description(
+        "Puts another open image next to this one (left, right, above or below), growing the canvas to fit both, in a " +
+        "new layer. Neither image is scaled; the shorter one is aligned along the shared edge, and the new area of the " +
+        "bottom layer gets the background color. Use it to stitch photos side by side or one above the other.")]
+    public Task<DocumentInfo> PlaceBeside(
+        [Description("Id or name of the open image to place (flattened).")] string source,
+        [Description("Left, Right (default), Top or Bottom.")] string? side = null,
+        [Description("Start (top or left), Middle (default) or End (bottom or right).")] string? alignment = null,
+        [Description("Color of the new area of the bottom layer (default white).")] string? background = null,
+        [Description(DocumentHelp)] string? document = null) =>
+        Edit(document, doc =>
+        {
+            var from = context.Document(source);
+            var (w, h) = (from.ImageSize.Width, from.ImageSize.Height);
+            var pasteSide = Parse.Enum(side, PasteSide.Right, "side");
+            var align = Parse.Enum(alignment, EdgeAlignment.Middle, "alignment");
+            var size = PasteBesideLayout.For(doc.ImageSize, from.ImageSize, pasteSide, align).Size;
+            CheckSize(size.Width, size.Height);
+            var image = new ClipboardImage(from.Layers.GetFlattenedBgra(includeToolLayer: false), w, h);
+            doc.Actions.PasteBeside(image, pasteSide, align, Parse.Color(background, ColorBgra.White));
+        });
+
     [McpServerTool(Name = "crop"), Description(
         "Crops the image. Give a rectangle; or ratio (e.g. \"16:9\") for the largest centered area of that ratio; or " +
         "neither to crop to the selection.")]

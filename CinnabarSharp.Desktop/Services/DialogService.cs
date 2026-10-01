@@ -109,6 +109,9 @@ public class DialogService(Window owner) : IDialogService
     public Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current) =>
         new CanvasSizeWindow { DataContext = new CanvasSizeViewModel(current) }.ShowDialog<CanvasSizeOptions?>(owner);
 
+    public Task<PasteBesideOptions?> ShowPasteBesideAsync(ImageSize current, ImageSize pasted) =>
+        new PasteBesideWindow { DataContext = new PasteBesideViewModel(current, pasted) }.ShowDialog<PasteBesideOptions?>(owner);
+
     public Task<bool> ShowComicPageAsync(ComicPageViewModel comic) =>
         new ComicPageWindow { DataContext = comic }.ShowDialog<bool>(owner);
 

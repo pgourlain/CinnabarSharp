@@ -1127,6 +1127,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         SelectedTool = Tools.First(t => t.Tool is MoveSelectedPixelsTool);
     }
 
+    /// <summary>Puts the clipboard image next to the image (side and alignment from a dialog), growing the canvas.</summary>
+    [RelayCommand(CanExecute = nameof(HasDocument))]
+    private async Task PasteBeside()
+    {
+        if (ActiveDocument is not { } d || Dialogs is null || await ClipboardImageAsync() is not { } image)
+            return;
+        if (await Dialogs.ShowPasteBesideAsync(d.Document.ImageSize, new ImageSize(image.Width, image.Height)) is not { } options)
+            return;
+        EditLayers(a => a.PasteBeside(image, options.Side, options.Alignment, ToolSettings.SecondaryColor));
+        SelectedTool = Tools.First(t => t.Tool is MoveSelectedPixelsTool);
+        FitIfLargerThanViewport(d.Document);
+    }
+
     [RelayCommand]
     private async Task PasteIntoNewImage()
     {
@@ -1756,7 +1769,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      ZoomInCommand, ZoomOutCommand, ActualSizeCommand, BestFitCommand,
                      SaveCommand, SaveAsCommand, CloseCommand,
                      SelectAllCommand, InvertSelectionCommand, EraseSelectionCommand, FillSelectionCommand,
-                     CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand,
+                     CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand, PasteBesideCommand,
                      AutoLevelCommand, BlackAndWhiteCommand, BrightnessContrastCommand, HueSaturationCommand,
                      InvertColorsCommand, LevelsCommand, CurvesCommand, PosterizeCommand, SepiaCommand,
                      RepeatEffectCommand, ApplyEffectCommand,

@@ -101,5 +101,15 @@ public sealed class ImageMenuUiTests : IDisposable
         canvas.Show();
         TestHarness.CaptureWindow(canvas, "62-canvas-size-dialog");
         canvas.Close();
+
+        var besideVm = new PasteBesideViewModel(new ImageSize(1024, 576), new ImageSize(400, 800));
+        var beside = new PasteBesideWindow { DataContext = besideVm };
+        beside.Show();
+        Assert.Equal("New size: 1424 × 800 pixels", besideVm.ResultSizeText); // right (default)
+        besideVm.SetSideCommand.Execute(CinnabarSharp.Core.Models.PasteSide.Bottom);
+        Assert.Equal("New size: 1024 × 1376 pixels", besideVm.ResultSizeText);
+        Assert.Equal("Left", besideVm.StartLabel);
+        TestHarness.CaptureWindow(beside, "63-paste-beside-dialog");
+        beside.Close();
     }
 }

@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        xmlns:m="using:CinnabarSharp.Core.Models"
+        x:Class="CinnabarSharp.Desktop.Views.PasteBesideWindow"
+        x:DataType="vm:PasteBesideViewModel"
+        Title="Paste Beside"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="20" Spacing="12" Width="340">
+        <TextBlock Text="{Binding CurrentSizeText}" Foreground="Gray" />
+        <TextBlock Text="{Binding PastedSizeText}" Foreground="Gray" />
+        <TextBlock Text="Put the pasted image:" FontWeight="SemiBold" />
+        <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4"
+              HorizontalAlignment="Center">
+                <RadioButton Grid.Row="0" Grid.Column="1" GroupName="Side" Content="Top"
+                             Command="{Binding SetSideCommand}" CommandParameter="{x:Static m:PasteSide.Top}"
+                             IsChecked="{Binding Side, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:PasteSide.Top}}" />
+                <RadioButton Grid.Row="1" Grid.Column="0" GroupName="Side" Content="Left"
+                             Command="{Binding SetSideCommand}" CommandParameter="{x:Static m:PasteSide.Left}"
+                             IsChecked="{Binding Side, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:PasteSide.Left}}" />
+                <RadioButton Grid.Row="1" Grid.Column="2" GroupName="Side" Content="Right"
+                             Command="{Binding SetSideCommand}" CommandParameter="{x:Static m:PasteSide.Right}"
+                             IsChecked="{Binding Side, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:PasteSide.Right}}" />
+                <RadioButton Grid.Row="2" Grid.Column="1" GroupName="Side" Content="Bottom"
+                             Command="{Binding SetSideCommand}" CommandParameter="{x:Static m:PasteSide.Bottom}"
+                             IsChecked="{Binding Side, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:PasteSide.Bottom}}" />
+            <Border Grid.Row="1" Grid.Column="1" Width="56" Height="40" Background="#40808080"
+                    BorderBrush="Gray" BorderThickness="1">
+                <TextBlock Text="Image" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+            </Border>
+        </Grid>
+        <TextBlock Text="Align along the edge:" FontWeight="SemiBold" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <RadioButton GroupName="Align" Content="{Binding StartLabel}"
+                         Command="{Binding SetAlignmentCommand}" CommandParameter="{x:Static m:EdgeAlignment.Start}"
+                         IsChecked="{Binding Alignment, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:EdgeAlignment.Start}}" />
+            <RadioButton GroupName="Align" Content="{Binding MiddleLabel}"
+                         Command="{Binding SetAlignmentCommand}" CommandParameter="{x:Static m:EdgeAlignment.Middle}"
+                         IsChecked="{Binding Alignment, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:EdgeAlignment.Middle}}" />
+            <RadioButton GroupName="Align" Content="{Binding EndLabel}"
+                         Command="{Binding SetAlignmentCommand}" CommandParameter="{x:Static m:EdgeAlignment.End}"
+                         IsChecked="{Binding Alignment, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:EdgeAlignment.End}}" />
+        </StackPanel>
+        <TextBlock Text="{Binding ResultSizeText}" />
+        <TextBlock Text="The pasted image goes into a new layer. New area of the bottom layer is filled with the secondary color."
+                   Foreground="Gray" TextWrapping="Wrap" FontSize="12" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>
