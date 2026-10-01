@@ -157,6 +157,36 @@ public sealed class PhotoToolsUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Straighten_auto_levels_a_tilted_horizon()
+    {
+        // Sky over ground, tilted by 6° with Straighten itself.
+        Vm.CreateImage(new NewImageOptions(new ImageSize(300, 200), ColorBgra.White));
+        var px = new byte[300 * 200 * 4];
+        for (var i = 0; i < px.Length; i += 4)
+            (px[i], px[i + 1], px[i + 2], px[i + 3]) = i / 4 / 300 < 110 ? ((byte)220, (byte)170, (byte)110, (byte)255)
+                : ((byte)40, (byte)120, (byte)60, (byte)255);
+        Doc.Actions.ReplaceLayerPixels("Scene", px);
+        _h.Dialogs.EffectAnswer = dialog =>
+        {
+            dialog.Parameters[0].Value = 6;
+            return true;
+        };
+        await Vm.ApplyEffectCommand.ExecuteAsync(Photo<StraightenEffect>());
+
+        double suggested = double.NaN;
+        _h.Dialogs.EffectAnswer = dialog =>
+        {
+            Assert.True(dialog.CanAuto);
+            dialog.AutoCommand.Execute(null);
+            suggested = dialog.Parameters[0].Value;
+            return false;
+        };
+        await Vm.ApplyEffectCommand.ExecuteAsync(Photo<StraightenEffect>());
+
+        Assert.Equal(-6, suggested, 0.3);
+    }
+
+    [AvaloniaFact]
     public void Photo_menu_lists_the_photo_tools()
     {
         var names = EffectCatalog.PhotoTools.Select(e => e.Name).ToList();
