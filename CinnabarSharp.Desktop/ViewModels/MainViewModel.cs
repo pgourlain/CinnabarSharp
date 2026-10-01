@@ -169,6 +169,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(SecondaryColorRgbText));
         OnPropertyChanged(nameof(PrimaryColorDetails));
         OnPropertyChanged(nameof(SecondaryColorDetails));
+        OnPropertyChanged(nameof(PrimaryColorFormats));
+        OnPropertyChanged(nameof(SecondaryColorFormats));
         RefreshEditingTool();
     }
 
@@ -192,6 +194,44 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var hsv = ToAvalonia(c).ToHsv();
         var details = $"Hex {HexText(c)}\n{RgbText(c)}\nHSV {hsv.H:0}°, {hsv.S:P0}, {hsv.V:P0}";
         return c.A == 255 ? details : details + $"\nAlpha {c.A} ({c.A / 255.0:P0})";
+    }
+
+    public IReadOnlyList<ColorFormatLine> PrimaryColorFormats => ColorFormats(ToolSettings.PrimaryColor);
+    public IReadOnlyList<ColorFormatLine> SecondaryColorFormats => ColorFormats(ToolSettings.SecondaryColor);
+
+    /// <summary>One line per text format; plain text so any other application can paste it.</summary>
+    private static ColorFormatLine[] ColorFormats(ColorBgra c)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        double r = c.R / 255.0, g = c.G / 255.0, b = c.B / 255.0;
+        double max = Math.Max(r, Math.Max(g, b)), min = Math.Min(r, Math.Min(g, b)), d = max - min;
+        double h = d == 0 ? 0 : max == r ? 60 * (((g - b) / d % 6 + 6) % 6) : max == g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
+        double l = (max + min) / 2;
+        double sl = d == 0 ? 0 : d / (1 - Math.Abs(2 * l - 1));
+        double sv = max == 0 ? 0 : d / max;
+        var a = (c.A / 255.0).ToString("0.###", inv);
+        bool opaque = c.A == 255;
+        string hex = $"{c.R:X2}{c.G:X2}{c.B:X2}";
+        return
+        [
+            new("Hex", HexText(c)),
+            new("Hex (no #)", hex + (opaque ? "" : c.A.ToString("X2"))),
+            new("0x", $"0x{(opaque ? "" : c.A.ToString("X2"))}{hex}"),
+            new("CSS rgb", opaque ? $"rgb({c.R}, {c.G}, {c.B})" : $"rgba({c.R}, {c.G}, {c.B}, {a})"),
+            new("CSS hsl", opaque
+                ? FormattableString.Invariant($"hsl({h:0}, {sl * 100:0}%, {l * 100:0}%)")
+                : FormattableString.Invariant($"hsla({h:0}, {sl * 100:0}%, {l * 100:0}%, {a})")),
+            new("RGB", $"{c.R}, {c.G}, {c.B}"),
+            new("HSV", FormattableString.Invariant($"{h:0}, {sv * 100:0}%, {max * 100:0}%")),
+            new("RGB 0–1", FormattableString.Invariant($"{r:0.###}, {g:0.###}, {b:0.###}")),
+        ];
+    }
+
+    [RelayCommand]
+    private async Task CopyColorText(string? text)
+    {
+        if (!string.IsNullOrEmpty(text) && Clipboard is not null)
+            await Clipboard.SetTextAsync(text);
     }
 
     [RelayCommand]
