@@ -199,8 +199,9 @@ public sealed class PhotoToolsUiTests : IDisposable
     {
         await OpenSample();
 
+        // No RunJobs here: the effect runs on a pool thread, and its continuation (which ends the busy state) only
+        // runs on this thread, so the state is stable however fast the machine is.
         var running = Vm.RunEffect(Photo<AutoEnhanceEffect>());
-        Dispatcher.UIThread.RunJobs();
         Assert.True(Vm.IsBusy);
         Assert.Equal("Auto-Enhance…", Vm.BusyText);
         var bar = _h.Window.FindControl<ProgressBar>("BusyBar")!;

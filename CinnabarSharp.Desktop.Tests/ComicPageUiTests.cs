@@ -137,11 +137,17 @@ public sealed class ComicPageUiTests : IDisposable
         var (x1, y1) = Center(rects[0]);
         var point = _h.CanvasToWindow(x1 * scale, y1 * scale);
         var before = tool.Contents[0]!.Photo;
-        _h.Window.MouseDown(point, MouseButton.Left);
-        _h.Window.MouseUp(point, MouseButton.Left);
-        _h.Window.MouseDown(point, MouseButton.Left);
-        _h.Window.MouseUp(point, MouseButton.Left);
-        for (var i = 0; i < 100 && ReferenceEquals(before, tool.Contents[0]!.Photo); i++)
+        // Two clicks are a double click only if they come within the double-click time; on a busy CI machine they can
+        // be too far apart, so try again (the queued file is consumed by the first double click that is recognized).
+        for (var attempt = 0; attempt < 5 && _h.Dialogs.FilesToOpen.Count > 0; attempt++)
+        {
+            _h.Window.MouseDown(point, MouseButton.Left);
+            _h.Window.MouseUp(point, MouseButton.Left);
+            _h.Window.MouseDown(point, MouseButton.Left);
+            _h.Window.MouseUp(point, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+        }
+        for (var i = 0; i < 300 && ReferenceEquals(before, tool.Contents[0]!.Photo); i++)
         {
             Dispatcher.UIThread.RunJobs();
             await Task.Delay(10);
