@@ -451,6 +451,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private Task About() => Dialogs?.ShowAboutAsync() ?? Task.CompletedTask;
 
+    /// <summary>Help › Open Log Folder: the folder with log.txt, to send after a problem.</summary>
+    [RelayCommand]
+    private Task OpenLogFolder() => Dialogs?.OpenFolderAsync(AppLog.Folder ?? AppLog.DefaultFolder) ?? Task.CompletedTask;
+
     // ---- View ----
 
     [RelayCommand(CanExecute = nameof(HasDocument))]

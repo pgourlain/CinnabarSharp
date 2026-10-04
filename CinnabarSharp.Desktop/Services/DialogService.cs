@@ -65,8 +65,17 @@ public class DialogService(Window owner) : IDialogService
         return await window.ShowDialog<int?>(owner) == 0;
     }
 
-    public Task ShowErrorAsync(string title, string message) =>
-        new MessageWindow("CinnabarSharp", title, message, ["OK"], defaultIndex: 0, cancelIndex: 0).ShowDialog(owner);
+    public Task ShowErrorAsync(string title, string message)
+    {
+        AppLog.Error("dialog", $"{title}: {message}");
+        return new MessageWindow("CinnabarSharp", title, message, ["OK"], defaultIndex: 0, cancelIndex: 0).ShowDialog(owner);
+    }
+
+    public async Task OpenFolderAsync(string folder)
+    {
+        Directory.CreateDirectory(folder);
+        await owner.Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(folder));
+    }
 
     public async Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>
         await new LayerPropertiesWindow { DataContext = properties }.ShowDialog<bool?>(owner) == true;

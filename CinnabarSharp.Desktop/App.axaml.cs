@@ -26,6 +26,10 @@ public partial class App : Application
     private void OnAboutClick(object? sender, EventArgs e) =>
         Services?.GetRequiredService<MainViewModel>().AboutCommand.Execute(null);
 
+    /// <summary>"Open Log Folder" in the macOS application menu (there is no Help menu there).</summary>
+    private void OnOpenLogFolderClick(object? sender, EventArgs e) =>
+        Services?.GetRequiredService<MainViewModel>().OpenLogFolderCommand.Execute(null);
+
     public override void OnFrameworkInitializationCompleted()
     {
         StartupTrace.Mark("Framework initialized");

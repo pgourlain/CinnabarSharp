@@ -1,5 +1,8 @@
 # Driving CinnabarSharp from AI agents (MCP)
 
+To run the same tools from a text file, without an agent, see [automation.md](automation.md) (`CinnabarSharp --run script.txt`).
+
+
 CinnabarSharp includes a [Model Context Protocol](https://modelcontextprotocol.io) server. With it, Claude Code, Claude Desktop or any other MCP client can open, edit and save images using CinnabarSharp's tools. For example, you can ask the agent to *"make this photo 4K for my TV"* or *"apply sepia to every photo in this folder"*.
 
 The server is part of the app. There is nothing else to install: the same `CinnabarSharp` executable starts the server when you pass `--mcp`.

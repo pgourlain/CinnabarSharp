@@ -51,6 +51,11 @@ jobs:
         shell: bash
         run: packaging/package.sh ${{ matrix.rid }} ${{ steps.version.outputs.value }} artifacts
 
+      # Every MCP tool, every effect and every file format, run on the packaged app: no release with a broken build.
+      - name: Smoke test the packaged app
+        shell: bash
+        run: packaging/smoke-test.sh ${{ matrix.rid }} ${{ steps.version.outputs.value }} artifacts
+
       - uses: actions/upload-artifact@v7
         with:
           name: package-${{ matrix.rid }}

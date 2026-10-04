@@ -1,0 +1,153 @@
+# Smoke test of a CinnabarSharp build: calls every MCP tool at least once and applies every effect, then saves in
+# every format and reopens the files. Run by packaging/smoke-test.sh on the packaged app of each OS (release workflow)
+# and by Mcp.Tests:   CinnabarSharp --run packaging/smoke-test.txt --var samples=<folder with sample1.png and
+# sample1.heic> --var out=<empty folder to write to> --allow <samples> --allow <out>
+# Not here: add_speech_bubble (needs the app's fonts, which headless mode doesn't have).
+# A new tool or effect must be added to this file: Mcp.Tests fails when one is missing.
+
+# ---- Decoding: HEIC and PNG, information, preview
+open_image path=$samples/sample1.heic
+get_image_info includeHistogram=true histogramBins=32
+render_preview maxSize=256
+list_documents
+close_image
+open_image path=$samples/sample1.png
+new_image width=300 height=200 background=white
+list_documents
+
+# ---- Layers (on the new 300 x 200 image)
+add_layer name=Top
+fill_selection color=#FF0000
+duplicate_layer
+set_layer_properties layer=1 name=Copy opacity=0.5 blendMode=Multiply visible=true
+move_layer layer=1 toIndex=0
+select_layer layer=0
+flip_layer direction=horizontal
+import_layer path=$samples/sample1.png
+merge_layer_down
+delete_layer
+flatten
+
+# ---- Selections
+select_rectangle x=10 y=10 width=120 height=80
+select_ellipse x=50 y=40 width=100 height=100 mode=Union
+invert_selection
+fill_selection color=#00FF00
+erase_selection
+deselect
+magic_wand x=5 y=5 tolerance=30
+select_all
+deselect
+
+# ---- Geometry
+resize_image percent=50
+resize_image width=120 height=80 resampling=BestQuality
+resize_canvas width=200 height=140 anchor=Center background=white
+crop x=10 y=10 width=100 height=80
+crop ratio=16:9
+rotate_image degrees=90
+flip_image direction=vertical
+
+# ---- History
+get_history
+undo steps=2
+redo steps=2
+undo
+
+# ---- Effects, each applied to the PNG sample and undone
+close_image discardChanges=true
+open_image path=$samples/sample1.png
+list_effects
+suggest_effect_values effect="Adjust Photo"
+apply_effect effect="Auto-Level"
+undo
+apply_effect effect="Black and White"
+undo
+apply_effect effect="Brightness / Contrast"
+undo
+apply_effect effect="Curves"
+undo
+apply_effect effect="Hue / Saturation"
+undo
+apply_effect effect="Invert Colors"
+undo
+apply_effect effect="Levels"
+undo
+apply_effect effect="Posterize"
+undo
+apply_effect effect="Sepia"
+undo
+apply_effect effect="Gaussian Blur"
+undo
+apply_effect effect="Motion Blur"
+undo
+apply_effect effect="Radial Blur"
+undo
+apply_effect effect="Zoom Blur"
+undo
+apply_effect effect="Glow"
+undo
+apply_effect effect="Sharpen"
+undo
+apply_effect effect="Vignette"
+undo
+apply_effect effect="Add Noise"
+undo
+apply_effect effect="Median"
+undo
+apply_effect effect="Bulge"
+undo
+apply_effect effect="Frosted Glass"
+undo
+apply_effect effect="Pixelate"
+undo
+apply_effect effect="Twist"
+undo
+apply_effect effect="Edge Detect"
+undo
+apply_effect effect="Emboss"
+undo
+apply_effect effect="Relief"
+undo
+apply_effect effect="Cartoon"
+undo
+apply_effect effect="Clouds"
+undo
+apply_effect effect="Mandelbrot Fractal"
+undo
+apply_effect effect="Auto-Enhance"
+undo
+apply_effect effect="Adjust Photo"
+undo
+apply_effect effect="Photo Filter"
+undo
+apply_effect effect="Straighten"
+undo
+apply_effect effect="Gaussian Blur" parameters={"Radius":6}
+apply_effect effect="Hue / Saturation" values=[10,20,0]
+apply_effect effect="Invert Colors" primaryColor=#336699 secondaryColor=white
+select_rectangle x=100 y=100 width=300 height=200
+apply_effect effect="Sepia"
+deselect
+
+# ---- Combining images, TV and comic pages
+open_image path=$samples/sample1.heic
+place_beside source=sample1.png side=Right alignment=Middle background=black
+prepare_for_tv resolution=2K fit=CropToFill background=Black
+prepare_folder_for_tv folder=$samples resolution=2K fit=FitWithBorders background=Black overwrite=true
+compose_comic_page documents=["sample1.png","sample1.heic"] layout="2 columns" format="16:9" gutter=20 borderWidth=6 background=white stretch=false
+
+# ---- Saving in every format and reopening
+save_image path=$out/result.png overwrite=true
+save_image path=$out/result.jpg format=jpeg jpegQuality=80 overwrite=true
+save_image path=$out/result.ora overwrite=true
+export_image path=$out/flat.png overwrite=true
+export_image path=$out/flat.jpg format=jpeg jpegQuality=70 overwrite=true
+close_image discardChanges=true
+open_image path=$out/result.png
+open_image path=$out/result.jpg
+open_image path=$out/result.ora
+open_image path=$out/flat.png
+get_image_info
+list_documents
+close_image discardChanges=true

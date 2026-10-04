@@ -31,6 +31,9 @@ public interface IDialogService
 
     Task ShowErrorAsync(string title, string message);
 
+    /// <summary>Shows a folder in the system's file manager.</summary>
+    Task OpenFolderAsync(string folder);
+
     /// <summary>The dialog edits the layer live; returns true for OK, false for Cancel.</summary>
     Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties);
 

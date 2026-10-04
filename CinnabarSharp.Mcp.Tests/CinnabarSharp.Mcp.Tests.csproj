@@ -26,6 +26,9 @@
 
   <ItemGroup>
     <None Include="..\CinnabarSharp.Core.Tests\Data\SampleFiles\sample1.png" Link="Data\sample1.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CinnabarSharp.Core.Tests\Data\SampleFiles\sample1.heic" Link="Data\sample1.heic" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The script the release workflow runs on each packaged build (see ScriptTests). -->
+    <None Include="..\packaging\smoke-test.txt" Link="Data\smoke-test.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

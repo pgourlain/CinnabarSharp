@@ -156,4 +156,12 @@ public class FakeDialogService : IDialogService
         Errors.Add(title);
         return Task.CompletedTask;
     }
+
+    public List<string> OpenedFolders { get; } = [];
+
+    public Task OpenFolderAsync(string folder)
+    {
+        OpenedFolders.Add(folder);
+        return Task.CompletedTask;
+    }
 }
