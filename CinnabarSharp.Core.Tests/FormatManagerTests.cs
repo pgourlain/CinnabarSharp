@@ -29,6 +29,63 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
     private static IMagickColor<byte> PixelOf(ImageDocument doc, int x, int y) =>
         doc.Layers[0].Surface.GetPixels().GetPixel(x, y).ToColor()!;
 
+    /// <summary>Saving makes the file the document's own, which would count as "already open": close it.</summary>
+    private FileInfo SavedAndClosed(string name)
+    {
+        var file = TempFile(name);
+        var doc = NewRedDocument();
+        _formats.Save(doc, file);
+        _workspace.CloseDocument(doc);
+        return file;
+    }
+
+    [Fact]
+    public async Task Open_async_gives_the_same_document_as_open_and_decodes_without_one()
+    {
+        var file = SavedAndClosed("async.png");
+        var format = _formats.GetFormatForFile(file)!;
+        var before = _workspace.OpenDocuments.Count;
+
+        // The decode half touches no document: it can run on any thread.
+        var decoded = await Task.Run(() => format.Decode(file));
+        Assert.Equal(before, _workspace.OpenDocuments.Count);
+        (decoded as IDisposable)?.Dispose();
+
+        var opened = await _formats.OpenAsync(new FileInfo(file.FullName));
+
+        Assert.Equal(before + 1, _workspace.OpenDocuments.Count);
+        Assert.Same(opened, _workspace.ActiveDocument);
+        Assert.Equal(new ImageSize(6, 4), opened.ImageSize);
+        Assert.Equal(file.FullName, opened.File!.FullName);
+        Assert.Equal(PixelOf(_formats.Open(new FileInfo(file.FullName)), 2, 2).ToHexString(), PixelOf(opened, 2, 2).ToHexString());
+    }
+
+    [Fact]
+    public async Task Open_async_activates_a_file_that_is_already_open()
+    {
+        var file = SavedAndClosed("twice.png");
+        var first = await _formats.OpenAsync(new FileInfo(file.FullName));
+        _workspace.NewDocument(new ImageSize(2, 2), ColorBgra.White);
+
+        var second = await _formats.OpenAsync(new FileInfo(file.FullName));
+
+        Assert.Same(first, second);
+        Assert.Same(first, _workspace.ActiveDocument);
+    }
+
+    [Fact]
+    public async Task Open_async_of_a_cancelled_open_leaves_no_document()
+    {
+        var file = SavedAndClosed("cancel.png");
+        var before = _workspace.OpenDocuments.Count;
+        using var cancel = new CancellationTokenSource();
+        cancel.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _formats.OpenAsync(new FileInfo(file.FullName), cancel.Token));
+
+        Assert.Equal(before, _workspace.OpenDocuments.Count);
+    }
+
     [Theory]
     [InlineData("png")]
     [InlineData("bmp")]

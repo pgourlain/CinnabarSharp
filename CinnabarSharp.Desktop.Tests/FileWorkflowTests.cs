@@ -36,6 +36,19 @@ public sealed class FileWorkflowTests : IDisposable
             TestHarness.PixelAt(frame, _h.CanvasToWindow((x + 0.5) * scale, (y + 0.5) * scale)));
     }
 
+    // performance-tasks.md P5: a large file is decoded in the background; the window stays alive and says so.
+    [AvaloniaFact]
+    public async Task Opening_a_file_shows_the_busy_status_while_it_is_decoded()
+    {
+        var opening = Vm.OpenFileAsync(TestHarness.SampleImage);
+
+        Assert.True(Vm.IsBusy);
+        Assert.Equal("Opening sample1.png…", Vm.BusyText);
+        Assert.True(await opening);
+        Assert.False(Vm.IsBusy);
+        Assert.Equal("sample1.png", Vm.ActiveDocument!.Document.DisplayName);
+    }
+
     [AvaloniaFact]
     public async Task Opening_same_file_twice_keeps_one_tab()
     {

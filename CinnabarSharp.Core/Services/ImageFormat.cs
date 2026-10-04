@@ -38,5 +38,15 @@ public abstract class ImageFormat : IImageImporter, IImageExporter
 
     public abstract void Import(ImageFile file);
 
+    /// <summary>
+    /// The slow, thread-safe half of <see cref="Import(ImageFile)"/> (reading and decoding the file): it touches no
+    /// document, so a caller can run it on a background thread and then call <see cref="Import(ImageFile, object?)"/>
+    /// where events may be raised (the UI thread). Null when the format has nothing to separate (the default).
+    /// </summary>
+    public virtual object? Decode(ImageFile file) => null;
+
+    /// <summary>Creates the document from what <see cref="Decode"/> returned; decodes itself when that was null.</summary>
+    public virtual void Import(ImageFile file, object? decoded) => Import(file);
+
     public abstract void Export(ImageDocument document, ImageFile file);
 }

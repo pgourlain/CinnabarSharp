@@ -335,7 +335,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         try
         {
-            var doc = _formats.Open(file);
+            // Decoded on a background thread (performance-tasks.md P5): the window stays alive, with a busy status.
+            var doc = alreadyOpen
+                ? _formats.Open(file)
+                : await RunBusyAsync($"Opening {file.Name}", _ => _formats.OpenAsync(file));
             RecentFiles.Add(path);
             if (!alreadyOpen)
                 FitIfLargerThanViewport(doc);

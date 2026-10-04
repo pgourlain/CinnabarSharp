@@ -76,13 +76,21 @@ public class MagickImageFormat : ImageFormat
         }
     }
 
-    public override void Import(ImageFile file)
+    public override void Import(ImageFile file) => Import(file, Decode(file));
+
+    public override object? Decode(ImageFile file)
     {
         var img = Utility.OpenImage(file);
         img.AutoOrient();
         // Photos often carry a Display P3 or CMYK profile; the canvas and compositing assume sRGB.
         if (img.GetColorProfile() is not null)
             img.TransformColorSpace(ColorProfiles.SRGB);
+        return img;
+    }
+
+    public override void Import(ImageFile file, object? decoded)
+    {
+        var img = (IMagickImage<byte>)(decoded ?? Decode(file))!;
         var imagesize = new ImageSize((int)img.Width, (int)img.Height);
 
         var doc = _workspaceService.CreateAndActivateDocument(file, SupportedExtensions[0], imagesize);

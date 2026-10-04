@@ -18,6 +18,13 @@ public interface IFormatManager
     /// <summary>Opens the file as a new active document, or activates it if it is already open.</summary>
     ImageDocument Open(ImageFile file);
 
+    /// <summary>
+    /// Same as <see cref="Open"/>, but reads and decodes the file on a background thread (a 12 MP HEIC takes
+    /// seconds) and creates the document where it is awaited, so the events it raises come from the caller's thread.
+    /// For a UI caller, wrap it in something that disables editing meanwhile (<c>MainViewModel.RunBusyAsync</c>).
+    /// </summary>
+    Task<ImageDocument> OpenAsync(ImageFile file, CancellationToken cancellation = default);
+
     /// <summary>The image's pixel size without decoding it, via the matching format's <see cref="ImageFormat.PeekSize"/>;
     /// null if the format isn't recognized or can't tell without a full <see cref="Open"/>.</summary>
     ImageSize? PeekSize(ImageFile file);
@@ -71,6 +78,32 @@ public class FormatManager : IFormatManager
         var format = GetFormatForFile(file)
             ?? throw new NotSupportedException($"'{file.Name}' is not a supported image file.");
         format.Import(file);
+        return _workspace.ActiveDocument;
+    }
+
+    public async Task<ImageDocument> OpenAsync(ImageFile file, CancellationToken cancellation = default)
+    {
+        var existing = _workspace.OpenDocuments.FirstOrDefault(d =>
+            d.File is not null && PathsEqual(d.File.FullName, file.FullName));
+        if (existing is not null)
+        {
+            _workspace.SetActiveDocument(existing);
+            return existing;
+        }
+
+        var format = GetFormatForFile(file)
+            ?? throw new NotSupportedException($"'{file.Name}' is not a supported image file.");
+        var decoded = await Task.Run(() => format.Decode(file), cancellation);
+        try
+        {
+            cancellation.ThrowIfCancellationRequested();
+            format.Import(file, decoded);
+        }
+        catch
+        {
+            (decoded as IDisposable)?.Dispose();
+            throw;
+        }
         return _workspace.ActiveDocument;
     }
 
