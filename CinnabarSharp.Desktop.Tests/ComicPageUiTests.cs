@@ -65,7 +65,7 @@ public sealed class ComicPageUiTests : IDisposable
         Assert.True(Vm.IsComicMode);
         Assert.Equal(3, Vm.Documents.Count);
         Assert.Equal("Comic page", Doc.DisplayName);
-        Assert.Equal(new ImageSize(2480, 3508), Doc.ImageSize); // A4 portrait
+        Assert.Equal(new ImageSize(3840, 2160), Doc.ImageSize); // 16:9 TV 4K, the default page
         Assert.NotNull(Vm.Overlay?.Picture);                  // the page preview
         Assert.False(_h.Window.FindControl<ListBox>("ToolsList")!.IsEffectivelyEnabled); // tools locked while editing the page
 
@@ -83,9 +83,9 @@ public sealed class ComicPageUiTests : IDisposable
 
         // Drag the photo in the first panel, then zoom it.
         var (x1, y1) = Center(rects[0]);
-        Drag(x1, y1, x1 + 300, y1);
+        Drag(x1, y1, x1, y1 + 100); // the wide 16:9 panels crop the photo vertically
         Assert.Equal(0, tool.Selected);
-        Assert.True(tool.Contents[0]!.Center.X < 0.5); // moved right: shows more of its left part
+        Assert.True(tool.Contents[0]!.Center.Y < 0.5); // moved down: shows more of its top part
         Vm.Comic.PanelZoom = 200;
         Assert.Equal(2, tool.Contents[0]!.Zoom);
         _h.Capture("101-comic-page-mode");
@@ -172,7 +172,7 @@ public sealed class ComicPageUiTests : IDisposable
         Assert.Null(tool.Contents[0]);
         Assert.False(comic.PanelHasPhoto);
 
-        comic.SelectedLayout = ComicPageViewModel.Layouts.Single(l => l.Name == "Classic (2 + 1 + 2)");
+        comic.SelectedLayout = comic.Layouts.Single(l => l.Name == "Classic (2 + 1 + 2)");
         Assert.Equal(5, tool.PanelRects.Count);
         Assert.NotNull(tool.Contents[1]); // the blue image stays in panel 2
 
@@ -205,10 +205,52 @@ public sealed class ComicPageUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void Dialog_defaults_to_tv_4k_and_remembers_the_last_choices_with_recent_layouts_first()
+    {
+        var fresh = new ComicPageViewModel([]);
+        Assert.StartsWith(ComicPageViewModel.DefaultFormatName, fresh.SelectedFormat.Name);
+        Assert.Equal(20, fresh.Gutter);
+        Assert.DoesNotContain(fresh.Layouts, l => l.Name == "1 panel");
+
+        fresh.SelectedLayout = fresh.Layouts.Single(l => l.Name == "Classic (2 + 1 + 2)");
+        fresh.SelectedFormat = ComicPageViewModel.Formats.First(f => f.Name.StartsWith("A4 portrait"));
+        fresh.Gutter = 33;
+        var saved = fresh.ToSettings(rememberLayout: true);
+
+        var again = new ComicPageViewModel([], saved);
+        Assert.Equal("Classic (2 + 1 + 2)", again.Layouts[0].Name);
+        Assert.Equal(fresh.SelectedFormat, again.SelectedFormat);
+        Assert.Equal(33, again.Gutter);
+        Assert.Equal(["Classic (2 + 1 + 2)"], again.ToSettings(rememberLayout: false).RecentLayouts);
+    }
+
+    [AvaloniaFact]
+    public void Layout_thumbnails_follow_the_page_proportions()
+    {
+        var comic = new ComicPageViewModel([]);
+        var thumb = comic.Layouts[0];
+        Assert.True(thumb.ThumbnailWidth > thumb.ThumbnailHeight); // 16:9
+        comic.SelectedFormat = ComicPageViewModel.Formats.First(f => f.Name.StartsWith("A4 portrait"));
+        Assert.True(thumb.ThumbnailWidth < thumb.ThumbnailHeight);
+    }
+
+    [AvaloniaFact]
+    public void Panel_photo_choices_have_a_thumbnail_except_the_empty_one()
+    {
+        var comic = new ComicPageViewModel([new ComicSource("red", new BgraImage(
+            Enumerable.Range(0, 200 * 100).SelectMany(_ => new byte[] { 0, 0, 255, 255 }).ToArray(), 200, 100))]);
+
+        Assert.Null(ComicPageViewModel.Empty.Thumbnail);
+        var thumb = comic.PanelChoices.Last().Thumbnail;
+        Assert.NotNull(thumb);
+        Assert.Equal(new Avalonia.PixelSize(48, 24), thumb.PixelSize);
+    }
+
+    [AvaloniaFact]
     public void Dialog_adds_files_orders_photos_and_renders()
     {
         var comic = new ComicPageViewModel([]);
-        Assert.Equal("1 panel", comic.SelectedLayout.Name);
+        Assert.Equal("2 rows", comic.SelectedLayout.Name);
 
         Assert.Equal(1, comic.AddFiles([TestHarness.SampleImage, Path.Combine(_h.TempDir.FullName, "missing.png")]));
         Assert.Equal(2, comic.AddFiles([TestHarness.SampleImage, TestHarness.SampleImage]));

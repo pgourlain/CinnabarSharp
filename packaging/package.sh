@@ -31,6 +31,17 @@ case "$rid" in
       codesign --force --deep --sign - "$app"
     fi
     (cd "$root/$out/$name" && ditto -c -k --keepParent CinnabarSharp.app "$root/$out/$name.zip")
+    # Disk image: the app, a shortcut to Applications and the first-launch instructions (the app is not notarized).
+    if command -v hdiutil >/dev/null; then
+      dmg="$root/$out/$name-dmg"
+      rm -rf "$dmg" "$root/$out/$name.dmg"
+      mkdir -p "$dmg"
+      ditto "$app" "$dmg/CinnabarSharp.app"
+      ln -s /Applications "$dmg/Applications"
+      cp "$root/packaging/macos/ReadMeFirst.txt" "$dmg/Read Me First.txt"
+      hdiutil create -volname "CinnabarSharp" -srcfolder "$dmg" -ov -format UDZO "$root/$out/$name.dmg" >/dev/null
+      rm -rf "$dmg"
+    fi
     ;;
   linux-*)
     dir="$root/$out/$name"
@@ -39,6 +50,7 @@ case "$rid" in
     cp -R "$publish/." "$dir/"
     cp "$root/packaging/linux/cinnabarsharp.desktop" "$dir/"
     cp "$root/packaging/icon-256.png" "$dir/cinnabarsharp.png"
+    chmod +x "$dir/CinnabarSharp"
     tar -C "$root/$out" -czf "$root/$out/$name.tar.gz" "$name"
     ;;
   win-*)

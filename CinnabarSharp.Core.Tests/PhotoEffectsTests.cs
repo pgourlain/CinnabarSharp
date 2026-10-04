@@ -142,6 +142,18 @@ public sealed class PhotoEffectsTests
         Assert.Equal(cast, new PhotoAdjustEffect().SuggestValues(new EffectContext(blue, W, H, ColorBgra.Black, ColorBgra.White)));
     }
 
+    [Theory]
+    [InlineData(0.3)]
+    [InlineData(0.6)]
+    [InlineData(1.0)]
+    [InlineData(1.4)]
+    public void Auto_enhance_never_darkens_a_photo(double gain)
+    {
+        var photo = Photo(gain: gain);
+        Assert.True(MeanLuma(Render(new AutoEnhanceEffect(), photo, [])) >= MeanLuma(photo) - 0.5);
+        Assert.True(AutoEnhanceEffect.Analyze(new EffectContext(photo, W, H, ColorBgra.Black, ColorBgra.White))[PhotoAdjustEffect.Exposure] >= 0);
+    }
+
     [Fact]
     public void Straighten_zooms_so_no_transparent_corners_appear()
     {

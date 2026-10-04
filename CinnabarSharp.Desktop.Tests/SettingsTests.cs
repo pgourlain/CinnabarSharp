@@ -11,6 +11,23 @@ public sealed class SettingsTests : IDisposable
 
     public void Dispose() => _dir.Delete(recursive: true);
 
+    [Fact]
+    public void Comic_page_choices_and_recent_layouts_round_trip_through_json()
+    {
+        var store = new SettingsStore(Path.Combine(_dir.FullName, "settings.json"));
+        store.Save(new AppSettings
+        {
+            ComicPage = new ComicSettings { Format = "Square", Gutter = 12, Border = 3, BlackPage = true, RecentLayouts = ["3 × 3 grid", "2 rows"] },
+        });
+
+        var loaded = store.Load().ComicPage;
+        Assert.Equal("Square", loaded.Format);
+        Assert.Equal(12, loaded.Gutter);
+        Assert.True(loaded.BlackPage);
+        Assert.Equal(["3 × 3 grid", "2 rows"], loaded.RecentLayouts);
+        Assert.Equal(20, new AppSettings().ComicPage.Gutter);
+    }
+
     [AvaloniaFact]
     public void Tool_options_colors_and_window_size_survive_a_restart()
     {

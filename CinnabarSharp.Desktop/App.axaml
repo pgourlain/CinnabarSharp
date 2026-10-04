@@ -4,6 +4,14 @@
              Name="CinnabarSharp"
              RequestedThemeVariant="Default">
 
+    <!-- macOS application menu. Declared here (not in code): without a menu defined when the native menu is built,
+         Avalonia adds its own "About Avalonia" item. Quit, Hide... are appended by Avalonia. -->
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="About CinnabarSharp" Click="OnAboutClick" />
+        </NativeMenu>
+    </NativeMenu.Menu>
+
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />

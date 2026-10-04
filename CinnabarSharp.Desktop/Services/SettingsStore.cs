@@ -1,10 +1,21 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Tools;
 
 namespace CinnabarSharp.Desktop.Services;
+
+/// <summary>Comic page choices remembered between sessions; <see cref="RecentLayouts"/> is most recent first.</summary>
+public record ComicSettings
+{
+    public string? Format { get; init; }
+    public int Gutter { get; init; } = 20;
+    public int Border { get; init; } = 8;
+    public bool BlackPage { get; init; }
+    public List<string> RecentLayouts { get; init; } = [];
+}
 
 /// <summary>Everything remembered between sessions (besides recent files).</summary>
 public record AppSettings
@@ -45,6 +56,7 @@ public record AppSettings
     public bool BubbleNumbered { get; init; }
     public bool BubbleOwnLayer { get; init; } = true;
     public bool AllowAgents { get; init; }
+    public ComicSettings ComicPage { get; init; } = new();
 }
 
 /// <summary>Reads and writes <see cref="AppSettings"/> as JSON in the user's app-data folder; never throws.</summary>

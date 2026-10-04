@@ -1,11 +1,14 @@
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
@@ -49,6 +52,25 @@ public class MainWindowTests
         Assert.True(window.FindControl<TextBlock>("EmptyHint")!.IsVisible);
 
         Capture(window, "01-empty");
+    }
+
+    [AvaloniaFact]
+    public void Active_tab_stays_visible_when_many_images_are_open()
+    {
+        var (window, vm) = Open();
+        window.Width = 600;
+
+        for (var i = 0; i < 15; i++)
+            vm.CreateImage(new NewImageOptions(new ImageSize(40, 30), ColorBgra.White));
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+
+        var tabs = window.FindControl<ListBox>("TabsList")!;
+        var scroller = tabs.GetVisualDescendants().OfType<ScrollViewer>().First();
+        Assert.Equal(ScrollBarVisibility.Auto, scroller.HorizontalScrollBarVisibility);
+        Assert.True(scroller.Extent.Width > scroller.Viewport.Width);
+        // The last document is the active one: its tab must be inside the viewport.
+        Assert.True(scroller.Offset.X > 0);
     }
 
     [AvaloniaFact]

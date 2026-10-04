@@ -2,17 +2,23 @@ using CinnabarSharp.Core.Models;
 
 namespace CinnabarSharp.Core.Photo;
 
-/// <summary>A comic page layout: the panels as rectangles of the page, from 0 to 1 (gutters are added later).</summary>
-public sealed record ComicLayout(string Name, IReadOnlyList<RectangleD> Panels);
+/// <summary>
+/// A comic page layout: the panels as rectangles of the page, from 0 to 1 (gutters are added later).
+/// <paramref name="OverlayPanel"/> is a panel drawn last that grows over its neighbours by
+/// <see cref="ComicPageOptions.Overlap"/>.
+/// </summary>
+public sealed record ComicLayout(string Name, IReadOnlyList<RectangleD> Panels, int? OverlayPanel = null);
 
 /// <summary>A page size for comic pages.</summary>
 public sealed record ComicPageFormat(string Name, ImageSize Size);
 
 /// <summary>
 /// Page, gutter between panels (also the outer margin), panel border and page background. Sizes are in pixels of the
-/// page.
+/// page. <paramref name="Overlap"/> (0.10-0.25 is sensible) is how far the overlay panel of a layout grows over its
+/// neighbours, as a fraction of its own size on each side.
 /// </summary>
-public sealed record ComicPageOptions(ImageSize Page, int Gutter, int BorderWidth, ColorBgra Border, ColorBgra Background);
+public sealed record ComicPageOptions(ImageSize Page, int Gutter, int BorderWidth, ColorBgra Border, ColorBgra Background,
+    double Overlap = 0.15);
 
 /// <summary>
 /// A photo in a panel: <paramref name="Zoom"/> 1 shows the largest part of the photo with the panel's shape, higher
@@ -53,6 +59,18 @@ public static class ComicPage
         [
             .. Enumerable.Range(0, 9).Select(i => R(i % 3 / 3.0, i / 3 / 3.0, 1 / 3.0, 1 / 3.0)),
         ]),
+        // A big photo in the middle (panel 1), the others around it.
+        new("Large centre + surround",
+        [
+            R(0.25, 0.25, 0.5, 0.5),
+            .. Enumerable.Range(0, 16).Where(i => i % 4 is 0 or 3 || i / 4 is 0 or 3)
+                .Select(i => R(i % 4 / 4.0, i / 4 / 4.0, 0.25, 0.25)),
+        ]),
+        // The 3 × 3 grid whose centre photo (panel 5) covers a part of the eight around it.
+        new("3 × 3 + overlapping centre",
+        [
+            .. Enumerable.Range(0, 9).Select(i => R(i % 3 / 3.0, i / 3 / 3.0, 1 / 3.0, 1 / 3.0)),
+        ], OverlayPanel: 4),
     ];
 
     public static IReadOnlyList<ComicPageFormat> Formats { get; } =
@@ -66,17 +84,24 @@ public static class ComicPage
     /// <summary>
     /// The panels in pixels of the page: the gutter separates the panels and is also the margin around them.
     /// </summary>
-    public static IReadOnlyList<RectangleI> PanelRects(ComicLayout layout, ImageSize page, int gutter)
+    public static IReadOnlyList<RectangleI> PanelRects(ComicLayout layout, ImageSize page, int gutter, double overlap = 0)
     {
         const double eps = 1e-6;
         var g = Math.Max(0, gutter);
         var (cw, ch) = (page.Width - 2.0 * g, page.Height - 2.0 * g);
-        return layout.Panels.Select(p =>
+        return layout.Panels.Select((p, index) =>
         {
             var left = g + p.X * cw + (p.X > eps ? g / 2.0 : 0);
             var top = g + p.Y * ch + (p.Y > eps ? g / 2.0 : 0);
             var right = g + (p.X + p.Width) * cw - (p.X + p.Width < 1 - eps ? g / 2.0 : 0);
             var bottom = g + (p.Y + p.Height) * ch - (p.Y + p.Height < 1 - eps ? g / 2.0 : 0);
+            if (index == layout.OverlayPanel && overlap > 0)
+            {
+                // Grows over the neighbours but stays inside the page margin.
+                var (dx, dy) = ((right - left) * overlap, (bottom - top) * overlap);
+                (left, top, right, bottom) = (Math.Max(g, left - dx), Math.Max(g, top - dy),
+                    Math.Min(page.Width - g, right + dx), Math.Min(page.Height - g, bottom + dy));
+            }
             var (x0, y0) = ((int)Math.Round(left), (int)Math.Round(top));
             return new RectangleI(x0, y0, Math.Max(1, (int)Math.Round(right) - x0), Math.Max(1, (int)Math.Round(bottom) - y0));
         }).ToList();
@@ -118,9 +143,10 @@ public static class ComicPage
         var result = new byte[target.Width * target.Height * 4];
         Fill(result, target.Width, new RectangleI(0, 0, target.Width, target.Height), options.Background);
 
-        var rects = PanelRects(layout, page, options.Gutter);
+        var rects = PanelRects(layout, page, options.Gutter, options.Overlap);
         var border = options.BorderWidth <= 0 ? 0 : Math.Max(1, (int)Math.Round(options.BorderWidth * scale));
-        for (var i = 0; i < rects.Count; i++)
+        // The overlay panel goes last so it covers the others.
+        foreach (var i in Enumerable.Range(0, rects.Count).OrderBy(i => i == layout.OverlayPanel ? 1 : 0))
         {
             cancellation.ThrowIfCancellationRequested();
             var r = Scale(rects[i], scale);

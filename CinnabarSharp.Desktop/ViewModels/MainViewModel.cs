@@ -793,6 +793,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ToolSettings.CropAspect = settings.CropAspect;
         JpegQuality = settings.JpegQuality;
         TvOptions = new TvOptions(settings.TvResolution, settings.TvFit, settings.TvBackground);
+        ComicDefaults = settings.ComicPage ?? new();
         Tolerance = settings.Tolerance;
         GlobalFill = settings.GlobalFill;
         SampleImage = settings.SampleImage;
@@ -848,6 +849,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleNumbered = BubbleNumbered,
         BubbleOwnLayer = BubbleOwnLayer,
         AllowAgents = AllowAgents,
+        ComicPage = ComicDefaults,
     };
 
     /// <summary>Selects the next tool with this Paint.NET shortcut letter (pressing S again cycles the select tools).</summary>
@@ -1377,6 +1379,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private ImageDocument? _comicDocument;
 
+    /// <summary>Format, gutter, border, background and recently used layouts of the last comic page.</summary>
+    public ComicSettings ComicDefaults { get; private set; } = new();
+
     [RelayCommand]
     private async Task ComicPage()
     {
@@ -1384,9 +1389,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             return;
         var sources = Documents.Select(d => new ComicSource(d.Document.DisplayName,
             new BgraImage(d.Document.Layers.GetFlattenedBgra(includeToolLayer: false), d.Document.ImageSize.Width, d.Document.ImageSize.Height)));
-        var comic = new ComicPageViewModel(sources);
+        var comic = new ComicPageViewModel(sources, ComicDefaults);
         if (!await Dialogs.ShowComicPageAsync(comic))
             return;
+        ComicDefaults = comic.ToSettings(rememberLayout: false);
 
         var options = comic.Options;
         var page = _workspace.NewDocument(options.Page, options.Background);
@@ -1433,6 +1439,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (Comic is null)
             return;
         var page = _comicDocument;
+        if (!closeDocument)
+            ComicDefaults = Comic.ToSettings(rememberLayout: true);
         Comic = null;
         _comicDocument = null;
         UpdateOverlay();

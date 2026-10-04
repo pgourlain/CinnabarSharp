@@ -38,7 +38,7 @@
         </Grid>
 
         <TextBlock Text="Layout:" FontWeight="SemiBold" />
-        <ListBox ItemsSource="{x:Static vm:ComicPageViewModel.Layouts}" SelectedItem="{Binding SelectedLayout}"
+        <ListBox ItemsSource="{Binding Layouts}" SelectedItem="{Binding SelectedLayout}"
                  AutomationProperties.Name="Layout" Background="Transparent">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -48,7 +48,7 @@
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:ComicLayoutViewModel">
                     <StackPanel Width="82" Spacing="4" ToolTip.Tip="{Binding Name}">
-                        <Border Width="40" Height="54" Background="White" HorizontalAlignment="Center">
+                        <Border Width="{Binding ThumbnailWidth}" Height="{Binding ThumbnailHeight}" Background="White" HorizontalAlignment="Center">
                             <Path Data="{Binding Thumbnail}" Stroke="Black" StrokeThickness="1.5" Fill="#FFE0E0E0" Margin="2" />
                         </Border>
                         <TextBlock Text="{Binding Name}" FontSize="10" TextAlignment="Center" TextWrapping="Wrap" />

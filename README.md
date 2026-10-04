@@ -19,7 +19,7 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Effects**: Gaussian/motion/radial/zoom blur, glow, sharpen, vignette, add noise, median, bulge, frosted glass, pixelate, twist, edge detect, emboss, relief, cartoon (flat colors with black outlines), clouds, Mandelbrot — with live preview and Repeat Last Effect.
 - **Photo menu** (iPhone-like): Auto-Enhance, Adjust Photo (exposure, brilliance, highlights, shadows, contrast, brightness, black point, saturation, vibrance, warmth, tint, sharpness, definition, noise reduction, vignette), filters with thumbnails (Vivid, Dramatic, Mono, Silvertone, Noir…), Straighten (Auto detects the tilt); hold to compare before/after.
 - **Photos for the TV**: crop tool locked to 16:9 (or 4:3, 3:2, 1:1…), Prepare for TV at 2K, 4K or 8K (crop to fill with a 16:9 frame you place on the photo, fit with plain or blurred borders, two portraits side by side), JPEG export with quality and sRGB profile, and a whole folder at once.
-- **Comic pages**: Photo › Comic Page assembles open images or files into a comic page (A4, square or 16:9; 10 layouts; gutters, borders, white or black page); click a panel on the canvas and drag the photo to frame it, zoom it, or swap photos, then apply.
+- **Comic pages**: Photo › Comic Page assembles open images or files into a comic page (A4, square or 16:9, 16:9 4K by default; 11 layouts including a large centre photo and a centre photo overlapping the others; gutters, borders, white or black page, recently used layouts first); click a panel on the canvas and drag the photo to frame it, zoom it, or swap photos (with thumbnails), drag the gutters to resize the panels, then apply.
 - **Image menu**: resize image (resampling choice), canvas size with anchor, rotate, flip, crop to selection.
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
 - **AI agents (MCP)**: Claude Code, Claude Desktop and other MCP clients can open, edit and save images, headless (`CinnabarSharp --mcp`) or in the running app while you watch (`--mcp --attach`). File access is limited to allowed folders, and every edit can be undone. See [docs/mcp.md](docs/mcp.md).
@@ -30,8 +30,9 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 Pre-built packages for Windows, macOS (Apple Silicon and Intel) and Linux are attached to each [release](https://github.com/pgourlain/CinnabarSharp/releases). They are self-contained (no .NET install needed) but not yet signed:
 
 - **Windows**: unzip and run `CinnabarSharp.exe` (SmartScreen may warn: *More info → Run anyway*).
-- **macOS**: unzip and open `CinnabarSharp.app`; the first time, right-click → *Open* (or `xattr -dr com.apple.quarantine CinnabarSharp.app`).
-- **Linux**: extract and run `./CinnabarSharp`.
+- **macOS**: open the `.dmg` and drag `CinnabarSharp.app` to Applications. The app is not notarized, so macOS blocks the first launch (the right-click → *Open* trick no longer works on macOS 15+): open *System Settings › Privacy & Security* and click **Open Anyway**, or run `xattr -dr com.apple.quarantine /Applications/CinnabarSharp.app`. The disk image also contains a *Read Me First* with these steps.
+- **Linux**: extract the `.tar.gz` and run `./CinnabarSharp`.
+- **Arch / Omarchy**: download the `.pkg.tar.zst` of the release and install it with `sudo pacman -U <file>` (menu entry and `cinnabarsharp` command included).
 
 ## Build and run
 

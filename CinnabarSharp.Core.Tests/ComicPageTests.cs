@@ -55,6 +55,41 @@ public sealed class ComicPageTests : BaseTests
         }
     }
 
+    private static byte[] Pixel(BgraImage image, int x, int y) => image.Pixels.AsSpan((y * image.Width + x) * 4, 4).ToArray();
+
+    [Fact]
+    public void The_overlay_panel_covers_its_neighbours_and_gets_the_click_first()
+    {
+        var layout = Layout("3 × 3 + overlapping centre");
+        var options = new ComicPageOptions(new ImageSize(1200, 1200), 0, 0, ColorBgra.Black, ColorBgra.White, Overlap: 0.25);
+        var flat = ComicPage.PanelRects(layout, options.Page, 0);
+        var grown = ComicPage.PanelRects(layout, options.Page, 0, 0.25);
+
+        Assert.Equal(new RectangleI(400, 400, 400, 400), flat[4]);
+        Assert.Equal(new RectangleI(300, 300, 600, 600), grown[4]);
+        Assert.Equal(flat[0], grown[0]);
+
+        var tool = new ComicPageTool(layout, options, []);
+        Assert.Equal(4, tool.PanelAt(new PointD(350, 350))); // over the top-left neighbour's corner
+        Assert.Equal(0, tool.PanelAt(new PointD(100, 100)));
+
+        // Drawn last: the centre colour wins where it overlaps.
+        var red = new BgraImage(Enumerable.Range(0, 4).SelectMany(_ => new byte[] { 0, 0, 255, 255 }).ToArray(), 2, 2);
+        var blue = new BgraImage(Enumerable.Range(0, 4).SelectMany(_ => new byte[] { 255, 0, 0, 255 }).ToArray(), 2, 2);
+        var contents = Enumerable.Range(0, 9).Select(i => (ComicPanelContent?)new ComicPanelContent(i == 4 ? blue : red)).ToList();
+        var page = ComicPage.Compose(layout, options, contents);
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, Pixel(page, 350, 350));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(page, 100, 100));
+    }
+
+    [Fact]
+    public void Large_centre_layout_has_a_big_first_panel_surrounded_by_twelve()
+    {
+        var layout = Layout("Large centre + surround");
+        Assert.Equal(13, layout.Panels.Count);
+        Assert.Equal(new RectangleD(0.25, 0.25, 0.5, 0.5), layout.Panels[0]);
+    }
+
     [Fact]
     public void Visible_area_has_the_panel_shape_zooms_and_stays_in_the_photo()
     {
@@ -217,6 +252,65 @@ public sealed class ComicPageTests : BaseTests
         Drag(tool, doc, (50, 50), (500, 50));
         var area = ComicPage.VisibleArea(400, 100, 85, 80, 1, tool.Contents[0]!.Center);
         Assert.Equal(0, area.X, 6);
+    }
+
+    [Fact]
+    public void Dragging_the_gutter_resizes_the_panels_on_both_sides_and_keeps_a_minimum()
+    {
+        var options = new ComicPageOptions(new ImageSize(1000, 1000), 20, 0, ColorBgra.Black, ColorBgra.White);
+        var doc = NewPage(1000, 1000);
+        var tool = new ComicPageTool(Layout("2 columns"), options, [null, null]);
+        Assert.Equal(ToolCursor.ResizeHorizontal, tool.CursorAt(doc, new PointD(500, 400)));
+        Assert.Equal(ToolCursor.Default, tool.CursorAt(doc, new PointD(250, 400)));
+
+        var changes = 0;
+        tool.Changed += () => changes++;
+        Drag(tool, doc, (500, 400), (308, 400)); // 20 + 0.3 × 960
+        Assert.True(changes > 0);
+        Assert.Equal(0.3, tool.Layout.Panels[0].Width, 3);
+        Assert.Equal(0.3, tool.Layout.Panels[1].X, 3);
+        Assert.Equal(0.7, tool.Layout.Panels[1].Width, 3);
+        Assert.Equal("2 columns", tool.Layout.Name);
+        Assert.Equal(0, tool.Selected); // dragging a gutter doesn't select a panel
+
+        Drag(tool, doc, (308, 400), (0, 400));
+        Assert.Equal(ComicPageTool.MinPanelSize, tool.Layout.Panels[0].Width, 3);
+
+        // Picking the layout again brings the original proportions back.
+        tool.SetLayout(Layout("2 columns"));
+        Assert.Equal(0.5, tool.Layout.Panels[0].Width);
+    }
+
+    [Fact]
+    public void A_divider_only_moves_the_panels_along_its_own_stretch()
+    {
+        var options = new ComicPageOptions(new ImageSize(1000, 1000), 20, 0, ColorBgra.Black, ColorBgra.White);
+        var doc = NewPage(1000, 1000);
+        var tool = new ComicPageTool(Layout("Classic (2 + 1 + 2)"), options, []);
+
+        // The vertical line in the top row (panels 0 and 1); the bottom row (3 and 4) stays.
+        Drag(tool, doc, (500, 150), (308, 150));
+        Assert.Equal(0.3, tool.Layout.Panels[0].Width, 3);
+        Assert.Equal(0.7, tool.Layout.Panels[1].Width, 3);
+        Assert.Equal(0.5, tool.Layout.Panels[3].Width);
+        Assert.Equal(0.5, tool.Layout.Panels[4].X);
+
+        // The line between the rows moves the three rows' edges that touch it.
+        Drag(tool, doc, (200, 20 + 960 / 3.0), (200, 200));
+        Assert.Equal(tool.Layout.Panels[0].Y + tool.Layout.Panels[0].Height, tool.Layout.Panels[2].Y, 6);
+    }
+
+    [Fact]
+    public void The_overlay_follows_the_dividers_of_its_neighbours()
+    {
+        var options = new ComicPageOptions(new ImageSize(1200, 1200), 0, 0, ColorBgra.Black, ColorBgra.White);
+        var doc = NewPage(1200, 1200);
+        var tool = new ComicPageTool(Layout("3 × 3 + overlapping centre"), options, []);
+
+        Drag(tool, doc, (400, 100), (500, 100)); // the first vertical line, in the top row
+        Assert.Equal(500 / 1200.0, tool.Layout.Panels[0].Width, 3);
+        Assert.Equal(500 / 1200.0, tool.Layout.Panels[3].Width, 3); // the whole line goes, even the middle row
+        Assert.Equal(500 / 1200.0, tool.Layout.Panels[4].X, 3);      // so does the overlay's edge
     }
 
     [Fact]

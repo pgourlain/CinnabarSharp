@@ -1,0 +1,36 @@
+# Maintainer: Pierrick Gourlain <pgourlain@hotmail.com>
+# Repackages the self-contained Linux release (no .NET needed) for Arch and derivatives such as Omarchy.
+# The release workflow builds it; by hand: CINNABARSHARP_VERSION=0.5.0 makepkg -f
+# (uses CinnabarSharp-<version>-linux-x64.tar.gz next to this file if present, else downloads the release).
+_version="${CINNABARSHARP_VERSION:?set CINNABARSHARP_VERSION, e.g. 0.5.0}"
+pkgname=cinnabarsharp-bin
+pkgver="${_version//-/_}"
+pkgrel=1
+pkgdesc='Cross-platform image editor inspired by Paint.NET (Avalonia, .NET)'
+arch=('x86_64')
+url='https://github.com/pgourlain/CinnabarSharp'
+license=('MIT')
+depends=('fontconfig' 'libx11' 'libice' 'libsm' 'icu' 'zlib')
+optdepends=('xorg-xwayland: run on Wayland compositors such as Hyprland')
+provides=('cinnabarsharp')
+conflicts=('cinnabarsharp')
+options=('!strip')
+_tarball="CinnabarSharp-$_version-linux-x64.tar.gz"
+if [ -f "$startdir/$_tarball" ]; then
+  source=("$_tarball")
+else
+  source=("$_tarball::$url/releases/download/v$_version/$_tarball")
+fi
+sha256sums=('SKIP')
+
+package() {
+  cd "$srcdir/CinnabarSharp-$_version-linux-x64"
+  install -d "$pkgdir/opt/cinnabarsharp" "$pkgdir/usr/bin"
+  cp -R . "$pkgdir/opt/cinnabarsharp/"
+  rm -f "$pkgdir/opt/cinnabarsharp/cinnabarsharp.desktop" "$pkgdir/opt/cinnabarsharp/cinnabarsharp.png"
+  chmod 755 "$pkgdir/opt/cinnabarsharp/CinnabarSharp"
+  ln -s /opt/cinnabarsharp/CinnabarSharp "$pkgdir/usr/bin/cinnabarsharp"
+  sed 's|^Exec=.*|Exec=cinnabarsharp %F|' cinnabarsharp.desktop |
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/cinnabarsharp.desktop"
+  install -Dm644 cinnabarsharp.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/cinnabarsharp.png"
+}

@@ -594,7 +594,7 @@ public sealed class ImageTools(McpContext context)
         "image named 'Comic page'. Each image fills its panel: its selection if it has one, else its center (or, with " +
         "stretch, the whole image stretched to the panel). Layouts: " +
         "1 panel, 2 rows, 2 columns, 2x2 grid, 3 rows, 1 large + 2 small, 2 small + 1 large, 1 tall + 2 stacked, " +
-        "Classic (2 + 1 + 2), 3x3 grid. Use apply_effect with \"Cartoon\" first for a comic look.")]
+        "Classic (2 + 1 + 2), 3x3 grid, Large centre + surround, 3x3 + overlapping centre. Use apply_effect with \"Cartoon\" first for a comic look.")]
     public Task<DocumentInfo> ComposeComicPage(
         [Description("Ids or names of the images, in panel order; all open images when omitted.")] string[]? documents = null,
         [Description("Layout name; chosen from the number of images when omitted.")] string? layout = null,

@@ -8,6 +8,7 @@ using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using CinnabarSharp.Core.Effects;
 using CinnabarSharp.Desktop.Services;
@@ -100,6 +101,8 @@ public partial class MainWindow : Window, IViewportService
                 Canvas.Cursor = CanvasCursor(vm);
             if (e.PropertyName == nameof(MainViewModel.IsBusy))
                 Cursor = vm.IsBusy ? new Cursor(StandardCursorType.Wait) : null;
+            if (e.PropertyName == nameof(MainViewModel.ActiveDocument) && vm.ActiveDocument is { } active)
+                Dispatcher.UIThread.Post(() => TabsList.ScrollIntoView(active), DispatcherPriority.Loaded);
         };
         BuildMenu(vm);
     }

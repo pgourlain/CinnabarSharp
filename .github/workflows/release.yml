@@ -52,11 +52,47 @@ jobs:
           path: |
             artifacts/*.zip
             artifacts/*.tar.gz
+            artifacts/*.dmg
 
-  release:
+  # Arch / Omarchy package built from the Linux tarball above.
+  arch:
     needs: package
     runs-on: ubuntu-latest
+    container: archlinux:base-devel
     steps:
+      - name: Tools
+        run: pacman -Syu --noconfirm git
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: package-linux-x64
+          path: dist
+
+      - name: Build package
+        shell: bash
+        run: |
+          version="${{ inputs.version || github.ref_name }}"
+          version="${version#v}"
+          useradd -m builder
+          mkdir /home/builder/pkg
+          cp packaging/arch/PKGBUILD "dist/CinnabarSharp-$version-linux-x64.tar.gz" /home/builder/pkg/
+          chown -R builder /home/builder/pkg
+          su builder -c "cd /home/builder/pkg && CINNABARSHARP_VERSION=$version makepkg -f --noconfirm --nodeps"
+          mkdir out && cp /home/builder/pkg/*.pkg.tar.zst out/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-arch
+          path: out/*.pkg.tar.zst
+
+  release:
+    needs: [package, arch]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
       - uses: actions/download-artifact@v8
         with:
           path: dist
@@ -69,8 +105,4 @@ jobs:
           tag="${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}"
           draft="${{ inputs.version && '--draft' || '' }}"
           gh release create "$tag" dist/* --repo "${{ github.repository }}" --title "CinnabarSharp ${tag#v}" \
-            --target "${{ github.sha }}" $draft --notes "Unsigned builds for Windows, macOS (Apple Silicon and Intel) and Linux.
-
-          - **Windows**: unzip and run \`CinnabarSharp.exe\` (SmartScreen may warn: More info → Run anyway).
-          - **macOS**: unzip and open \`CinnabarSharp.app\`. The app is not notarized: the first time, right-click → Open, or run \`xattr -dr com.apple.quarantine CinnabarSharp.app\`.
-          - **Linux**: extract and run \`./CinnabarSharp\`; \`cinnabarsharp.desktop\` and \`cinnabarsharp.png\` can be installed for a menu entry."
+            --target "${{ github.sha }}" $draft --notes-file packaging/release-notes.md

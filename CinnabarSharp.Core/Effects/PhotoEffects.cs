@@ -134,6 +134,19 @@ public sealed class AutoEnhanceEffect : Effect
         CancellationToken ct) =>
         new PhotoAdjustEffect().Render(ctx, region, dst, Analyze(ctx), ct);
 
+    /// <summary>Luma a neutral gray <paramref name="l"/> gets from the tone sliders of <see cref="PhotoAdjustEffect.Render"/>.</summary>
+    private static double ToneLuma(double l, double[] values)
+    {
+        var v = values.Select(x => x / 100).ToArray();
+        var x = Math.Clamp(l * Math.Pow(2, v[PhotoAdjustEffect.Exposure] * 1.5), 0, 1);
+        x += v[PhotoAdjustEffect.Highlights] * 0.35 * PhotoMath.Smoothstep(0.45, 1, x)
+             + v[PhotoAdjustEffect.Shadows] * 0.35 * (1 - PhotoMath.Smoothstep(0, 0.55, x));
+        x = (x - 0.5) * (1 + v[PhotoAdjustEffect.Contrast] * 0.6) + 0.5;
+        x = PhotoMath.Gamma(x, 1 / (1 + v[PhotoAdjustEffect.Brightness] * 0.5));
+        var black = v[PhotoAdjustEffect.BlackPoint] * 0.15;
+        return black > 0 ? (x - black) / (1 - black) : x * (1 + black) - black;
+    }
+
     /// <summary><see cref="PhotoAdjustEffect"/> values that correct the photo; all zero for a balanced one.</summary>
     public static double[] Analyze(EffectContext ctx)
     {
@@ -170,8 +183,8 @@ public sealed class AutoEnhanceEffect : Effect
         }
         var (p1, p5, median, p95, p99) = (Percentile(0.01), Percentile(0.05), Percentile(0.5), Percentile(0.95), Percentile(0.99));
 
-        // Exposure: bring the median towards 0.45, at most ±0.6 stop.
-        var stops = Math.Clamp(Math.Log2(0.45 / Math.Max(median, 0.02)), -0.6, 0.6);
+        // Exposure: bring the median towards 0.45, at most +0.6 stop. Auto-Enhance never darkens a photo.
+        var stops = Math.Clamp(Math.Log2(0.45 / Math.Max(median, 0.02)), 0, 0.6);
         v[PhotoAdjustEffect.Exposure] = Math.Abs(stops) < 0.1 ? 0 : stops / 1.5 * 100;
         // Recover highlights that are clipped, open shadows that are blocked.
         if (p99 > 0.97)
@@ -200,6 +213,38 @@ public sealed class AutoEnhanceEffect : Effect
             v[PhotoAdjustEffect.Vibrance] = Math.Min(30, (0.25 - chroma) * 150);
         for (var i = 0; i < v.Length; i++)
             v[i] = Math.Round(v[i]);
+
+        // The corrections above (black point, contrast, highlights, white balance) can darken the photo: undo that,
+        // checking the mean and the median luma as the Render pass will produce them.
+        double WhiteBalanceFactor()
+        {
+            var (w, t) = (v[PhotoAdjustEffect.Warmth] / 100, v[PhotoAdjustEffect.Tint] / 100);
+            var after = PhotoMath.Luma(
+                mr * (1 + PhotoAdjustEffect.WarmthGain * w + PhotoAdjustEffect.TintGain / 2 * t),
+                mg * (1 - PhotoAdjustEffect.TintGain * t),
+                mb * (1 - PhotoAdjustEffect.WarmthGain * w + PhotoAdjustEffect.TintGain / 2 * t));
+            return after / Math.Max(PhotoMath.Luma(mr, mg, mb), 1e-6);
+        }
+        var meanLuma = 0.0;
+        for (var i = 0; i < 256; i++)
+            meanLuma += histogram[i] * (i / 255.0);
+        meanLuma /= count;
+        bool Darker()
+        {
+            var factor = WhiteBalanceFactor();
+            var mean = 0.0;
+            for (var i = 0; i < 256; i++)
+                mean += histogram[i] * Math.Clamp(ToneLuma(i / 255.0, v) * factor, 0, 1);
+            return mean / count < meanLuma - 0.002 || Math.Clamp(ToneLuma(median, v) * factor, 0, 1) < median - 0.002;
+        }
+        if (Darker())
+            v[PhotoAdjustEffect.BlackPoint] = 0;
+        if (Darker())
+            v[PhotoAdjustEffect.Contrast] = 0;
+        if (Darker())
+            v[PhotoAdjustEffect.Highlights] = 0;
+        while (Darker() && v[PhotoAdjustEffect.Brightness] < 100)
+            v[PhotoAdjustEffect.Brightness]++;
         return v;
     }
 }

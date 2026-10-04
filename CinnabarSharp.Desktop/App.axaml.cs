@@ -21,6 +21,10 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
+    /// <summary>"About CinnabarSharp" in the macOS application menu (declared in App.axaml).</summary>
+    private void OnAboutClick(object? sender, EventArgs e) =>
+        Services?.GetRequiredService<MainViewModel>().AboutCommand.Execute(null);
+
     public override void OnFrameworkInitializationCompleted()
     {
         Services = AppServices.Build();
@@ -52,12 +56,6 @@ public partial class App : Application
                 foreach (var file in files)
                     await vm.OpenFileAsync(file);
             };
-
-            // macOS application menu (next to the Apple menu).
-            NativeMenu.SetMenu(this, new NativeMenu
-            {
-                new NativeMenuItem("About CinnabarSharp") { Command = vm.AboutCommand },
-            });
         }
 
         base.OnFrameworkInitializationCompleted();
