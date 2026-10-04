@@ -1,3 +1,4 @@
+using CinnabarSharp.Desktop.Services;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -12,6 +13,7 @@ public partial class ComicPageWindow : Window
     public ComicPageWindow()
     {
         InitializeComponent();
+        DialogSizing.FitToScreen(this);
     }
 
     private async void OnAddImages(object? sender, RoutedEventArgs e)

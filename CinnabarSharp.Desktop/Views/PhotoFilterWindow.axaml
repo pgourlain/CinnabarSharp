@@ -17,6 +17,7 @@
                 </StackPanel>
             </DockPanel>
         </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="20,16,20,20" Spacing="12" Width="560">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
             <ListBox x:Name="PresetList" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}"
@@ -50,5 +51,6 @@
                 <TextBlock Text="Computing…" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" VerticalAlignment="Center" />
             </StackPanel>
         </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </Window>

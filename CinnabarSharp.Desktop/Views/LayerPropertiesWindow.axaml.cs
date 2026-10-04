@@ -1,3 +1,4 @@
+using CinnabarSharp.Desktop.Services;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
@@ -9,6 +10,7 @@ public partial class LayerPropertiesWindow : Window
     public LayerPropertiesWindow()
     {
         InitializeComponent();
+        DialogSizing.FitToScreen(this);
         Opened += (_, _) =>
         {
             NameInput.Focus();

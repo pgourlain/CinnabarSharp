@@ -13,6 +13,7 @@
                 <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
             </StackPanel>
         </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="20,16,20,20" Spacing="12" Width="560">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
             <TextBlock Text="Photos, in the order of the panels:" FontWeight="SemiBold" />
@@ -67,5 +68,6 @@
 
             <TextBlock Text="Next, click a panel on the page and drag the photo to frame it." Foreground="{DynamicResource CinnabarTextSecondaryBrush}" TextWrapping="Wrap" />
         </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </Window>

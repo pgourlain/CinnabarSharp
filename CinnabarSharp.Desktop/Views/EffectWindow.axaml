@@ -22,9 +22,9 @@
                 </StackPanel>
             </DockPanel>
         </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="20,16,20,20" Spacing="14" Width="460">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
-            <ScrollViewer MaxHeight="620" HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl ItemsSource="{Binding Parameters}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:EffectParameterViewModel">
@@ -44,11 +44,11 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </ScrollViewer>
             <StackPanel x:Name="ComputingRow" Orientation="Horizontal" Spacing="8" IsVisible="{Binding Computing}">
                 <ProgressBar Width="120" IsIndeterminate="True" />
                 <TextBlock Text="Computing…" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" VerticalAlignment="Center" />
             </StackPanel>
         </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </Window>

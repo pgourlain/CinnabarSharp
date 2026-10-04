@@ -1,3 +1,4 @@
+using CinnabarSharp.Desktop.Services;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using CinnabarSharp.Desktop.ViewModels;
@@ -9,6 +10,7 @@ public partial class PasteBesideWindow : Window
     public PasteBesideWindow()
     {
         InitializeComponent();
+        DialogSizing.FitToScreen(this);
     }
 
     private void OnOk(object? sender, RoutedEventArgs e)

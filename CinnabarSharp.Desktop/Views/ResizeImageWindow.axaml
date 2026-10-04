@@ -14,6 +14,7 @@
                 <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
             </StackPanel>
         </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="20,16,20,20" Spacing="12" Width="340">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
             <TextBlock Text="{Binding CurrentSizeText, StringFormat=Current size: {0}}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
@@ -45,5 +46,6 @@
                         </ComboBox>
             </StackPanel>
         </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </Window>

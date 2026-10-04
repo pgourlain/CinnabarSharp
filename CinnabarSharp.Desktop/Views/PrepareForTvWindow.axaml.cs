@@ -1,3 +1,4 @@
+using CinnabarSharp.Desktop.Services;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
@@ -9,6 +10,7 @@ public partial class PrepareForTvWindow : Window
     public PrepareForTvWindow()
     {
         InitializeComponent();
+        DialogSizing.FitToScreen(this);
     }
 
     private void OnOk(object? sender, RoutedEventArgs e) => Close(true);

@@ -1,3 +1,4 @@
+using CinnabarSharp.Desktop.Services;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using CinnabarSharp.Desktop.ViewModels;
@@ -9,6 +10,7 @@ public partial class NewImageWindow : Window
     public NewImageWindow()
     {
         InitializeComponent();
+        DialogSizing.FitToScreen(this);
         Opened += (_, _) => WidthInput.Focus();
     }
 

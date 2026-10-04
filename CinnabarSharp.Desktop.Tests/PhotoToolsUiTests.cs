@@ -1,3 +1,6 @@
+using Avalonia;
+using Avalonia.VisualTree;
+using CinnabarSharp.Desktop.Services;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -119,6 +122,25 @@ public sealed class PhotoToolsUiTests : IDisposable
         var px = Pixel();
         Assert.True(px[0] == px[1] && px[1] == px[2], string.Join(",", px));
         Assert.Equal("Photo Filter", Vm.History[^1].Text);
+    }
+
+    // 200 % on a 1920 × 1080 screen: 540 logical pixels. Adjust Photo is taller than that; its content scrolls and
+    // the buttons stay on screen.
+    [AvaloniaFact]
+    public async Task Adjust_photo_fits_a_screen_of_540_logical_pixels()
+    {
+        await OpenSample();
+        var adjust = new EffectWindow { DataContext = new EffectDialogViewModel(new EffectSession(Doc, Photo<PhotoAdjustEffect>())) };
+        adjust.Show();
+        DialogSizing.Apply(adjust, 540); // after Opened, which applied the real (headless) screen
+        Dispatcher.UIThread.RunJobs();
+        TestHarness.CaptureWindow(adjust, "81-adjust-photo-540");
+
+        Assert.True(adjust.Bounds.Height <= 540 - 72 + 1, $"{adjust.Bounds.Height}");
+        var ok = adjust.FindControl<Button>("OkButton")!;
+        var bottom = ok.TranslatePoint(new Point(0, ok.Bounds.Height), adjust)!.Value.Y;
+        Assert.True(bottom <= adjust.Bounds.Height, "OK is below the window");
+        adjust.Close();
     }
 
     [AvaloniaFact]

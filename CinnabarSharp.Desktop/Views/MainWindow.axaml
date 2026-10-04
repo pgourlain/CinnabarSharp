@@ -176,6 +176,8 @@
 
         <!-- Tool options (Paint.NET shows these under the toolbar) -->
         <Border DockPanel.Dock="Top" Classes="panel" Padding="8,0" Height="40" IsEnabled="{Binding IsIdle}">
+            <!-- Scrolls sideways when the options do not fit (a 200 % screen leaves 960 logical pixels). -->
+            <ScrollViewer x:Name="OptionsScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
             <Panel>
             <!-- Page de BD: page and selected-panel options while the page is edited on the canvas -->
             <StackPanel Classes="toolOptions" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsComicMode}">
@@ -373,6 +375,7 @@
                 </StackPanel>
             </StackPanel>
             </Panel>
+            </ScrollViewer>
         </Border>
 
         <!-- Status bar -->
@@ -558,8 +561,92 @@
             <GridSplitter Grid.Column="2" ResizeDirection="Columns" />
 
             <!-- Panels: Layers, History, Colors -->
-            <DockPanel Grid.Column="3">
-                <Border DockPanel.Dock="Bottom" Classes="panel" BorderThickness="0,1,0,0">
+            <!-- Layers get twice the height of History; Colors keep theirs. On a short window (a 200 % screen) both shrink
+                 instead of squeezing the layer list to nothing. -->
+            <Grid Grid.Column="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*" MinHeight="170" />
+                    <RowDefinition Height="*" MinHeight="90" MaxHeight="200" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Classes="panel" BorderThickness="0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="Layers" />
+                        <WrapPanel DockPanel.Dock="Bottom" Classes="layerButtons" Orientation="Horizontal"
+                                   ItemSpacing="4" LineSpacing="4" Margin="0,8,0,0">
+                            <Button Command="{Binding AddNewLayerCommand}" ToolTip.Tip="Add new layer" AutomationProperties.Name="Add">
+                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+                                    <Path Data="M12,5 L12,19 M5,12 L19,12" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </Canvas></Viewbox>
+                            </Button>
+                            <Button Command="{Binding DeleteLayerCommand}" ToolTip.Tip="Delete layer" AutomationProperties.Name="Del">
+                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+                                    <Path Data="M5,7 L19,7 M9,7 L9,4 L15,4 L15,7 M7,7 L8,20 L16,20 L17,7 M10,11 L10,16 M14,11 L14,16" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </Canvas></Viewbox>
+                            </Button>
+                            <Button Command="{Binding DuplicateLayerCommand}" ToolTip.Tip="Duplicate layer" AutomationProperties.Name="Dup">
+                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+                                    <Path Data="M8,8 L19,8 L19,19 L8,19 Z M5,15 L5,5 L15,5" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </Canvas></Viewbox>
+                            </Button>
+                            <Button Command="{Binding MoveLayerUpCommand}" ToolTip.Tip="Move layer up" AutomationProperties.Name="Up">
+                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+                                    <Path Data="M12,19 L12,5 M6,11 L12,5 L18,11" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </Canvas></Viewbox>
+                            </Button>
+                            <Button Command="{Binding MoveLayerDownCommand}" ToolTip.Tip="Move layer down" AutomationProperties.Name="Down">
+                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+                                    <Path Data="M12,5 L12,19 M6,13 L12,19 L18,13" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </Canvas></Viewbox>
+                            </Button>
+                            <Button Command="{Binding MergeLayerDownCommand}" ToolTip.Tip="Merge layer down" AutomationProperties.Name="Merge">
+                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+                                    <Path Data="M5,5 L12,12 L19,5 M12,12 L12,16 M6,19 L18,19 M12,16 L8,19 M12,16 L16,19" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </Canvas></Viewbox>
+                            </Button>
+                            <Button Command="{Binding LayerPropertiesCommand}" ToolTip.Tip="Layer properties (F4)" AutomationProperties.Name="Properties">
+                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+                                    <Path Data="M4,7 L20,7 M4,12 L20,12 M4,17 L20,17 M9,5 L9,9 M15,10 L15,14 M8,15 L8,19" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </Canvas></Viewbox>
+                            </Button>
+                        </WrapPanel>
+                        <ListBox x:Name="LayersList" AutomationProperties.Name="Layers" ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:LayerViewModel">
+                                    <DockPanel>
+                                        <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsVisible}"
+                                                  AutomationProperties.Name="{Binding Name, StringFormat=Show {0}}"
+                                                  ToolTip.Tip="Visible" MinWidth="0" />
+                                        <Border DockPanel.Dock="Left" Width="44" Height="44" Margin="0,0,8,0"
+                                                Background="#FFCCCCCC" BorderBrush="Gray" BorderThickness="1">
+                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform"
+                                                   RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Details}" FontSize="11" Foreground="{DynamicResource CinnabarTextSecondaryBrush}"
+                                                       IsVisible="{Binding Details, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+                <Border Grid.Row="1" Classes="panel" BorderThickness="0,1,0,0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="History" />
+                        <ListBox x:Name="HistoryList" Classes="history" AutomationProperties.Name="History" ItemsSource="{Binding History}"
+                                 SelectedItem="{Binding SelectedHistoryItem}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:HistoryItemViewModel">
+                                    <TextBlock Text="{Binding Text}" Opacity="{Binding Opacity}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+                <Border Grid.Row="2" Classes="panel" BorderThickness="0,1,0,0">
                     <StackPanel>
                         <TextBlock Classes="panelTitle" Text="Colors" />
                         <StackPanel Orientation="Horizontal" Spacing="12">
@@ -650,86 +737,7 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-
-                <Border DockPanel.Dock="Bottom" Classes="panel" BorderThickness="0,1,0,0" Height="160">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="History" />
-                        <ListBox x:Name="HistoryList" Classes="history" AutomationProperties.Name="History" ItemsSource="{Binding History}"
-                                 SelectedItem="{Binding SelectedHistoryItem}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:HistoryItemViewModel">
-                                    <TextBlock Text="{Binding Text}" Opacity="{Binding Opacity}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
-                </Border>
-
-                <Border Classes="panel" BorderThickness="0">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="Layers" />
-                        <WrapPanel DockPanel.Dock="Bottom" Classes="layerButtons" Orientation="Horizontal"
-                                   ItemSpacing="4" LineSpacing="4" Margin="0,8,0,0">
-                            <Button Command="{Binding AddNewLayerCommand}" ToolTip.Tip="Add new layer" AutomationProperties.Name="Add">
-                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
-                                    <Path Data="M12,5 L12,19 M5,12 L19,12" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
-                                </Canvas></Viewbox>
-                            </Button>
-                            <Button Command="{Binding DeleteLayerCommand}" ToolTip.Tip="Delete layer" AutomationProperties.Name="Del">
-                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
-                                    <Path Data="M5,7 L19,7 M9,7 L9,4 L15,4 L15,7 M7,7 L8,20 L16,20 L17,7 M10,11 L10,16 M14,11 L14,16" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
-                                </Canvas></Viewbox>
-                            </Button>
-                            <Button Command="{Binding DuplicateLayerCommand}" ToolTip.Tip="Duplicate layer" AutomationProperties.Name="Dup">
-                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
-                                    <Path Data="M8,8 L19,8 L19,19 L8,19 Z M5,15 L5,5 L15,5" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
-                                </Canvas></Viewbox>
-                            </Button>
-                            <Button Command="{Binding MoveLayerUpCommand}" ToolTip.Tip="Move layer up" AutomationProperties.Name="Up">
-                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
-                                    <Path Data="M12,19 L12,5 M6,11 L12,5 L18,11" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
-                                </Canvas></Viewbox>
-                            </Button>
-                            <Button Command="{Binding MoveLayerDownCommand}" ToolTip.Tip="Move layer down" AutomationProperties.Name="Down">
-                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
-                                    <Path Data="M12,5 L12,19 M6,13 L12,19 L18,13" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
-                                </Canvas></Viewbox>
-                            </Button>
-                            <Button Command="{Binding MergeLayerDownCommand}" ToolTip.Tip="Merge layer down" AutomationProperties.Name="Merge">
-                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
-                                    <Path Data="M5,5 L12,12 L19,5 M12,12 L12,16 M6,19 L18,19 M12,16 L8,19 M12,16 L16,19" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
-                                </Canvas></Viewbox>
-                            </Button>
-                            <Button Command="{Binding LayerPropertiesCommand}" ToolTip.Tip="Layer properties (F4)" AutomationProperties.Name="Properties">
-                                <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
-                                    <Path Data="M4,7 L20,7 M4,12 L20,12 M4,17 L20,17 M9,5 L9,9 M15,10 L15,14 M8,15 L8,19" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
-                                </Canvas></Viewbox>
-                            </Button>
-                        </WrapPanel>
-                        <ListBox x:Name="LayersList" AutomationProperties.Name="Layers" ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:LayerViewModel">
-                                    <DockPanel>
-                                        <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsVisible}"
-                                                  AutomationProperties.Name="{Binding Name, StringFormat=Show {0}}"
-                                                  ToolTip.Tip="Visible" MinWidth="0" />
-                                        <Border DockPanel.Dock="Left" Width="44" Height="44" Margin="0,0,8,0"
-                                                Background="#FFCCCCCC" BorderBrush="Gray" BorderThickness="1">
-                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform"
-                                                   RenderOptions.BitmapInterpolationMode="HighQuality" />
-                                        </Border>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding Details}" FontSize="11" Foreground="{DynamicResource CinnabarTextSecondaryBrush}"
-                                                       IsVisible="{Binding Details, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                        </StackPanel>
-                                    </DockPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
-                </Border>
-            </DockPanel>
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>

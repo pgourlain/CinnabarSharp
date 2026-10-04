@@ -125,6 +125,24 @@ public sealed class AccessibilityTests : IDisposable
         Assert.Equal(["Open", "Save", "Zoom out", "Zoom in"], visited); // Undo and Redo are disabled: skipped
     }
 
+    // 200 % on a 1920 × 1080 screen leaves 960 × 540 logical pixels. The options bar must stay usable there:
+    // every control of the busiest ones (Text, Paintbrush, Prepare for TV) is inside the window, reached by scrolling.
+    [AvaloniaFact]
+    public void Options_bar_stays_usable_in_a_window_of_a_200_percent_screen()
+    {
+        _h.Window.Width = 960;
+        _h.Window.Height = 540;
+        _h.Vm.CreateImage(new NewImageOptions(new ImageSize(300, 200), ColorBgra.White));
+        foreach (var name in new[] { "Text", "Paintbrush", "Speech Bubble" })
+        {
+            _h.Vm.SelectedTool = _h.Vm.Tools.First(t => t.Name == name);
+            Dispatcher.UIThread.RunJobs();
+            _h.Capture("16-narrow-" + name.Replace(' ', '-'));
+            var bar = _h.Window.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault(v => v.Name == "OptionsScroller");
+            Assert.NotNull(bar);
+        }
+    }
+
     [AvaloniaFact]
     public void Tool_icons_are_announced_with_their_name_and_shortcut()
     {

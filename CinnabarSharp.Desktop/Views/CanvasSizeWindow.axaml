@@ -22,6 +22,7 @@
                 <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
             </StackPanel>
         </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="20,16,20,20" Spacing="12" Width="360">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
             <TextBlock Text="{Binding CurrentSizeText, StringFormat=Current size: {0}}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
@@ -85,5 +86,6 @@
             <TextBlock Text="New area of the bottom layer is filled with the secondary color." Foreground="{DynamicResource CinnabarTextSecondaryBrush}"
                        TextWrapping="Wrap" FontSize="12" />
         </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </Window>

@@ -31,6 +31,7 @@
                 </StackPanel>
             </DockPanel>
         </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="20,16,20,20" Spacing="8" Width="440">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
             <StackPanel Orientation="Horizontal" Spacing="10">
@@ -79,5 +80,6 @@
                 <TextBlock Text="Computing…" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" VerticalAlignment="Center" />
             </StackPanel>
         </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </Window>
