@@ -4,6 +4,10 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-04
+
+The Cinnabar redesign: a new look, welcome screen and icon, plus faster zoom and a fix for pasting.
+
 ### Fixed
 - Paste: moving the pasted image no longer leaves a transparent hole where it was pasted; the pixels it covered come back (Paint.NET's floating paste).
 

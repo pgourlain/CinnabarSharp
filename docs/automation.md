@@ -71,7 +71,7 @@ workflow runs it on the **packaged app** of each OS (`packaging/smoke-test.sh`),
 image never reaches users. `Mcp.Tests` fails when a new tool or effect isn't in that script. To run it by hand:
 
 ```bash
-packaging/smoke-test.sh osx-arm64 0.7.0 artifacts      # after packaging/package.sh osx-arm64 0.7.0 artifacts
+packaging/smoke-test.sh osx-arm64 0.8.0 artifacts      # after packaging/package.sh osx-arm64 0.8.0 artifacts
 ```
 
 ## Not here (yet)

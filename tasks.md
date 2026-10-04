@@ -281,3 +281,13 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [ ] Cartoon on real photos (portraits, landscapes, low light): outlines and flat colors look good at the default settings.
 - [ ] Comic page with real photos on each OS: dragging a panel's photo feels responsive on a full A4 page; printed A4 at 300 dpi looks right.
 - [ ] Speech bubbles on a real photo on each OS: place 5 numbered bubbles quickly, restyle one live, undo/redo, hide the Bubbles layer, save as ORA and PNG.
+
+## Criteria for 1.0
+
+0.8.0 is the last beta of the design work. 1.0.0 means ready for people who are not the developer; it waits for:
+- [ ] The validation checklists of the phases passed on a real macOS, Linux (X11 and Wayland) and Windows 11 machine.
+- [ ] Packages that install without a security warning: Developer ID signing and notarization on macOS, code signing on Windows, an installer with file associations on Windows, and an AppImage or Flatpak on Linux (Phase 10).
+- [ ] Unsaved work recovery after a crash (Phase 10) and a history size setting.
+- [ ] Accessibility: keyboard navigation everywhere, contrast ratios, a usable UI at 150–200 % (Phase 12).
+- [ ] A usability pass with a few real users, with the top friction points fixed (Phase 12).
+- [ ] Opening a large file no longer blocks the window (performance-tasks.md, P5).
