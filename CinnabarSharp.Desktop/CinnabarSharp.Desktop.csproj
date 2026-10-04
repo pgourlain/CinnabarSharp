@@ -10,6 +10,9 @@
     <Product>CinnabarSharp</Product>
     <Version>0.7.0-rc</Version>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Shipped as Native AOT (packaging/package.sh): report trimming/AOT problems at build time. -->
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
     <Copyright>Copyright © 2026 Pierrick Gourlain. MIT License. Portions from Pinta (MIT).</Copyright>
   </PropertyGroup>
 

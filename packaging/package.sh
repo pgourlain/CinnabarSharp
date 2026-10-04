@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Builds a self-contained, unsigned CinnabarSharp package for one runtime.
-# ReadyToRun (precompiled code) cuts the start time by about a third (performance-tasks.md P6) for ~25 MB more.
+# Native AOT by default (first frame in ~250 ms instead of ~460 ms with ReadyToRun, half the size: performance-tasks.md
+# P6). If the AOT build fails, falls back to ReadyToRun with a warning; CINNABARSHARP_PUBLISH=r2r forces ReadyToRun.
+# AOT needs the platform's native toolchain: Xcode command line tools, clang + zlib on Linux, MSVC on Windows.
 # Usage: packaging/package.sh <rid> <version> [output-dir]
 #   rid: win-x64 | linux-x64 | osx-arm64 | osx-x64
 set -euo pipefail
@@ -12,13 +14,23 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 publish="$root/$out/publish-$rid"
 name="CinnabarSharp-$version-$rid"
 
-rm -rf "$publish"
 mkdir -p "$root/$out"
-dotnet publish "$root/CinnabarSharp.Desktop/CinnabarSharp.Desktop.csproj" \
-  -c Release -r "$rid" --self-contained true \
-  -p:Version="$version" -p:DebugType=none \
-  -p:PublishReadyToRun=true \
-  -o "$publish"
+publish_with() {
+  rm -rf "$publish"
+  dotnet publish "$root/CinnabarSharp.Desktop/CinnabarSharp.Desktop.csproj" \
+    -c Release -r "$rid" --self-contained true \
+    -p:Version="$version" -p:DebugType=none \
+    "$@" -o "$publish"
+}
+if [ "${CINNABARSHARP_PUBLISH:-aot}" = "aot" ] && publish_with -p:PublishAot=true; then
+  # Native debug symbols are not shipped.
+  rm -rf "$publish"/*.dSYM "$publish"/*.dbg "$publish"/*.pdb
+  echo "Published with Native AOT"
+else
+  [ "${CINNABARSHARP_PUBLISH:-aot}" = "aot" ] && echo "::warning::Native AOT build failed for $rid; falling back to ReadyToRun"
+  publish_with -p:PublishReadyToRun=true
+  echo "Published with ReadyToRun"
+fi
 
 case "$rid" in
   osx-*)

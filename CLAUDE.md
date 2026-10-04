@@ -110,4 +110,5 @@ Magick.NET 14 uses `uint` for image width/height; Core's own types (`ImageSize`,
 
 - Nullable reference types and implicit usings enabled.
 - `Models/Tanslations/` folder name is misspelled — keep as is (referenced in csproj). `Translations.GetString` is used for user-visible strings.
+- Releases are Native AOT (`packaging/package.sh`, performance-tasks.md P6): no reflection-based `System.Text.Json` (add the type to `DesktopJson` or `McpJson`), no `new Binding(path)` from code, no `Assembly.Location`. A new MCP tool parameter or result type goes in `McpJson` (`AotJsonTests` fails otherwise). The build reports trim/AOT warnings; keep them at zero. MCP tests can run against a native build with `CINNABARSHARP_TEST_EXE=<path to the native app>`.
 - Test sample images live in `CinnabarSharp.Core.Tests/Data/SampleFiles/` and must be marked `CopyToOutputDirectory` in the test csproj; access via `BaseTests` helpers.

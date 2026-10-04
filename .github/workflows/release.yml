@@ -42,6 +42,11 @@ jobs:
       - name: Test
         run: dotnet test CinnabarSharp.slnx --configuration Release
 
+      # Native AOT links with the platform toolchain (macOS: Xcode, Windows: MSVC, both on the runners).
+      - name: Native AOT prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
       - name: Package
         shell: bash
         run: packaging/package.sh ${{ matrix.rid }} ${{ steps.version.outputs.value }} artifacts
