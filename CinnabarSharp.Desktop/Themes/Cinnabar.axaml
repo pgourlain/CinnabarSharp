@@ -1,0 +1,39 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Cinnabar design system (tasks.md, Phase 12): warm graphite neutrals and one cinnabar accent.
+         Brushes are looked up with DynamicResource so they follow the OS theme. The Fluent palettes in App.axaml
+         carry the same colors for the stock controls. -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <Color x:Key="CinnabarAccentColor">#B23A2A</Color>
+            <SolidColorBrush x:Key="CinnabarAccentBrush" Color="#B23A2A" />
+            <SolidColorBrush x:Key="CinnabarAccentTintBrush" Color="#F6DDD8" />
+            <SolidColorBrush x:Key="CinnabarChromeBrush" Color="#F4F2EF" />
+            <SolidColorBrush x:Key="CinnabarPanelBrush" Color="#FBFAF8" />
+            <SolidColorBrush x:Key="CinnabarSurfaceBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="CinnabarBorderBrush" Color="#E2DED8" />
+            <SolidColorBrush x:Key="CinnabarWorkspaceBrush" Color="#45423E" />
+            <SolidColorBrush x:Key="CinnabarTextBrush" Color="#1F1D1A" />
+            <SolidColorBrush x:Key="CinnabarTextSecondaryBrush" Color="#5E5850" />
+            <SolidColorBrush x:Key="CinnabarWarningBackgroundBrush" Color="#F3E7C9" />
+            <SolidColorBrush x:Key="CinnabarWarningBorderBrush" Color="#E0B040" />
+            <SolidColorBrush x:Key="CinnabarWarningTextBrush" Color="#6B4E00" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="CinnabarAccentColor">#EE6A55</Color>
+            <SolidColorBrush x:Key="CinnabarAccentBrush" Color="#EE6A55" />
+            <SolidColorBrush x:Key="CinnabarAccentTintBrush" Color="#4A2620" />
+            <SolidColorBrush x:Key="CinnabarChromeBrush" Color="#1B1A18" />
+            <SolidColorBrush x:Key="CinnabarPanelBrush" Color="#22211F" />
+            <SolidColorBrush x:Key="CinnabarSurfaceBrush" Color="#2B2A27" />
+            <SolidColorBrush x:Key="CinnabarBorderBrush" Color="#3A3834" />
+            <SolidColorBrush x:Key="CinnabarWorkspaceBrush" Color="#121110" />
+            <SolidColorBrush x:Key="CinnabarTextBrush" Color="#EEEBE6" />
+            <SolidColorBrush x:Key="CinnabarTextSecondaryBrush" Color="#B3ACA2" />
+            <SolidColorBrush x:Key="CinnabarWarningBackgroundBrush" Color="#3D3217" />
+            <SolidColorBrush x:Key="CinnabarWarningBorderBrush" Color="#8A6B1E" />
+            <SolidColorBrush x:Key="CinnabarWarningTextBrush" Color="#F0D58A" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

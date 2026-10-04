@@ -13,8 +13,30 @@
         </NativeMenu>
     </NativeMenu.Menu>
 
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://CinnabarSharp/Themes/Cinnabar.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
-        <FluentTheme />
+        <!-- Stock controls take the Cinnabar colors through the Fluent palettes (same values as Themes/Cinnabar.axaml). -->
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Light" Accent="#B23A2A" RegionColor="#FBFAF8" ErrorText="#B23A2A"
+                                       BaseHigh="#1F1D1A" BaseMediumHigh="#3A3733" BaseMedium="#5E5850"
+                                       BaseMediumLow="#8C867C" BaseLow="#D6D1C9"
+                                       ChromeLow="#E2DED8" ChromeMediumLow="#ECE8E2" ChromeHigh="#C9C3BA"
+                                       ListLow="#F4F2EF" ListMedium="#F6DDD8" />
+                <ColorPaletteResources x:Key="Dark" Accent="#EE6A55" RegionColor="#22211F" ErrorText="#EE6A55"
+                                       BaseHigh="#EEEBE6" BaseMediumHigh="#D4CFC8" BaseMedium="#B3ACA2"
+                                       BaseMediumLow="#8C867C" BaseLow="#3A3834"
+                                       ChromeLow="#1B1A18" ChromeMediumLow="#2B2A27" ChromeHigh="#4A4742"
+                                       ListLow="#2B2A27" ListMedium="#4A2620" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
     </Application.Styles>
 </Application>

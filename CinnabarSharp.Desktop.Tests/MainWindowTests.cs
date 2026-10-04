@@ -92,7 +92,7 @@ public class MainWindowTests
         Assert.False(window.FindControl<TextBlock>("EmptyHint")!.IsVisible);
 
         Assert.Equal((255, 255, 255), PixelAt(frame, CanvasToWindow(window, 200, 150)));
-        Assert.Equal((128, 128, 128), PixelAt(frame, CanvasToWindow(window, -8, 150)));
+        Assert.Equal((69, 66, 62), PixelAt(frame, CanvasToWindow(window, -8, 150)));
     }
 
     [AvaloniaFact]

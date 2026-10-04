@@ -237,6 +237,11 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] UI review and design system proposal ("Cinnabar": warm graphite neutrals, one cinnabar accent, IBM Plex Sans/Mono, 4-pt spacing, light and dark tokens, components, icon set, app icon refinement) — design canvas: https://claude.ai/artifact/8WQk6mytP9LxjX9iuZk7aR
 - [ ] Mockups: main window light and dark, welcome screen, Adjust Photo and Prepare for TV are on the canvas; still to draw: New, Resize, Canvas Size, Layer Properties. **Waiting for review/iteration before implementing.**
 - [ ] Implement the design system as Avalonia styles/resources (one theme file), replacing ad-hoc colors and sizes; icons for every toolbar/panel button.
+  - [x] Colors: `Themes/Cinnabar.axaml` (Light/Dark `ThemeDictionaries`: chrome, panel, surface, border, workspace, text, accent, warning) and the matching Fluent palettes in `App.axaml`; main window workspace, warnings and borders use the tokens. `ViewportTests.Dark_theme_…` checks the dark variant.
+  - [ ] Typography: IBM Plex Sans/Mono (OFL) bundled with the app, 13 px body, 4-pt spacing, radii 4/6/10, 28/32 px controls.
+  - [ ] Components: primary/secondary/ghost buttons, segmented control, slider, tabs with thumbnail and unsaved dot, tooltips with shortcut.
+  - [ ] Icons for every toolbar and layer-panel button (24 px grid, 1.6 px stroke); new app icon (`packaging/icon.svg`).
+  - [ ] Dialogs restyled to the mockups (Adjust Photo, Prepare for TV; New, Resize, Canvas Size, Layer Properties still to draw).
 - [ ] Dock-able / collapsible panels, compact and full toolbar modes, remember panel layout.
 - [ ] Accessibility: keyboard navigation everywhere, focus visuals, contrast ratios, scalable UI at 150–200 % (with the theme). Screen-reader names done: every button, field and list in the main window has one (`AccessibilityTests` checks all tools' option bars).
 - [ ] First-run experience: welcome screen with recent files, "Open photo", "New image", shortcuts cheat sheet.

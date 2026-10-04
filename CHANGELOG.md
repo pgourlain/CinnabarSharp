@@ -5,6 +5,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 ## [Unreleased]
 
 ### Changed
+- New "Cinnabar" colors (warm graphite neutrals, one cinnabar accent) in light and dark, from one theme file (`Themes/Cinnabar.axaml`); the canvas background is darker so images stand out.
 - Zooming is faster on large images: a zoom step no longer recomposes all the layers (it did it twice per step).
 
 ## [0.7.0-rc4] - 2026-10-04

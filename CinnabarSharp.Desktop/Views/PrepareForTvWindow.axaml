@@ -32,8 +32,8 @@
             </ComboBox>
         </Grid>
         <TextBlock Text="{Binding ResultText}" FontSize="12" />
-        <Border IsVisible="{Binding HasWarning}" Background="#FFFFF4D6" BorderBrush="#FFE0B040" BorderThickness="1" Padding="8" CornerRadius="4">
-            <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="#FF6B4E00" />
+        <Border IsVisible="{Binding HasWarning}" Background="{DynamicResource CinnabarWarningBackgroundBrush}" BorderBrush="{DynamicResource CinnabarWarningBorderBrush}" BorderThickness="1" Padding="8" CornerRadius="4">
+            <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="{DynamicResource CinnabarWarningTextBrush}" />
         </Border>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
             <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />

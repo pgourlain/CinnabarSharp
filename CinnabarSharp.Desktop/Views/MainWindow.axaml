@@ -34,7 +34,7 @@
         <Style Selector="Border.toolbarSeparator">
             <Setter Property="Width" Value="1" />
             <Setter Property="Margin" Value="6,4" />
-            <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="Background" Value="{DynamicResource CinnabarBorderBrush}" />
         </Style>
         <!-- Locked toolbox (comic page mode): dimmed, and no tool shown as selected since none applies. -->
         <Style Selector="ListBox.tools:disabled">
@@ -278,7 +278,7 @@
                     </ComboBox>
                     <Button Content="Apply" Command="{Binding ApplyTvCommand}" ToolTip.Tip="Create the TV image (Enter)" />
                     <Button Content="Cancel" Command="{Binding CancelTvCommand}" ToolTip.Tip="Leave without changes (Esc)" />
-                    <TextBlock x:Name="TvHint" Text="{Binding Tv.Warning}" IsVisible="{Binding Tv.HasWarning}" Foreground="#FFB06000"
+                    <TextBlock x:Name="TvHint" Text="{Binding Tv.Warning}" IsVisible="{Binding Tv.HasWarning}" Foreground="{DynamicResource CinnabarWarningTextBrush}"
                                TextTrimming="CharacterEllipsis" MaxWidth="360" ToolTip.Tip="{Binding Tv.Warning}" />
                     <TextBlock Text="{Binding Tv.Hint}" Foreground="Gray" IsVisible="{Binding !Tv.HasWarning}"
                                TextTrimming="CharacterEllipsis" MaxWidth="520" ToolTip.Tip="{Binding Tv.Hint}" />
@@ -345,7 +345,7 @@
 
         <!-- Status bar -->
         <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" Padding="8,4"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                BorderBrush="{DynamicResource CinnabarBorderBrush}">
             <Grid ColumnDefinitions="*,Auto,180,140,140,80">
                 <TextBlock Grid.Column="0" Text="{Binding StatusToolName}" IsVisible="{Binding IsIdle}" />
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsBusy}">
@@ -355,7 +355,7 @@
                     <TextBlock Text="{Binding BusyText}" VerticalAlignment="Center" />
                 </StackPanel>
                 <Button Grid.Column="1" x:Name="AgentStatusButton" Classes="statusLink" Margin="0,0,16,0" Padding="0"
-                        Background="Transparent" BorderThickness="0" Foreground="{DynamicResource SystemAccentColor}"
+                        Background="Transparent" BorderThickness="0" Foreground="{DynamicResource CinnabarAccentBrush}"
                         Content="{Binding AgentStatusText}" IsVisible="{Binding AllowAgents}"
                         Command="{Binding ShowAgentConnectionCommand}" ToolTip.Tip="How to connect an AI agent"
                         AutomationProperties.Name="AI agents status" />
@@ -369,7 +369,7 @@
         <Grid ColumnDefinitions="Auto,*,4,240" IsEnabled="{Binding IsIdle}">
             <!-- Tools -->
             <Border Grid.Column="0" BorderThickness="0,0,1,0" Padding="4"
-                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                    BorderBrush="{DynamicResource CinnabarBorderBrush}">
                 <ListBox x:Name="ToolsList" Classes="tools" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}"
                          IsEnabled="{Binding IsNotComicMode}"
                          AutomationProperties.Name="Tools"
@@ -420,7 +420,7 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <Panel Background="#FF808080">
+                <Panel Background="{DynamicResource CinnabarWorkspaceBrush}">
                     <ScrollViewer x:Name="CanvasScroller"
                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <c:CanvasView x:Name="Canvas" AutomationProperties.Name="Image canvas"

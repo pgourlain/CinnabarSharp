@@ -8,7 +8,7 @@
         WindowStartupLocation="CenterOwner">
     <StackPanel Margin="20" Spacing="12" Width="560">
         <TextBlock Text="Photos, in the order of the panels:" FontWeight="SemiBold" />
-        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4">
+        <Border BorderBrush="{DynamicResource CinnabarBorderBrush}" BorderThickness="1" CornerRadius="4">
             <ScrollViewer MaxHeight="220">
                 <ItemsControl x:Name="SourceList" ItemsSource="{Binding Sources}" Margin="6">
                     <ItemsControl.ItemTemplate>

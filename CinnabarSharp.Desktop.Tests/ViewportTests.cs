@@ -95,6 +95,25 @@ public sealed class ViewportTests : IDisposable
         Assert.Equal(((byte)200, (byte)90, (byte)30), TestHarness.PixelAt(frame, ViewportCenter()));
     }
 
+    // The Cinnabar theme (tasks.md, Phase 12) has a dark variant: the workspace and the chrome follow it.
+    [AvaloniaFact]
+    public void Dark_theme_uses_the_dark_workspace_and_chrome()
+    {
+        NewImage(400, 300);
+        Application.Current!.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+        Dispatcher.UIThread.RunJobs();
+        try
+        {
+            var frame = _h.Capture("13-dark-theme");
+            Assert.Equal(((byte)0x12, (byte)0x11, (byte)0x10), TestHarness.PixelAt(frame, _h.CanvasToWindow(-8, 150)));
+            Assert.Equal(((byte)0x22, (byte)0x21, (byte)0x1F), TestHarness.PixelAt(frame, new Point(600, 20)));
+        }
+        finally
+        {
+            Application.Current!.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Default;
+        }
+    }
+
     [AvaloniaFact]
     public void Wheel_without_modifier_scrolls_instead_of_zooming()
     {
