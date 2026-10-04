@@ -8,7 +8,7 @@
     <AssemblyName>CinnabarSharp</AssemblyName>
     <RootNamespace>CinnabarSharp.Desktop</RootNamespace>
     <Product>CinnabarSharp</Product>
-    <Version>0.8.0</Version>
+    <Version>0.8.1</Version>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- Shipped as Native AOT (packaging/package.sh): report trimming/AOT problems at build time. -->
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>

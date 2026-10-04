@@ -4,6 +4,10 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-04
+
+Accessibility, 200 % screens, faster opening and thumbnails, on top of the 0.8.0 redesign (0.8.0 itself was never released: this is the first release with the redesign).
+
 ### Added
 - Thumbnails in the image tabs and in the recent files of the welcome screen.
 
