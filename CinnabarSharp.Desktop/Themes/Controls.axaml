@@ -1,0 +1,38 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Cinnabar controls (tasks.md, Phase 12): one 32 px height for edit boxes, in dialogs and in the bars. -->
+    <Style Selector="NumericUpDown">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- The spinner and the TextBox inside have a minimum height of their own: taller than the box, they hide its border. -->
+    <Style Selector="NumericUpDown /template/ ButtonSpinner">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Height" Value="32" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ComboBox">
+        <Setter Property="MinHeight" Value="32" />
+    </Style>
+    <Style Selector="Button">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Slider">
+        <Setter Property="MinHeight" Value="32" />
+    </Style>
+</Styles>

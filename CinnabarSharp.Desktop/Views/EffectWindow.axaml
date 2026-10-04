@@ -12,17 +12,17 @@
             <ItemsControl ItemsSource="{Binding Parameters}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:EffectParameterViewModel">
-                        <Grid ColumnDefinitions="110,*,72,Auto" Margin="0,0,12,6">
+                        <Grid ColumnDefinitions="110,*,72,Auto" Margin="0,0,12,8">
                             <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" />
                             <Slider Grid.Column="1" IsVisible="{Binding IsSlider}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
-                                    Value="{Binding Value}" SmallChange="{Binding Step}" VerticalAlignment="Center" Margin="0,-6" />
+                                    Value="{Binding Value}" SmallChange="{Binding Step}" VerticalAlignment="Center" />
                             <NumericUpDown Grid.Column="2" IsVisible="{Binding IsSlider}" Margin="8,0,0,0" ShowButtonSpinner="False"
                                            Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
                                            Increment="{Binding Step}" FormatString="{Binding Format}" HorizontalContentAlignment="Right" />
                             <ComboBox Grid.Column="1" Grid.ColumnSpan="2" IsVisible="{Binding IsChoice}" ItemsSource="{Binding Choices}"
                                       SelectedIndex="{Binding SelectedIndex}" HorizontalAlignment="Stretch" />
-                            <Button Grid.Column="3" Content="↺" Padding="6,0" MinHeight="0" Background="Transparent"
+                            <Button Grid.Column="3" Content="↺" Padding="8,0" Margin="4,0,0,0" Background="Transparent"
                                     VerticalAlignment="Center" Command="{Binding ResetCommand}" ToolTip.Tip="Reset" />
                         </Grid>
                     </DataTemplate>

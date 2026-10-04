@@ -38,5 +38,6 @@
             </FluentTheme.Palettes>
         </FluentTheme>
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+        <StyleInclude Source="avares://CinnabarSharp/Themes/Controls.axaml" />
     </Application.Styles>
 </Application>
