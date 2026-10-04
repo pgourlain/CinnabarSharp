@@ -56,6 +56,7 @@ public record AppSettings
     public bool BubbleNumbered { get; init; }
     public bool BubbleOwnLayer { get; init; } = true;
     public bool AllowAgents { get; init; }
+    public bool ShowWelcome { get; init; } = true;
     public ComicSettings ComicPage { get; init; } = new();
 }
 

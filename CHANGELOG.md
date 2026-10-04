@@ -7,7 +7,12 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 ### Fixed
 - Paste: moving the pasted image no longer leaves a transparent hole where it was pasted; the pixels it covered come back (Paint.NET's floating paste).
 
+### Added
+- Welcome screen when no image is open: Open / New / Paste buttons, recent files, a shortcut cheat sheet; "Show this screen when no image is open" turns it off.
+
 ### Changed
+- New app icon (a cinnabar square with a brush stroke).
+- Dialogs show their title in the body and their buttons in a footer band.
 - Prepare for TV: the resolution is a segmented control (Full HD, 4K, 8K); selected text in fields is readable; tooltips are dark.
 - OK/Save buttons are filled with the accent color; the active tab has an accent underline and an unsaved image shows a dot instead of " *".
 - The toolbar shows icons (New, Open, Save, Undo, Redo, zoom, Fit) instead of text.

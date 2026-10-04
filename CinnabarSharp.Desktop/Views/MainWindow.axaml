@@ -68,6 +68,18 @@
         <Style Selector="ListBox.tabs ListBoxItem:pointerover:not(:selected) /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource CinnabarChromeBrush}" />
         </Style>
+        <Style Selector="TextBlock.sectionTitle">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource CinnabarTextSecondaryBrush}" />
+        </Style>
+        <Style Selector="Button.recentTile">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
         <Style Selector="Button.copyColor">
             <Setter Property="Padding" Value="3" />
             <Setter Property="MinWidth" Value="0" />
@@ -448,9 +460,92 @@
                                       Overlay="{Binding Overlay}"
                                       BrushSize="{Binding BrushOutlineSize}" />
                     </ScrollViewer>
-                    <TextBlock x:Name="EmptyHint" IsVisible="{Binding !HasDocument}"
+                    <TextBlock x:Name="EmptyHint" IsVisible="{Binding IsEmptyHintVisible}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                Foreground="White" FontSize="16" />
+                    <!-- Welcome screen: shown while no image is open (a setting). -->
+                    <ScrollViewer x:Name="WelcomePanel" IsVisible="{Binding IsWelcomeVisible}" HorizontalScrollBarVisibility="Disabled"
+                                  VerticalAlignment="Center">
+                        <Border MaxWidth="980" Margin="24" HorizontalAlignment="Center" CornerRadius="10" ClipToBounds="True"
+                                Background="{DynamicResource CinnabarPanelBrush}" BoxShadow="0 20 48 0 #59000000">
+                            <Grid ColumnDefinitions="1.5*,1*">
+                                <StackPanel Margin="40" Spacing="24">
+                                    <StackPanel Orientation="Horizontal" Spacing="14">
+                                        <Image Source="avares://CinnabarSharp/Assets/icon.png" Width="44" Height="44" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="CinnabarSharp" FontSize="26" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding VersionText}" FontSize="12"
+                                                       Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <WrapPanel ItemSpacing="12" LineSpacing="12">
+                                        <Button Content="Open a photo…" Command="{Binding OpenCommand}" IsDefault="True" Height="40" Padding="18,0" />
+                                        <Button Content="New image…" Command="{Binding NewImageCommand}" Height="40" Padding="18,0" />
+                                        <Button Content="Paste from clipboard" Command="{Binding PasteIntoNewImageCommand}" Height="40" Padding="18,0" />
+                                    </WrapPanel>
+                                    <StackPanel Spacing="12" IsVisible="{Binding HasRecentItems}">
+                                        <TextBlock Classes="sectionTitle" Text="Recent" />
+                                        <ItemsControl ItemsSource="{Binding RecentItems}" AutomationProperties.Name="Recent files">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel ItemSpacing="14" LineSpacing="14" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:RecentFileItem">
+                                                    <Button Classes="recentTile" Width="104"
+                                                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenRecentItemCommand}"
+                                                            CommandParameter="{Binding}" ToolTip.Tip="{Binding Path}"
+                                                            AutomationProperties.Name="{Binding Name, StringFormat=Open {0}}">
+                                                        <StackPanel Spacing="6">
+                                                            <Border Height="72" CornerRadius="6" BorderThickness="1"
+                                                                    Background="{DynamicResource CinnabarChromeBrush}"
+                                                                    BorderBrush="{DynamicResource CinnabarBorderBrush}">
+                                                                <TextBlock Text="{Binding Extension}" FontSize="12" FontWeight="SemiBold"
+                                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                           Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                                            </Border>
+                                                            <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Folder}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                                                       Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                    <Border Height="72" CornerRadius="8" BorderThickness="1.5" BorderBrush="{DynamicResource CinnabarBorderBrush}">
+                                        <TextBlock Text="Drop images here to open them" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                    </Border>
+                                </StackPanel>
+                                <Border Grid.Column="1" Background="{DynamicResource CinnabarChromeBrush}" BorderThickness="1,0,0,0"
+                                        BorderBrush="{DynamicResource CinnabarBorderBrush}">
+                                    <DockPanel Margin="36,40">
+                                        <CheckBox DockPanel.Dock="Bottom" Margin="0,16,0,0" IsChecked="{Binding ShowWelcomeScreen}"
+                                                  Content="Show this screen when no image is open" />
+                                        <StackPanel Spacing="12">
+                                            <TextBlock Classes="sectionTitle" Text="Shortcuts" />
+                                            <ItemsControl ItemsSource="{x:Static vm:MainViewModel.WelcomeShortcuts}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:WelcomeShortcut">
+                                                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                                            <TextBlock Text="{Binding What}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                                            <Border Grid.Column="1" Padding="8,2" CornerRadius="4" BorderThickness="1" Margin="12,0,0,0"
+                                                                    Background="{DynamicResource CinnabarSurfaceBrush}"
+                                                                    BorderBrush="{DynamicResource CinnabarBorderBrush}">
+                                                                <TextBlock Text="{Binding Keys}" FontSize="12" FontFamily="Menlo,Consolas,monospace" />
+                                                            </Border>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </ScrollViewer>
                 </Panel>
             </DockPanel>
 

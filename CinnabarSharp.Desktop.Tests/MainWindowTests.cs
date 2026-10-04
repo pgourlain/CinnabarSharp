@@ -49,7 +49,8 @@ public class MainWindowTests
         Assert.False(vm.AddNewLayerCommand.CanExecute(null));
         Assert.True(vm.NewImageCommand.CanExecute(null));
         Assert.Equal("CinnabarSharp", window.Title);
-        Assert.True(window.FindControl<TextBlock>("EmptyHint")!.IsVisible);
+        Assert.True(window.FindControl<Control>("WelcomePanel")!.IsVisible);
+        Assert.False(window.FindControl<TextBlock>("EmptyHint")!.IsVisible);
 
         Capture(window, "01-empty");
     }

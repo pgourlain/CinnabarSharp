@@ -243,11 +243,11 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
   - [x] Components, second part: segmented control (`ListBox.segmented`, used for the TV resolution in the dialog and the options bar), tooltips (dark, radius 6), readable text selection. The slider already fills with the accent.
   - [ ] Components, rest: tab thumbnails, shortcut chip in tooltips (needs the shortcut of every command), ghost button.
   - [x] Icons: the toolbar uses `Controls/StrokeIcon` (24 px grid, 1.6 px stroke, drawn in the inherited foreground so Undo/Redo dim when disabled); tools and layer buttons already had them.
-  - [ ] New app icon (`packaging/icon.svg`, refinement on the design canvas).
-  - [ ] Dialogs restyled to the mockups (Adjust Photo, Prepare for TV; New, Resize, Canvas Size, Layer Properties still to draw).
+  - [x] New app icon from the design canvas (`packaging/icon.svg`, a diagonal-stroke variant for 16–32 px in `icon-small.svg`); `packaging/make-icons.sh` regenerates `icon.ico`, `icon.png`, `icon-256.png` and `CinnabarSharp.icns`.
+  - [x] Dialogs: the title in the body and the buttons in a footer band (`TextBlock.dialogTitle`, `Border.dialogFooter`) for the twelve dialogs (New, Resize, Canvas Size, Layer Properties, Paste Beside, JPEG quality, Prepare for TV, Comic Page, Effect, Curves, Levels, Photo Filter). Color picker, About, agent connection and message boxes keep the plain layout.
 - [ ] Dock-able / collapsible panels, compact and full toolbar modes, remember panel layout.
 - [ ] Accessibility: keyboard navigation everywhere, focus visuals, contrast ratios, scalable UI at 150–200 % (with the theme). Screen-reader names done: every button, field and list in the main window has one (`AccessibilityTests` checks all tools' option bars).
-- [ ] First-run experience: welcome screen with recent files, "Open photo", "New image", shortcuts cheat sheet.
+- [x] First-run experience: welcome screen with the buttons Open / New / Paste, recent files (name, folder, extension badge: no thumbnails yet), the shortcut cheat sheet and a setting to turn it off (`MainViewModel.ShowWelcomeScreen`, saved in `AppSettings.ShowWelcome`); a short hint when it is off.
 - [ ] Usability pass with a few real users; list friction points and fix the top ones.
 
 **Validation**

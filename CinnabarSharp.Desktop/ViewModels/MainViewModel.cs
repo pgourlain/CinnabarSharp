@@ -46,6 +46,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ToolSettings.BubbleNumberChanged += () => OnPropertyChanged(nameof(BubbleNextNumber));
         SelectedTool = Tools.First(t => t.Name == "Rectangle Select");
         _eventsSubscription = events.DocumentEvents.Subscribe(new EventObserver(OnDocumentEvent));
+        RecentFiles.Changed += RefreshWelcome;
     }
 
     public IDialogService? Dialogs { get; set; }
@@ -813,6 +814,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleStyle = settings.BubbleStyle;
         BubbleNumbered = settings.BubbleNumbered;
         BubbleOwnLayer = settings.BubbleOwnLayer;
+        ShowWelcomeScreen = settings.ShowWelcome;
         _restoringSettings = true;
         try
         {
@@ -858,6 +860,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleNumbered = BubbleNumbered,
         BubbleOwnLayer = BubbleOwnLayer,
         AllowAgents = AllowAgents,
+        ShowWelcome = ShowWelcomeScreen,
         ComicPage = ComicDefaults,
     };
 
@@ -1830,6 +1833,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                  })
             command.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasDocument));
+        RefreshWelcome();
     }
 
     partial void OnSelectedLayerChanged(LayerViewModel? value)
