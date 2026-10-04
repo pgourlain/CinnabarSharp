@@ -4,6 +4,8 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.7.0-rc2] - 2026-10-04
+
 ### Changed
 - The release packages are compiled to native code (Native AOT): the first window appears in about 250 ms on macOS (460 ms with 0.7.0-rc's ReadyToRun, 740 ms before), and the packages are about half the size. A platform where the AOT build fails falls back to ReadyToRun.
 
