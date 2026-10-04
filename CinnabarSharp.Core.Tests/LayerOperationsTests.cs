@@ -33,6 +33,38 @@ public sealed class LayerOperationsTests : BaseTests, IDisposable
         return doc;
     }
 
+    [Fact]
+    public void Flattened_thumbnail_is_the_reduced_composite_of_the_visible_layers()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(80, 40), ColorBgra.White);
+        Fill(doc.Layers.AddNewLayer("Red"), ColorBgra.FromBgra(0, 0, 255, 255));
+        doc.Layers[1].Opacity = 0.5;
+        Fill(doc.Layers.AddNewLayer("Blue"), ColorBgra.FromBgra(255, 0, 0, 255));
+        doc.Layers[2].Hidden = true;
+
+        var (bgra, width, height) = doc.Layers.GetFlattenedThumbnail(20);
+
+        Assert.Equal((20, 10), (width, height));
+        Assert.Equal(width * height * 4, bgra.Length);
+        // Half red over white (the hidden blue layer is left out), the same as the full-size composite.
+        var full = doc.Layers.GetFlattenedBgra(includeToolLayer: false);
+        var i = (5 * width + 10) * 4;
+        Assert.InRange(bgra[i + 2], full[2] - 2, full[2] + 2);
+        Assert.InRange(bgra[i + 1], full[1] - 2, full[1] + 2);
+        Assert.InRange(bgra[i], full[0] - 2, full[0] + 2);
+        Assert.Equal(255, bgra[i + 3]);
+    }
+
+    [Fact]
+    public void Flattened_thumbnail_is_never_larger_than_the_image()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(6, 4), ColorBgra.White);
+
+        var (_, width, height) = doc.Layers.GetFlattenedThumbnail(44);
+
+        Assert.Equal((6, 4), (width, height));
+    }
+
     private static void Fill(Layer layer, ColorBgra color)
     {
         var w = (int)layer.Surface.Width;

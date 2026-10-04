@@ -7,8 +7,13 @@ using System.Threading.Tasks;
 namespace CinnabarSharp.Desktop.ViewModels;
 
 /// <summary>A file of the welcome screen's "Recent" list.</summary>
-public sealed record RecentFileItem(string Path)
+public sealed class RecentFileItem(string path) : ViewModelBase
 {
+    private Avalonia.Media.Imaging.Bitmap? _thumbnail;
+    private bool _thumbnailRequested;
+
+    public string Path { get; } = path;
+
     public string Name => System.IO.Path.GetFileName(Path);
 
     /// <summary>The folder, shortened to its last two parts; the user's own folders are what they recognize.</summary>
@@ -22,10 +27,33 @@ public sealed record RecentFileItem(string Path)
         }
     }
 
-    /// <summary>"JPG", "HEIC"…: the badge on the tile (no thumbnail: decoding a photo to draw it would delay the start).</summary>
+    /// <summary>"JPG", "HEIC"…: the badge on the tile until the thumbnail is read (or when it can't be).</summary>
     public string Extension => System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();
 
     public bool Exists => File.Exists(Path);
+
+    /// <summary>The picture; null until it has been read in the background (the tile then updates).</summary>
+    public Avalonia.Media.Imaging.Bitmap? Thumbnail
+    {
+        get
+        {
+            if (!_thumbnailRequested)
+            {
+                _thumbnailRequested = true;
+                _ = LoadThumbnailAsync();
+            }
+            return _thumbnail;
+        }
+    }
+
+    public bool HasThumbnail => _thumbnail is not null;
+
+    private async Task LoadThumbnailAsync()
+    {
+        _thumbnail = await Services.RecentThumbnails.LoadAsync(Path);
+        OnPropertyChanged(nameof(Thumbnail));
+        OnPropertyChanged(nameof(HasThumbnail));
+    }
 }
 
 /// <summary>One line of the welcome screen's shortcut list.</summary>
@@ -53,7 +81,11 @@ public partial class MainViewModel
 
     /// <summary>The recent files that still exist, newest first, for the welcome screen.</summary>
     public IReadOnlyList<RecentFileItem> RecentItems =>
-        RecentFiles.Files.Select(p => new RecentFileItem(p)).Where(i => i.Exists).Take(8).ToList();
+        RecentFiles.Files.Select(p => _recentItems.TryGetValue(p, out var item) ? item : _recentItems[p] = new RecentFileItem(p))
+            .Where(i => i.Exists).Take(8).ToList();
+
+    // The same item (and its thumbnail) while the file stays in the list: the welcome screen reads this on every refresh.
+    private readonly Dictionary<string, RecentFileItem> _recentItems = [];
 
     public bool HasRecentItems => RecentItems.Count > 0;
 

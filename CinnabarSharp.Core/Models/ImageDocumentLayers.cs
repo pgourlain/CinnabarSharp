@@ -334,6 +334,28 @@ namespace CinnabarSharp.Core.Models
         }
 
         /// <summary>
+        /// A small picture of the visible layers composited (longest side <paramref name="maxSide"/>, never enlarged):
+        /// each layer is reduced first, so it costs a resize per layer, not a flatten of the whole image.
+        /// Reads the layers' pixels: call it where nothing edits them (the UI thread).
+        /// </summary>
+        public (byte[] Bgra, int Width, int Height) GetFlattenedThumbnail(int maxSide)
+        {
+            var scale = Math.Min(1.0, maxSide / (double)Math.Max(document.ImageSize.Width, document.ImageSize.Height));
+            var width = Math.Max(1, (int)Math.Round(document.ImageSize.Width * scale));
+            var height = Math.Max(1, (int)Math.Round(document.ImageSize.Height * scale));
+            var result = new byte[width * height * 4];
+            foreach (var layer in GetLayersToPaint(includeToolLayer: false))
+            {
+                if (layer.Opacity <= 0)
+                    continue;
+                using var small = layer.Surface.Clone();
+                small.Thumbnail(new MagickGeometry((uint)width, (uint)height) { IgnoreAspectRatio = true });
+                BlendOps.Composite(result, small.ToBgra(), layer.BlendMode, layer.Opacity);
+            }
+            return (result, width, height);
+        }
+
+        /// <summary>
         /// Straight-alpha BGRA pixels of all visible layers composited, image-sized.
         /// </summary>
         public byte[] GetFlattenedBgra(bool includeToolLayer = true)

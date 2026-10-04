@@ -43,6 +43,42 @@ public sealed class WelcomeTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_recent_file_gets_its_thumbnail_in_the_background()
+    {
+        _h.Vm.RecentFiles.Add(TestHarness.SampleImage);
+        var item = Assert.Single(_h.Vm.RecentItems);
+        Assert.Null(item.Thumbnail); // asked for: read in the background
+
+        for (var i = 0; i < 100 && !item.HasThumbnail; i++)
+        {
+            await Task.Delay(50);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        Assert.True(item.HasThumbnail);
+        Assert.Equal(CinnabarSharp.Desktop.Services.RecentThumbnails.Width, item.Thumbnail!.PixelSize.Width);
+        Assert.Same(item, Assert.Single(_h.Vm.RecentItems)); // kept, so the picture is not read again
+        _h.Capture("14-welcome-thumbnail");
+    }
+
+    [AvaloniaFact]
+    public void Tabs_show_a_thumbnail_that_follows_the_edits()
+    {
+        _h.Vm.CreateImage(new NewImageOptions(new ImageSize(120, 80), ColorBgra.White));
+        Dispatcher.UIThread.RunJobs();
+        var tab = _h.Vm.ActiveDocument!;
+        var first = tab.Thumbnail;
+        Assert.NotNull(first);
+        Assert.Equal((44, 29), (first.PixelSize.Width, first.PixelSize.Height));
+
+        tab.Document.Actions.AddNewLayer();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotSame(first, tab.Thumbnail);
+        _h.Capture("07-tab-thumbnail");
+    }
+
+    [AvaloniaFact]
     public void Files_that_no_longer_exist_are_not_listed()
     {
         _h.Vm.RecentFiles.Add(_h.TempPath("gone.png"));

@@ -4,6 +4,9 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- Thumbnails in the image tabs and in the recent files of the welcome screen.
+
 ### Changed
 - Opening a photo no longer freezes the window: it is decoded in the background with an "Opening …" status (a 12 MP HEIC takes seconds).
 - Small or high-scale screens (200 % on 1080p): the tool options scroll sideways, the side panels share the height, and long dialogs (Adjust Photo, Levels…) scroll with their buttons always visible.

@@ -1822,6 +1822,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RefreshSelectionState();
         RefreshViewState();
         UpdateOverlay();
+        if (value is { Thumbnail: null })
+            value.RefreshThumbnail();
         foreach (var command in new IRelayCommand[]
                  {
                      ZoomInCommand, ZoomOutCommand, ActualSizeCommand, BestFitCommand,
@@ -1921,6 +1923,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 {
                     RefreshLayers();
                     RenderVersion++;
+                    // A new document is activated before its first layer exists: its tab picture is made now.
+                    if (ActiveDocument is { Thumbnail: null } tab)
+                        tab.RefreshThumbnail();
                 }
                 break;
 
@@ -2001,6 +2006,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         foreach (var layer in Layers)
             layer.RefreshThumbnail();
+        ActiveDocument?.RefreshThumbnail();
     }
 
     public void Dispose() => _eventsSubscription.Dispose();
