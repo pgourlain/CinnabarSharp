@@ -47,7 +47,7 @@
             </StackPanel>
             <StackPanel x:Name="ComputingRow" Orientation="Horizontal" Spacing="8" IsVisible="{Binding Computing}">
                 <ProgressBar Width="120" IsIndeterminate="True" />
-                <TextBlock Text="Computing…" Foreground="Gray" VerticalAlignment="Center" />
+                <TextBlock Text="Computing…" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" VerticalAlignment="Center" />
             </StackPanel>
         </StackPanel>
     </DockPanel>

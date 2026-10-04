@@ -16,8 +16,8 @@
         </Border>
         <StackPanel Margin="20,16,20,20" Spacing="12" Width="340">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
-            <TextBlock Text="{Binding CurrentSizeText}" Foreground="Gray" />
-            <TextBlock Text="{Binding PastedSizeText}" Foreground="Gray" />
+            <TextBlock Text="{Binding CurrentSizeText}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+            <TextBlock Text="{Binding PastedSizeText}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
             <TextBlock Text="Put the pasted image:" FontWeight="SemiBold" />
             <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4"
                   HorizontalAlignment="Center">
@@ -52,7 +52,7 @@
             </StackPanel>
             <TextBlock Text="{Binding ResultSizeText}" />
             <TextBlock Text="The pasted image goes into a new layer. New area of the bottom layer is filled with the secondary color."
-                       Foreground="Gray" TextWrapping="Wrap" FontSize="12" />
+                       Foreground="{DynamicResource CinnabarTextSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
         </StackPanel>
     </DockPanel>
 </Window>

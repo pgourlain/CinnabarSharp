@@ -1,6 +1,15 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Keyboard focus: a 2 px accent ring (the accent has 5:1 contrast on every panel) on whatever has it. -->
+    <Style Selector=":is(Control)">
+        <Setter Property="FocusAdorner">
+            <FocusAdornerTemplate>
+                <Border BorderBrush="{DynamicResource CinnabarAccentBrush}" BorderThickness="2" CornerRadius="4" Margin="-1" />
+            </FocusAdornerTemplate>
+        </Setter>
+    </Style>
+
     <!-- Cinnabar type (tasks.md, Phase 12): IBM Plex Sans at 13 px everywhere, Plex Mono for numbers. -->
     <Style Selector="Window">
         <Setter Property="FontFamily" Value="{DynamicResource CinnabarSansFont}" />

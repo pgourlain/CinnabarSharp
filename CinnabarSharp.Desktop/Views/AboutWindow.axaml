@@ -11,7 +11,7 @@
         <TextBlock x:Name="VersionText" />
         <TextBlock TextWrapping="Wrap"
                    Text="A cross-platform image editor inspired by Paint.NET. Portions of the code are ported from Pinta (MIT license). Text is set in IBM Plex (SIL Open Font License)." />
-        <TextBlock x:Name="RuntimeText" Foreground="Gray" />
+        <TextBlock x:Name="RuntimeText" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
         <Button Content="Close" IsCancel="True" IsDefault="True" HorizontalAlignment="Right"
                 Click="OnClose" Margin="0,8,0,0" />
     </StackPanel>

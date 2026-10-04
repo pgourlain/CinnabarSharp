@@ -65,7 +65,7 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <TextBlock Text="Next, click a panel on the page and drag the photo to frame it." Foreground="Gray" TextWrapping="Wrap" />
+            <TextBlock Text="Next, click a panel on the page and drag the photo to frame it." Foreground="{DynamicResource CinnabarTextSecondaryBrush}" TextWrapping="Wrap" />
         </StackPanel>
     </DockPanel>
 </Window>

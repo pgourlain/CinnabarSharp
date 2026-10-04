@@ -246,8 +246,9 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
   - [x] Icons: the toolbar uses `Controls/StrokeIcon` (24 px grid, 1.6 px stroke, drawn in the inherited foreground so Undo/Redo dim when disabled); tools and layer buttons already had them.
   - [x] New app icon from the design canvas (`packaging/icon.svg`, a diagonal-stroke variant for 16–32 px in `icon-small.svg`); `packaging/make-icons.sh` regenerates `icon.ico`, `icon.png`, `icon-256.png` and `CinnabarSharp.icns`.
   - [x] Dialogs: the title in the body and the buttons in a footer band (`TextBlock.dialogTitle`, `Border.dialogFooter`) for the twelve dialogs (New, Resize, Canvas Size, Layer Properties, Paste Beside, JPEG quality, Prepare for TV, Comic Page, Effect, Curves, Levels, Photo Filter). Color picker, About, agent connection and message boxes keep the plain layout.
-- [ ] Dock-able / collapsible panels, compact and full toolbar modes, remember panel layout.
-- [ ] Accessibility: keyboard navigation everywhere, focus visuals, contrast ratios, scalable UI at 150–200 % (with the theme). Screen-reader names done: every button, field and list in the main window has one (`AccessibilityTests` checks all tools' option bars).
+- [x] ~~Dock-able / collapsible panels, compact and full toolbar modes, remember panel layout.~~ Not retained: Paint.NET has none (its panels float and hide), the three panels fit in 232 px, and no need was seen.
+- [x] Accessibility, keyboard and contrast: every control of the options bars can be reached with Tab (they used to be `Focusable=False`), a 2 px accent focus ring (`FocusAdorner` in `Themes/Controls.axaml`), the secondary text color replaces the grey that failed 4.5:1, and `AccessibilityTests` check the contrast of every text/surface pair of both themes, that nothing is unreachable, and the Tab order of the toolbar. Screen-reader names were done before.
+- [ ] Accessibility, scaling: a usable UI at 150–200 % (see below).
 - [x] First-run experience: welcome screen with the buttons Open / New / Paste, recent files (name, folder, extension badge: no thumbnails yet), the shortcut cheat sheet and a setting to turn it off (`MainViewModel.ShowWelcomeScreen`, saved in `AppSettings.ShowWelcome`); a short hint when it is off.
 - [ ] Usability pass with a few real users; list friction points and fix the top ones.
 

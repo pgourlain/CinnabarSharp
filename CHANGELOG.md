@@ -4,6 +4,10 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+- Keyboard: every control of the tool options bars can be reached with Tab, and the focused control has a visible accent ring.
+- Secondary text is darker so it meets the 4.5:1 contrast ratio.
+
 ## [0.8.0] - 2026-10-04
 
 The Cinnabar redesign: a new look, welcome screen and icon, plus faster zoom and a fix for pasting.

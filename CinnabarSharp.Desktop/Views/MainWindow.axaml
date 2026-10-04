@@ -181,7 +181,7 @@
             <StackPanel Classes="toolOptions" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsComicMode}">
                 <TextBlock Text="Comic page:" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding Comic.Layouts}" SelectedItem="{Binding Comic.SelectedLayout}"
-                          DisplayMemberBinding="{Binding Name}" AutomationProperties.Name="Layout" Focusable="False" />
+                          DisplayMemberBinding="{Binding Name}" AutomationProperties.Name="Layout" />
                 <TextBlock Text="Gutter" />
                 <NumericUpDown Value="{Binding Comic.Gutter}" AutomationProperties.Name="Gutter" Minimum="0" Maximum="400" Increment="5"
                                FormatString="0" Width="64" ShowButtonSpinner="False" HorizontalContentAlignment="Right" />
@@ -189,15 +189,15 @@
                 <NumericUpDown Value="{Binding Comic.BorderWidth}" AutomationProperties.Name="Border width" Minimum="0" Maximum="60" Increment="1"
                                FormatString="0" Width="56" ShowButtonSpinner="False" HorizontalContentAlignment="Right" />
                 <ComboBox ItemsSource="{x:Static vm:ComicPageViewModel.Backgrounds}" SelectedItem="{Binding Comic.SelectedBackground}"
-                          DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="Page background" Focusable="False" />
+                          DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="Page background" />
                 <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding Comic.HasOverlay}">
                     <TextBlock Text="Overlap" />
                     <Slider Minimum="10" Maximum="25" Value="{Binding Comic.OverlapPercent}" Width="80" AutomationProperties.Name="Overlap of the centre panel"
-                            ToolTip.Tip="How far the centre photo covers the others (10-25 %)" Focusable="False" />
+                            ToolTip.Tip="How far the centre photo covers the others (10-25 %)" />
                 </StackPanel>
                 <TextBlock Text="{Binding Comic.PanelText}" FontWeight="SemiBold" Margin="8,0,0,0" />
                 <ComboBox x:Name="ComicPanelPhoto" ItemsSource="{Binding Comic.PanelChoices}" SelectedItem="{Binding Comic.SelectedPanelChoice}"
-                          AutomationProperties.Name="Photo in this panel" MaxWidth="190" Focusable="False">
+                          AutomationProperties.Name="Photo in this panel" MaxWidth="190">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:ComicSourceViewModel">
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -208,11 +208,11 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
                 <CheckBox Content="Stretch" IsChecked="{Binding Comic.PanelStretch}" IsEnabled="{Binding Comic.PanelHasPhoto}"
-                          AutomationProperties.Name="Stretch the photo in this panel" Focusable="False"
+                          AutomationProperties.Name="Stretch the photo in this panel"
                           ToolTip.Tip="Show the whole photo stretched to the panel (its proportions change) instead of cropping it" />
                 <TextBlock Text="Zoom" />
                 <Slider Minimum="100" Maximum="400" Value="{Binding Comic.PanelZoom}" Width="90" IsEnabled="{Binding Comic.PanelCanZoom}"
-                        AutomationProperties.Name="Zoom in this panel" ToolTip.Tip="Zoom the photo in this panel" Focusable="False" />
+                        AutomationProperties.Name="Zoom in this panel" ToolTip.Tip="Zoom the photo in this panel" />
                 <Button Content="Apply" Command="{Binding ApplyComicCommand}" ToolTip.Tip="Create the page (Enter)" />
                 <Button Content="Cancel" Command="{Binding CancelComicCommand}" ToolTip.Tip="Close the page without keeping it (Esc)" />
             </StackPanel>
@@ -278,7 +278,7 @@
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowCropOptions}">
                     <TextBlock Text="Aspect ratio:" />
                     <ComboBox ItemsSource="{x:Static vm:MainViewModel.CropAspects}" AutomationProperties.Name="Aspect ratio" SelectedItem="{Binding SelectedCropAspect}"
-                              MinWidth="110" Focusable="False">
+                              MinWidth="110">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:MainViewModel+CropAspectOption">
                                 <TextBlock Text="{Binding Label}" />
@@ -286,22 +286,22 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
                     <Button Content="Crop" Command="{Binding ApplyCropCommand}" ToolTip.Tip="Crop to the frame (Enter)" />
-                    <TextBlock Text="Drag a frame; drag inside to move it, a corner to resize. Esc removes it." Foreground="Gray" />
+                    <TextBlock Text="Drag a frame; drag inside to move it, a corner to resize. Esc removes it." Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsTvMode}">
                     <TextBlock Text="TV:" FontWeight="SemiBold" />
                     <ListBox Classes="segmented" ItemsSource="{x:Static vm:PrepareForTvViewModel.Resolutions}" SelectedItem="{Binding Tv.SelectedResolution}"
-                             DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="TV resolution" Focusable="False" />
+                             DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="TV resolution" />
                     <ComboBox ItemsSource="{x:Static vm:PrepareForTvViewModel.Fits}" SelectedItem="{Binding Tv.SelectedFit}"
                               DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="How the photo fills the screen"
-                              IsEnabled="{Binding !Tv.SideBySide}" Focusable="False" />
+                              IsEnabled="{Binding !Tv.SideBySide}" />
                     <ComboBox ItemsSource="{x:Static vm:PrepareForTvViewModel.Backgrounds}" SelectedItem="{Binding Tv.SelectedBackground}"
                               DisplayMemberBinding="{Binding Label}" AutomationProperties.Name="Borders"
-                              IsVisible="{Binding Tv.ShowBackground}" Focusable="False" />
+                              IsVisible="{Binding Tv.ShowBackground}" />
                     <CheckBox Content="Side by side with" IsChecked="{Binding Tv.SideBySide}" IsVisible="{Binding Tv.CanSideBySide}"
-                              Focusable="False" />
+                              />
                     <ComboBox ItemsSource="{Binding Tv.OtherPhotos}" SelectedItem="{Binding Tv.SecondPhoto}"
-                              IsVisible="{Binding Tv.SideBySide}" AutomationProperties.Name="Second photo" Focusable="False" MaxWidth="180">
+                              IsVisible="{Binding Tv.SideBySide}" AutomationProperties.Name="Second photo" MaxWidth="180">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:DocumentViewModel">
                                 <TextBlock Text="{Binding Title}" />
@@ -312,13 +312,13 @@
                     <Button Content="Cancel" Command="{Binding CancelTvCommand}" ToolTip.Tip="Leave without changes (Esc)" />
                     <TextBlock x:Name="TvHint" Text="{Binding Tv.Warning}" IsVisible="{Binding Tv.HasWarning}" Foreground="{DynamicResource CinnabarWarningTextBrush}"
                                TextTrimming="CharacterEllipsis" MaxWidth="360" ToolTip.Tip="{Binding Tv.Warning}" />
-                    <TextBlock Text="{Binding Tv.Hint}" Foreground="Gray" IsVisible="{Binding !Tv.HasWarning}"
+                    <TextBlock Text="{Binding Tv.Hint}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" IsVisible="{Binding !Tv.HasWarning}"
                                TextTrimming="CharacterEllipsis" MaxWidth="520" ToolTip.Tip="{Binding Tv.Hint}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowBubbleOptions}">
                     <TextBlock Text="Bubble:" ToolTip.Tip="Press on the subject, drag to where the bubble goes, then type. Click elsewhere for the next bubble." />
                     <ComboBox ItemsSource="{x:Static vm:MainViewModel.BubbleStyles}" AutomationProperties.Name="Bubble style" SelectedItem="{Binding BubbleStyle}"
-                              MinWidth="100" Focusable="False">
+                              MinWidth="100">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
@@ -331,27 +331,27 @@
                     <TextBlock Text="Outline:" />
                     <NumericUpDown Value="{Binding BrushWidth}" AutomationProperties.Name="Bubble outline width" Minimum="1" Maximum="50" Increment="1"
                                    FormatString="0" Width="52" ShowButtonSpinner="False" HorizontalContentAlignment="Right" ToolTip.Tip="Outline width (pixels). Click it, then use the mouse wheel or ↑/↓ keys. Outline and text: primary color; inside: secondary color" />
-                    <CheckBox Content="Numbered" IsChecked="{Binding BubbleNumbered}" Focusable="False"
+                    <CheckBox Content="Numbered" IsChecked="{Binding BubbleNumbered}"
                               ToolTip.Tip="Add a numbered badge (1, 2, 3...) to each new bubble" />
                     <NumericUpDown Value="{Binding BubbleNextNumber}" AutomationProperties.Name="Next bubble number" Minimum="1" Maximum="999" Increment="1"
                                    FormatString="0" Width="56" ShowButtonSpinner="False" HorizontalContentAlignment="Right" IsVisible="{Binding BubbleNumbered}" ToolTip.Tip="Number of the next bubble. Click it, then use the mouse wheel or ↑/↓ keys" />
-                    <CheckBox Content="Own layer" IsChecked="{Binding BubbleOwnLayer}" Focusable="False"
+                    <CheckBox Content="Own layer" IsChecked="{Binding BubbleOwnLayer}"
                               ToolTip.Tip="Draw bubbles on a &quot;Bubbles&quot; layer at the top (created when needed)" />
                 </StackPanel>
                 <Border Classes="toolbarSeparator" IsVisible="{Binding ShowBubbleOptions}" />
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowTextOptions}">
                     <TextBlock Text="Font:" />
                     <ComboBox x:Name="FontFamilyCombo" AutomationProperties.Name="Font" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamily}"
-                              Width="180" MaxDropDownHeight="400" Focusable="False" />
+                              Width="180" MaxDropDownHeight="400" />
                     <NumericUpDown Value="{Binding FontSize}" AutomationProperties.Name="Font size" Minimum="1" Maximum="1000" Increment="1"
                                    FormatString="0" Width="64" ShowButtonSpinner="False" HorizontalContentAlignment="Right" ToolTip.Tip="Font size (pixels). Click it, then use the mouse wheel or ↑/↓ keys" />
-                    <ToggleButton Content="B" FontWeight="Bold" AutomationProperties.Name="Bold" IsChecked="{Binding Bold}" ToolTip.Tip="Bold" Focusable="False" />
-                    <ToggleButton Content="I" FontStyle="Italic" AutomationProperties.Name="Italic" IsChecked="{Binding Italic}" ToolTip.Tip="Italic" Focusable="False" />
-                    <ToggleButton IsChecked="{Binding Underline}" ToolTip.Tip="Underline" Focusable="False" AutomationProperties.Name="Underline">
+                    <ToggleButton Content="B" FontWeight="Bold" AutomationProperties.Name="Bold" IsChecked="{Binding Bold}" ToolTip.Tip="Bold" />
+                    <ToggleButton Content="I" FontStyle="Italic" AutomationProperties.Name="Italic" IsChecked="{Binding Italic}" ToolTip.Tip="Italic" />
+                    <ToggleButton IsChecked="{Binding Underline}" ToolTip.Tip="Underline" AutomationProperties.Name="Underline">
                         <TextBlock Text="U" TextDecorations="Underline" />
                     </ToggleButton>
                     <ComboBox ItemsSource="{x:Static vm:MainViewModel.TextAlignments}" AutomationProperties.Name="Alignment" SelectedItem="{Binding TextAlignment}" MinWidth="90"
-                              ToolTip.Tip="Alignment" Focusable="False">
+                              ToolTip.Tip="Alignment">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
@@ -586,7 +586,7 @@
                                         BorderThickness="1" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding PrimaryColorHex}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
                                            VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding PrimaryColorRgbText}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding PrimaryColorRgbText}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" />
                                 <Button Classes="copyColor" ToolTip.Tip="Copy color…" AutomationProperties.Name="Copy primary color">
                                     <Viewbox Width="12" Height="12"><Canvas Width="24" Height="24">
                                         <Path Data="M8,8 L19,8 L19,19 L8,19 Z M5,15 L5,5 L15,5" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
@@ -603,7 +603,7 @@
                                                                 <Viewbox Width="12" Height="12"><Canvas Width="24" Height="24">
                                                                     <Path Data="M8,8 L19,8 L19,19 L8,19 Z M5,15 L5,5 L15,5" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
                                                                 </Canvas></Viewbox>
-                                                                <TextBlock Text="{Binding Label}" Width="70" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
+                                                                <TextBlock Text="{Binding Label}" Width="70" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" />
                                                                 <TextBlock Text="{Binding Text}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace" VerticalAlignment="Center" />
                                                             </StackPanel>
                                                         </Button>
@@ -619,7 +619,7 @@
                                         BorderThickness="1" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding SecondaryColorHex}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
                                            VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding SecondaryColorRgbText}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding SecondaryColorRgbText}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" />
                                 <Button Classes="copyColor" ToolTip.Tip="Copy color…" AutomationProperties.Name="Copy secondary color">
                                     <Viewbox Width="12" Height="12"><Canvas Width="24" Height="24">
                                         <Path Data="M8,8 L19,8 L19,19 L8,19 Z M5,15 L5,5 L15,5" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
@@ -636,7 +636,7 @@
                                                                 <Viewbox Width="12" Height="12"><Canvas Width="24" Height="24">
                                                                     <Path Data="M8,8 L19,8 L19,19 L8,19 Z M5,15 L5,5 L15,5" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />
                                                                 </Canvas></Viewbox>
-                                                                <TextBlock Text="{Binding Label}" Width="70" Foreground="Gray" FontSize="11" VerticalAlignment="Center" />
+                                                                <TextBlock Text="{Binding Label}" Width="70" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" />
                                                                 <TextBlock Text="{Binding Text}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace" VerticalAlignment="Center" />
                                                             </StackPanel>
                                                         </Button>
@@ -720,7 +720,7 @@
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding Details}" FontSize="11" Foreground="Gray"
+                                            <TextBlock Text="{Binding Details}" FontSize="11" Foreground="{DynamicResource CinnabarTextSecondaryBrush}"
                                                        IsVisible="{Binding Details, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                         </StackPanel>
                                     </DockPanel>
