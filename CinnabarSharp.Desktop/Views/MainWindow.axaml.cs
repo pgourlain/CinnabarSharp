@@ -40,7 +40,9 @@ public partial class MainWindow : Window, IViewportService
 
     public MainWindow()
     {
+        StartupTrace.Mark("MainWindow ctor start");
         InitializeComponent();
+        StartupTrace.Mark("MainWindow XAML loaded");
         Canvas.CanvasPointerMoved += p => Vm?.UpdateCursorPosition(p);
         Canvas.ToolPointerPressed += p => Vm?.ToolPointerDown(p);
         Canvas.ToolPointerMoved += p => Vm?.ToolPointerMove(p);
@@ -104,7 +106,9 @@ public partial class MainWindow : Window, IViewportService
             if (e.PropertyName == nameof(MainViewModel.ActiveDocument) && vm.ActiveDocument is { } active)
                 Dispatcher.UIThread.Post(() => TabsList.ScrollIntoView(active), DispatcherPriority.Loaded);
         };
+        StartupTrace.Mark("DataContext handlers wired");
         BuildMenu(vm);
+        StartupTrace.Mark("Menu built");
     }
 
     private static Cursor? CanvasCursor(MainViewModel vm) => vm.HoverCursor switch

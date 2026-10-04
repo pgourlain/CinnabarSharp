@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Builds a self-contained, unsigned CinnabarSharp package for one runtime.
+# ReadyToRun (precompiled code) cuts the start time by about a third (performance-tasks.md P6) for ~25 MB more.
 # Usage: packaging/package.sh <rid> <version> [output-dir]
 #   rid: win-x64 | linux-x64 | osx-arm64 | osx-x64
 set -euo pipefail
@@ -16,6 +17,7 @@ mkdir -p "$root/$out"
 dotnet publish "$root/CinnabarSharp.Desktop/CinnabarSharp.Desktop.csproj" \
   -c Release -r "$rid" --self-contained true \
   -p:Version="$version" -p:DebugType=none \
+  -p:PublishReadyToRun=true \
   -o "$publish"
 
 case "$rid" in
@@ -25,7 +27,8 @@ case "$rid" in
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
     cp -R "$publish/." "$app/Contents/MacOS/"
     cp "$root/packaging/CinnabarSharp.icns" "$app/Contents/Resources/"
-    sed "s/@VERSION@/$version/g" "$root/packaging/macos/Info.plist" > "$app/Contents/Info.plist"
+    # macOS bundle versions are numeric (x.y.z): drop a pre-release suffix such as "-rc".
+    sed "s/@VERSION@/${version%%-*}/g" "$root/packaging/macos/Info.plist" > "$app/Contents/Info.plist"
     # Apple Silicon refuses to run unsigned code; an ad-hoc signature is enough for local use.
     if command -v codesign >/dev/null; then
       codesign --force --deep --sign - "$app"

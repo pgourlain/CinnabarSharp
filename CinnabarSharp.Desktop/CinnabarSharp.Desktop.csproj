@@ -8,7 +8,8 @@
     <AssemblyName>CinnabarSharp</AssemblyName>
     <RootNamespace>CinnabarSharp.Desktop</RootNamespace>
     <Product>CinnabarSharp</Product>
-    <Version>0.6.0</Version>
+    <Version>0.7.0-rc</Version>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <Copyright>Copyright © 2026 Pierrick Gourlain. MIT License. Portions from Pinta (MIT).</Copyright>
   </PropertyGroup>
 

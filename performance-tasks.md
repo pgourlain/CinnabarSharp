@@ -170,6 +170,31 @@ The two effects P0 flagged as outliers are now both comfortably under 200 ms at 
 - [ ] Prepare Folder for TV and the MCP batch tools: process several photos in parallel (bounded by cores and memory budget).
 - [x] Warn before opening an image larger than the memory budget allows — **done, without the downscale option**. `ImageFormat.PeekSize(file)` reads just the pixel dimensions from the file's header/metadata (`MagickImageInfo` for `MagickImageFormat`, `stack.xml`'s `w`/`h` for `OraFormat`, no layer decoding) — cheap even for a huge file; default `null` for formats that can't tell without a full `Import`. `IFormatManager.PeekSize` resolves the format and delegates. `ImageSize.IsRiskyToOpen(availableBytes?)` (`Extensions/ImageSizeExtension.cs`) is the actual budget check: estimates one BGRA copy plus headroom for decode/compose intermediates (16 bytes/pixel, a deliberately rough multiplier, not the "e.g. 100 MP" the checklist suggests — tied to the *machine's* available memory instead, same `GC.GetGCMemoryInfo().TotalAvailableMemoryBytes` source P1's budget and P2's `ResourceLimits` already use, so a 24 MP photo is fine on an 8 GB machine and a 900 MP one isn't). `MainViewModel.OpenFileAsync` peeks before opening and, if risky, asks via the existing `ConfirmAsync` (proceed-or-cancel, the same primitive already used elsewhere — no new dialog UI). **Not done: the "open it downscaled" option** — needs a new 3-way dialog primitive (`IDialogService` only has 2-way `ConfirmAsync` today) plus a downscale-on-import path; out of scope for this pass. `ImageSizeExtensionTests` pins `IsRiskyToOpen`'s decision with an explicit `availableBytes` (deterministic, not tied to the test machine's real memory); `FormatManagerTests` pins `PeekSize` for PNG/JPEG/TIFF/ORA and that an unrecognized file returns null. **Not covered by an automated end-to-end test**: `MainViewModel` actually showing the dialog for a genuinely huge file — constructing a test fixture large enough to trip the real threshold (hundreds of MP) would make the test itself slow/memory-heavy; the full suite (369/143/16) still passes unchanged, confirming no existing test's (small) images trip the new check.
 
+## P6 — Startup time
+
+Origin: [issue #1](https://github.com/pgourlain/CinnabarSharp/issues/1) (a user asks for a faster start, suggesting Native AOT). Before this phase nothing was enabled: no ReadyToRun, trimming or AOT, and `packaging/package.sh` published self-contained as is. Measure first; each step is only kept if the numbers show a clear gain.
+
+**Measured** (Apple M5, macOS, Release self-contained `osx-arm64`, warm, median of 8 runs, from process start to the first frame drawn; `StartupTrace`, below):
+
+| Build | First frame | Notes |
+|---|---:|---|
+| Plain (before) | **739 ms** | |
+| ReadyToRun | **460 ms** (−38 %) | package +24 MB (143 → 167 MB published) |
+| ReadyToRun + compiled bindings | 464 ms | no measurable gain (kept, see below) |
+| ReadyToRun, `TieredPGO=0` | 494 ms | no gain (plain: 737 ms) |
+| ReadyToRun, `TieredCompilation=0` | 602 ms | worse |
+
+The first run after a reboot (cold disk cache) took 3.1 s plain and 1.7 s with ReadyToRun. Not measured on Windows and Linux (the CI can't show a window): only the macOS numbers above exist.
+
+Where the ~455 ms of the ReadyToRun build go: runtime start to `Main` ≈ 25 ms; Avalonia platform init (`Main` → framework initialized) ≈ 140 ms; our services, view model and `MainWindow` (XAML + menu) ≈ 100 ms in total (`AppServices.Build` 10 ms, view model 20 ms, XAML 37 ms, menu 7 ms); native window creation and show ≈ 70 ms; first layout and render ≈ 100 ms. Little of it is ours, so there is nothing worth deferring.
+
+- [x] Measure the start. `StartupTrace` (`Services/StartupTrace.cs`) writes the time since process start at each phase to stderr when `CINNABARSHARP_STARTUP_TRACE` is set (`=exit` also quits after the first frame, to script runs). Done on macOS only; to repeat on another OS run the packaged app with that variable.
+- [x] ReadyToRun: `-p:PublishReadyToRun=true` in `packaging/package.sh`, so the four release packages get it. All four targets build from a macOS arm64 machine (osx-x64, linux-x64 and win-x64 cross-compile); the CI release workflow will be the first to build them on their own OS.
+- [x] Lazy start: **not done, on purpose.** The measure above shows our own start-up work is about a fifth of the total and has no slow step to defer.
+- [x] Compiled bindings: `AvaloniaUseCompiledBindingsByDefault` is on. It builds without changes (every view already had its `x:DataType`) and all UI tests pass, but start-up doesn't change. Kept because it checks bindings at build time and is the first requirement of a Native AOT build.
+- [ ] Native AOT study: **not started**; ReadyToRun already cuts the start by more than a third at much lower risk. Reopen it only if that is not enough. It would also need trimming-safe code (DI, JSON and the `ModelContextProtocol` SDK use reflection) and Magick.NET (native library) working under AOT — the real unknown; start with a throwaway branch.
+- [ ] Reply to the issue with these numbers once the release with ReadyToRun is out.
+
 ## Validation
 
 - [ ] P0 benchmarks before and after each phase, numbers recorded here, on macOS (Apple Silicon), Windows 11 and Linux.

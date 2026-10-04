@@ -4,6 +4,12 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.7.0-rc] - 2026-10-04
+
+### Changed
+- Faster start: the release packages are now compiled ahead of time (ReadyToRun). On macOS the first window appears in about 460 ms instead of 740 ms; the packages are about 25 MB bigger.
+- XAML bindings are compiled (checked at build time).
+
 ## [0.6.0] - 2026-10-04
 
 ### Added

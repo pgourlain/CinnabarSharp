@@ -104,5 +104,7 @@ jobs:
         run: |
           tag="${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}"
           draft="${{ inputs.version && '--draft' || '' }}"
+          # A version with a suffix (0.7.0-rc) is a pre-release.
+          pre=""; case "$tag" in *-*) pre="--prerelease" ;; esac
           gh release create "$tag" dist/* --repo "${{ github.repository }}" --title "CinnabarSharp ${tag#v}" \
-            --target "${{ github.sha }}" $draft --notes-file packaging/release-notes.md
+            --target "${{ github.sha }}" $draft $pre --notes-file packaging/release-notes.md

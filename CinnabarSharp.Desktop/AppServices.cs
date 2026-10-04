@@ -12,6 +12,7 @@ public static class AppServices
 {
     public static IServiceProvider Build(Action<IServiceCollection>? configure = null)
     {
+        StartupTrace.Mark("AppServices.Build start");
         var services = new ServiceCollection();
         services.AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Information));
         services.AddCinnabarSharpServices();
@@ -24,6 +25,8 @@ public static class AppServices
         services.AddSingleton<AgentConnection>();
         services.AddSingleton<MainViewModel>();
         configure?.Invoke(services);
-        return services.BuildServiceProvider();
+        var provider = services.BuildServiceProvider();
+        StartupTrace.Mark("AppServices.Build end");
+        return provider;
     }
 }
