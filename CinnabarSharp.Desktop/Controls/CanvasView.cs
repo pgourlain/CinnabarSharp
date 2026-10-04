@@ -24,6 +24,9 @@ public class CanvasView : Control
     public static readonly StyledProperty<int> RenderVersionProperty =
         AvaloniaProperty.Register<CanvasView, int>(nameof(RenderVersion));
 
+    public static readonly StyledProperty<int> ViewVersionProperty =
+        AvaloniaProperty.Register<CanvasView, int>(nameof(ViewVersion));
+
     public static readonly StyledProperty<int> SelectionVersionProperty =
         AvaloniaProperty.Register<CanvasView, int>(nameof(SelectionVersion));
 
@@ -56,7 +59,8 @@ public class CanvasView : Control
 
     static CanvasView()
     {
-        AffectsMeasure<CanvasView>(DocumentProperty, RenderVersionProperty);
+        AffectsMeasure<CanvasView>(DocumentProperty, RenderVersionProperty, ViewVersionProperty);
+        AffectsRender<CanvasView>(ViewVersionProperty);
         AffectsRender<CanvasView>(SelectionVersionProperty, OverlayProperty, BrushSizeProperty);
     }
 
@@ -118,6 +122,13 @@ public class CanvasView : Control
     {
         get => GetValue(RenderVersionProperty);
         set => SetValue(RenderVersionProperty, value);
+    }
+
+    /// <summary>Changes with the zoom: the bitmap is scaled to the new view size, not recomposited.</summary>
+    public int ViewVersion
+    {
+        get => GetValue(ViewVersionProperty);
+        set => SetValue(ViewVersionProperty, value);
     }
 
     /// <summary>Raised with the pointer position in image coordinates, or null when the pointer leaves.</summary>

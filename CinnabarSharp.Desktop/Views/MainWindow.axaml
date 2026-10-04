@@ -427,6 +427,7 @@
                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
                                       Document="{Binding ActiveDocument.Document, FallbackValue={x:Null}}"
                                       RenderVersion="{Binding RenderVersion}"
+                                      ViewVersion="{Binding ViewVersion}"
                                       SelectionVersion="{Binding SelectionVersion}"
                                       Overlay="{Binding Overlay}"
                                       BrushSize="{Binding BrushOutlineSize}" />

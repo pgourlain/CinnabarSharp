@@ -92,6 +92,8 @@ public class MagickImageFormat : ImageFormat
         var placeholder = layer.Surface;
         layer.Surface = img;
         placeholder.Dispose();
+        // The layer was added empty: without this the canvas shows it transparent until something else redraws it.
+        doc.Workspace.Invalidate();
     }
 
     public override void Export(ImageDocument document, ImageFile file)

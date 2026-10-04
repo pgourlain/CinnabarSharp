@@ -27,7 +27,13 @@ public sealed class FileWorkflowTests : IDisposable
         Assert.Equal("sample1.png - CinnabarSharp", _h.Window.Title);
         Assert.False(doc.Document.IsDirty);
         Assert.Equal([Path.GetFullPath(TestHarness.SampleImage)], Vm.RecentFiles.Files);
-        Assert.NotEqual((128, 128, 128), TestHarness.PixelAt(frame, _h.CanvasToWindow(5, 5)));
+        // The real pixel, not just "something drawn": the checkerboard of an empty layer used to pass.
+        var image = doc.Document.Layers.GetFlattenedBgra();
+        var scale = doc.Document.Workspace.Scale;
+        var (x, y) = (doc.Document.ImageSize.Width / 2, doc.Document.ImageSize.Height / 2);
+        var i = (y * doc.Document.ImageSize.Width + x) * 4;
+        Assert.Equal((image[i + 2], image[i + 1], image[i]),
+            TestHarness.PixelAt(frame, _h.CanvasToWindow((x + 0.5) * scale, (y + 0.5) * scale)));
     }
 
     [AvaloniaFact]

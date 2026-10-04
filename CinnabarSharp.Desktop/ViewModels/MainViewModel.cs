@@ -263,6 +263,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial int RenderVersion { get; set; }
 
+    /// <summary>Incremented when the zoom changes: the canvas is resized and redrawn from the pixels it already has.</summary>
+    [ObservableProperty]
+    public partial int ViewVersion { get; set; }
+
     [ObservableProperty]
     public partial string CursorPositionText { get; set; } = "";
 
@@ -1924,7 +1928,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
             case DocumentEventEnum.ViewSizeChanged:
                 if (e.Document == ActiveDocument?.Document)
-                    RefreshViewState();
+                {
+                    ViewVersion++;
+                    RefreshViewText();
+                }
                 break;
         }
     }
@@ -1932,6 +1939,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void RefreshViewState()
     {
         RenderVersion++;
+        RefreshViewText();
+    }
+
+    private void RefreshViewText()
+    {
         OnPropertyChanged(nameof(ImageSizeText));
         OnPropertyChanged(nameof(ZoomText));
         OnPropertyChanged(nameof(WindowTitle));

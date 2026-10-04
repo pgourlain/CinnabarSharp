@@ -160,16 +160,16 @@ namespace CinnabarSharp.Core.Models
 
                 var changed = value != _scale;
                 _scale = value;
-                if (SetViewSize(ScaledSize(value)) || changed)
-                {
-                    Invalidate();
+                // Zooming changes only the view, not the pixels: ViewSizeChanged, never CanvasInvalidated
+                // (which re-flattens every layer). Also raised when rounding keeps the same view size, for the zoom text.
+                if (!SetViewSize(ScaledSize(value)) && changed)
+                    OnViewSizeChanged();
 
-                    //if (PintaCore.Tools.CurrentTool?.CursorChangesOnZoom == true)
-                    //{
-                    //    //The current tool's cursor changes when the zoom changes.
-                    //    PintaCore.Tools.CurrentTool.SetCursor(PintaCore.Tools.CurrentTool.DefaultCursor);
-                    //}
-                }
+                //if (PintaCore.Tools.CurrentTool?.CursorChangesOnZoom == true)
+                //{
+                //    //The current tool's cursor changes when the zoom changes.
+                //    PintaCore.Tools.CurrentTool.SetCursor(PintaCore.Tools.CurrentTool.DefaultCursor);
+                //}
             }
         }
 

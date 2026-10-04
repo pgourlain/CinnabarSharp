@@ -4,6 +4,9 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+- Zooming is faster on large images: a zoom step no longer recomposes all the layers (it did it twice per step).
+
 ## [0.7.0-rc4] - 2026-10-04
 
 ### Changed

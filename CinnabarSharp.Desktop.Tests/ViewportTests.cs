@@ -72,6 +72,29 @@ public sealed class ViewportTests : IDisposable
         }
     }
 
+    // Zoom scales the bitmap the canvas already has: re-flattening every layer at each wheel step made zoom slow
+    // on big images.
+    [AvaloniaFact]
+    public void Zoom_redraws_without_recompositing()
+    {
+        _h.Vm.CreateImage(new NewImageOptions(new ImageSize(400, 300), ColorBgra.FromBgra(30, 90, 200, 255)));
+        Dispatcher.UIThread.RunJobs();
+        _h.Vm.ActualSizeCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        var renderVersion = _h.Vm.RenderVersion;
+
+        _h.Vm.ZoomInCommand.Execute(null);
+        _h.Window.MouseWheel(ViewportCenter(), new Vector(0, 1), RawInputModifiers.Control);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(renderVersion, _h.Vm.RenderVersion);
+        var scale = _h.Vm.ActiveDocument!.Document.Workspace.Scale;
+        Assert.True(scale > 1);
+        Assert.Equal(400 * scale, _h.Canvas.Bounds.Width, 0.5);
+        var frame = _h.Capture("12-zoom-without-recompositing");
+        Assert.Equal(((byte)200, (byte)90, (byte)30), TestHarness.PixelAt(frame, ViewportCenter()));
+    }
+
     [AvaloniaFact]
     public void Wheel_without_modifier_scrolls_instead_of_zooming()
     {

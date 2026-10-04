@@ -29,7 +29,8 @@ public class ImageDocumentEventTests : BaseTests
             DocumentEventEnum.DocumentCreated,
             DocumentEventEnum.ActiveDocumentChanged,
             DocumentEventEnum.ViewSizeChanged,
-            DocumentEventEnum.LayerAdded
+            DocumentEventEnum.LayerAdded,
+            DocumentEventEnum.CanvasInvalidated
         };
         Assert.Equal(expectedStates, received);
     }

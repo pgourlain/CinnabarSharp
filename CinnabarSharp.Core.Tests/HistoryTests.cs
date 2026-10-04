@@ -263,6 +263,27 @@ public sealed class HistoryTests : BaseTests, IDisposable
         Assert.Equal(DocumentEventEnum.HistoryChanged, received[^1]);
     }
 
+    // Zoom must not invalidate the canvas: CanvasInvalidated makes the view re-flatten every layer.
+    [Fact]
+    public void Zoom_fires_view_size_changed_only()
+    {
+        var doc = ThreeLayers();
+        var received = new List<DocumentEventEnum>();
+        using var sub = _sp.GetRequiredService<IDocumentEventsService>().DocumentEvents
+            .Subscribe(new Observer(e => received.Add(e.State)));
+
+        doc.Workspace.Scale = 2;
+        Assert.Equal([DocumentEventEnum.ViewSizeChanged], received);
+
+        received.Clear();
+        doc.Workspace.Scale = 2.0000001; // same view size after rounding, but the zoom text changes
+        Assert.Equal([DocumentEventEnum.ViewSizeChanged], received);
+
+        received.Clear();
+        doc.Workspace.Scale = 2.0000001;
+        Assert.Empty(received);
+    }
+
     [Fact]
     public void Fill_selection_records_only_the_selection_bounds()
     {
