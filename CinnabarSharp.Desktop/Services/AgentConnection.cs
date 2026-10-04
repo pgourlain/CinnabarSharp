@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CinnabarSharp.Core.Services;
@@ -96,7 +97,7 @@ public sealed class AgentConnection(IWorkspaceService workspace, IFormatManager 
         var viaDotnet = name.Equals("dotnet", StringComparison.OrdinalIgnoreCase)
                         || name.Equals("dotnet.exe", StringComparison.OrdinalIgnoreCase);
         return viaDotnet
-            ? [processPath, appAssembly ?? typeof(AgentConnection).Assembly.Location, "--mcp", "--attach"]
+            ? [processPath, appAssembly ?? Path.Combine(AppContext.BaseDirectory, "CinnabarSharp.dll"), "--mcp", "--attach"]
             : [processPath, "--mcp", "--attach"];
     }
 
@@ -105,15 +106,17 @@ public sealed class AgentConnection(IWorkspaceService workspace, IFormatManager 
         $"claude mcp add {ServerName} -- " + string.Join(" ", launch.Select(a => a.StartsWith("--") ? a : $"\"{a}\""));
 
     /// <summary>The "mcpServers" entry for claude_desktop_config.json.</summary>
-    public static string ClaudeDesktopConfig(IReadOnlyList<string> launch) => JsonSerializer.Serialize(
-        new Dictionary<string, object>
+    public static string ClaudeDesktopConfig(IReadOnlyList<string> launch) => new JsonObject
+    {
+        ["mcpServers"] = new JsonObject
         {
-            ["mcpServers"] = new Dictionary<string, object>
+            [ServerName] = new JsonObject
             {
-                [ServerName] = new { command = launch[0], args = launch.Skip(1).ToArray() },
+                ["command"] = launch[0],
+                ["args"] = new JsonArray([.. launch.Skip(1).Select(a => (JsonNode?)a)]),
             },
         },
-        new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+    }.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
     private sealed class UiThreadDispatcher : IMcpDispatcher
     {

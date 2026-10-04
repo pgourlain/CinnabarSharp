@@ -34,8 +34,8 @@ public class AttachTests
 
             var transport = new StdioClientTransport(new StdioClientTransportOptions
             {
-                Command = McpTestServer.DotnetHost,
-                Arguments = [McpTestServer.AppPath, "--mcp", "--attach", "--socket", socket],
+                Command = McpTestServer.Command,
+                Arguments = McpTestServer.Arguments("--mcp", "--attach", "--socket", socket),
                 ShutdownTimeout = TimeSpan.FromSeconds(1),
             });
             await using (var client = await McpClient.CreateAsync(transport, cancellationToken: Ct))
@@ -82,8 +82,8 @@ public class AttachTests
         using var listener = AttachListener.Start(context, NewSocketPath());
         var transport = new StdioClientTransport(new StdioClientTransportOptions
         {
-            Command = McpTestServer.DotnetHost,
-            Arguments = [McpTestServer.AppPath, "--mcp", "--attach", "--socket", listener!.SocketPath],
+            Command = McpTestServer.Command,
+            Arguments = McpTestServer.Arguments("--mcp", "--attach", "--socket", listener!.SocketPath),
             ShutdownTimeout = TimeSpan.FromSeconds(1),
         });
         await using var client = await McpClient.CreateAsync(transport, cancellationToken: Ct);
@@ -110,13 +110,15 @@ public class AttachTests
     [Fact]
     public async Task Proxy_explains_when_the_app_is_not_listening()
     {
-        using var process = Process.Start(new ProcessStartInfo(McpTestServer.DotnetHost)
+        var start = new ProcessStartInfo(McpTestServer.Command)
         {
-            ArgumentList = { McpTestServer.AppPath, "--mcp", "--attach", "--socket", NewSocketPath() },
             RedirectStandardError = true,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
-        })!;
+        };
+        foreach (var argument in McpTestServer.Arguments("--mcp", "--attach", "--socket", NewSocketPath()))
+            start.ArgumentList.Add(argument);
+        using var process = Process.Start(start)!;
         var error = await process.StandardError.ReadToEndAsync(Ct);
         await process.WaitForExitAsync(Ct);
 

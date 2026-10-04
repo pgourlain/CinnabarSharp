@@ -25,6 +25,17 @@ public sealed class McpTestServer : IAsyncDisposable
 
     public static string AppPath => Path.Combine(AppContext.BaseDirectory, "CinnabarSharp.dll");
 
+    /// <summary>
+    /// A native app to test instead of CinnabarSharp.dll (e.g. a Native AOT build, performance-tasks.md P6), set with
+    /// the CINNABARSHARP_TEST_EXE environment variable.
+    /// </summary>
+    public static string? NativeApp => Environment.GetEnvironmentVariable("CINNABARSHARP_TEST_EXE") is { Length: > 0 } exe ? exe : null;
+
+    /// <summary>The command that starts the app, then its arguments.</summary>
+    public static string Command => NativeApp ?? DotnetHost;
+
+    public static IList<string> Arguments(params string[] arguments) => NativeApp is null ? [AppPath, .. arguments] : arguments;
+
     public static async Task<McpTestServer> StartAsync(params string[] extraArguments)
     {
         var folder = Directory.CreateTempSubdirectory("cinnabar-mcp-").FullName;
@@ -32,8 +43,8 @@ public sealed class McpTestServer : IAsyncDisposable
         var transport = new StdioClientTransport(new StdioClientTransportOptions
         {
             Name = "CinnabarSharp",
-            Command = DotnetHost,
-            Arguments = [AppPath, "--mcp", "--allow", folder, .. extraArguments],
+            Command = Command,
+            Arguments = Arguments(["--mcp", "--allow", folder, .. extraArguments]),
             WorkingDirectory = folder,
             ShutdownTimeout = TimeSpan.FromSeconds(1),
         });

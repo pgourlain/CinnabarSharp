@@ -51,7 +51,7 @@ public class RecentFilesStore
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(_files));
+            File.WriteAllText(_path, JsonSerializer.Serialize(_files, DesktopJson.Default.ListString));
         }
         catch (IOException)
         {
@@ -67,7 +67,7 @@ public class RecentFilesStore
         try
         {
             return File.Exists(path)
-                ? JsonSerializer.Deserialize<List<string>>(File.ReadAllText(path)) ?? []
+                ? JsonSerializer.Deserialize(File.ReadAllText(path), DesktopJson.Default.ListString) ?? []
                 : [];
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)

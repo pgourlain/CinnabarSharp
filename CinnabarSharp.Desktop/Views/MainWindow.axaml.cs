@@ -25,7 +25,7 @@ public partial class MainWindow : Window, IViewportService
         MenuSpec[]? Children = null,
         object? CommandParameter = null,
         bool Literal = false,
-        (object Source, string Path)? Checked = null)
+        (System.ComponentModel.INotifyPropertyChanged Source, string Property, Func<bool> Value)? Checked = null)
     {
         public static readonly MenuSpec Separator = new("-");
     }
@@ -408,7 +408,7 @@ public partial class MainWindow : Window, IViewportService
             new("_Save", vm.SaveCommand, G(Key.S)),
             new("Save _As…", vm.SaveAsCommand, G(Key.S, KeyModifiers.Shift)),
             MenuSpec.Separator,
-            new("Allow AI Ag_ents (MCP)", vm.ToggleAllowAgentsCommand, Checked: (vm, nameof(MainViewModel.AllowAgents))),
+            new("Allow AI Ag_ents (MCP)", vm.ToggleAllowAgentsCommand, Checked: (vm, nameof(MainViewModel.AllowAgents), () => vm.AllowAgents)),
             new("Connect an AI A_gent…", vm.ShowAgentConnectionCommand),
             MenuSpec.Separator,
             new("_Close", vm.CloseCommand, G(Key.W)),
@@ -586,7 +586,12 @@ public partial class MainWindow : Window, IViewportService
         if (spec.Checked is { } check)
         {
             item.ToggleType = MenuItemToggleType.CheckBox;
-            item.Bind(NativeMenuItem.IsCheckedProperty, new Binding(check.Path) { Source = check.Source, Mode = BindingMode.OneWay });
+            item.IsChecked = check.Value();
+            check.Source.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == check.Property)
+                    item.IsChecked = check.Value();
+            };
         }
         return item;
     }
@@ -607,7 +612,12 @@ public partial class MainWindow : Window, IViewportService
         if (spec.Checked is { } check)
         {
             item.ToggleType = MenuItemToggleType.CheckBox;
-            item.Bind(MenuItem.IsCheckedProperty, new Binding(check.Path) { Source = check.Source, Mode = BindingMode.OneWay });
+            item.IsChecked = check.Value();
+            check.Source.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == check.Property)
+                    item.IsChecked = check.Value();
+            };
         }
         return item;
     }

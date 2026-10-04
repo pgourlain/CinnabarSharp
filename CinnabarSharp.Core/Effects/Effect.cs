@@ -26,6 +26,8 @@ public sealed class EffectContext(byte[] source, int width, int height, ColorBgr
 /// <paramref name="region"/> into <paramref name="destination"/> (region-sized BGRA), reading only
 /// <see cref="EffectContext.Source"/>, so it can run on a background thread. Pure C#: identical on every OS.
 /// </summary>
+// Public methods are kept for every effect: the MCP catalog checks which ones override SuggestValues (works trimmed/AOT).
+[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
 public abstract class Effect
 {
     public abstract string Name { get; }

@@ -74,7 +74,7 @@ public static class McpHost
             };
             o.ServerInstructions = Instructions;
         })
-        .WithTools<ImageTools>()
+        .WithTools<ImageTools>(McpJson.ToolOptions)
         .WithResources<ImageResources>();
 
     private static string? Option(string[] args, string name) => Options(args, name).LastOrDefault();
