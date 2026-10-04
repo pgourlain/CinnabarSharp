@@ -69,6 +69,19 @@
         <Setter Property="MinHeight" Value="32" />
     </Style>
 
+    <!-- Dialogs: the title in the body, the buttons in a footer band. -->
+    <Style Selector="TextBlock.dialogTitle">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="Border.dialogFooter">
+        <Setter Property="Background" Value="{DynamicResource CinnabarChromeBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CinnabarBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="20,14" />
+    </Style>
+
     <!-- Segmented control: a ListBox with a few short choices in one row, the chosen one raised (resolutions…). -->
     <Style Selector="ListBox.segmented">
         <Setter Property="Background" Value="{DynamicResource CinnabarChromeBrush}" />

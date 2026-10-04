@@ -7,43 +7,48 @@
         Title="Filters"
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
-    <StackPanel Margin="20" Spacing="12" Width="560">
-        <ListBox x:Name="PresetList" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}"
-                 Background="Transparent">
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-            <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:FilterPresetViewModel">
-                    <StackPanel Spacing="4" Width="92">
-                        <Border Width="88" Height="88" Background="#FFE8E8E8">
-                            <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
-                        </Border>
-                        <TextBlock Text="{Binding Name}" FontSize="11" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-        <StackPanel Spacing="2">
-            <TextBlock Text="Intensity" FontWeight="SemiBold" />
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Intensity, StringFormat={}{0:0}%}" Width="44" TextAlignment="Right"
-                           VerticalAlignment="Center" />
-                <Slider Minimum="0" Maximum="100" Value="{Binding Intensity}" />
+                <c:CompareButton DockPanel.Dock="Left" ShowOriginal="{Binding ShowOriginal}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button x:Name="OkButton" Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" IsEnabled="{Binding !Computing}" />
+                    <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+                </StackPanel>
             </DockPanel>
-        </StackPanel>
-        <StackPanel x:Name="ComputingRow" Orientation="Horizontal" Spacing="8" IsVisible="{Binding Computing}">
-            <ProgressBar Width="120" IsIndeterminate="True" />
-            <TextBlock Text="Computing…" Foreground="Gray" VerticalAlignment="Center" />
-        </StackPanel>
-        <DockPanel>
-            <c:CompareButton DockPanel.Dock="Left" ShowOriginal="{Binding ShowOriginal}" />
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button x:Name="OkButton" Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" IsEnabled="{Binding !Computing}" />
-                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        </Border>
+        <StackPanel Margin="20,16,20,20" Spacing="12" Width="560">
+            <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
+            <ListBox x:Name="PresetList" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}"
+                     Background="Transparent">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FilterPresetViewModel">
+                        <StackPanel Spacing="4" Width="92">
+                            <Border Width="88" Height="88" Background="#FFE8E8E8">
+                                <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                            </Border>
+                            <TextBlock Text="{Binding Name}" FontSize="11" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Spacing="2">
+                <TextBlock Text="Intensity" FontWeight="SemiBold" />
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Intensity, StringFormat={}{0:0}%}" Width="44" TextAlignment="Right"
+                               VerticalAlignment="Center" />
+                    <Slider Minimum="0" Maximum="100" Value="{Binding Intensity}" />
+                </DockPanel>
             </StackPanel>
-        </DockPanel>
-    </StackPanel>
+            <StackPanel x:Name="ComputingRow" Orientation="Horizontal" Spacing="8" IsVisible="{Binding Computing}">
+                <ProgressBar Width="120" IsIndeterminate="True" />
+                <TextBlock Text="Computing…" Foreground="Gray" VerticalAlignment="Center" />
+            </StackPanel>
+        </StackPanel>
+    </DockPanel>
 </Window>

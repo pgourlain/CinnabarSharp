@@ -7,43 +7,48 @@
         Title="{Binding Title}"
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
-    <StackPanel Margin="20" Spacing="14" Width="460">
-        <ScrollViewer MaxHeight="620" HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Parameters}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:EffectParameterViewModel">
-                        <Grid ColumnDefinitions="110,*,72,Auto" Margin="0,0,12,8">
-                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis" />
-                            <Slider Grid.Column="1" IsVisible="{Binding IsSlider}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
-                                    Value="{Binding Value}" SmallChange="{Binding Step}" VerticalAlignment="Center" />
-                            <NumericUpDown Grid.Column="2" IsVisible="{Binding IsSlider}" Margin="8,0,0,0" ShowButtonSpinner="False"
-                                           Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
-                                           Increment="{Binding Step}" FormatString="{Binding Format}" HorizontalContentAlignment="Right" />
-                            <ComboBox Grid.Column="1" Grid.ColumnSpan="2" IsVisible="{Binding IsChoice}" ItemsSource="{Binding Choices}"
-                                      SelectedIndex="{Binding SelectedIndex}" HorizontalAlignment="Stretch" />
-                            <Button Grid.Column="3" Content="↺" Padding="8,0" Margin="4,0,0,0" Background="Transparent"
-                                    VerticalAlignment="Center" Command="{Binding ResetCommand}" ToolTip.Tip="Reset" />
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
-        <StackPanel x:Name="ComputingRow" Orientation="Horizontal" Spacing="8" IsVisible="{Binding Computing}">
-            <ProgressBar Width="120" IsIndeterminate="True" />
-            <TextBlock Text="Computing…" Foreground="Gray" VerticalAlignment="Center" />
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
+                    <Button Content="Auto" Command="{Binding AutoCommand}" IsVisible="{Binding CanAuto}"
+                            ToolTip.Tip="Values suggested for this image" />
+                    <Button Content="Reset" Command="{Binding ResetCommand}" />
+                    <c:CompareButton ShowOriginal="{Binding ShowOriginal}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button x:Name="OkButton" Content="OK" IsDefault="True" Click="OnOk" MinWidth="72" HorizontalContentAlignment="Center" IsEnabled="{Binding !Computing}" />
+                    <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="72" HorizontalContentAlignment="Center" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <StackPanel Margin="20,16,20,20" Spacing="14" Width="460">
+            <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
+            <ScrollViewer MaxHeight="620" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Parameters}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:EffectParameterViewModel">
+                            <Grid ColumnDefinitions="110,*,72,Auto" Margin="0,0,12,8">
+                                <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                                <Slider Grid.Column="1" IsVisible="{Binding IsSlider}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                                        Value="{Binding Value}" SmallChange="{Binding Step}" VerticalAlignment="Center" />
+                                <NumericUpDown Grid.Column="2" IsVisible="{Binding IsSlider}" Margin="8,0,0,0" ShowButtonSpinner="False"
+                                               Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                                               Increment="{Binding Step}" FormatString="{Binding Format}" HorizontalContentAlignment="Right" />
+                                <ComboBox Grid.Column="1" Grid.ColumnSpan="2" IsVisible="{Binding IsChoice}" ItemsSource="{Binding Choices}"
+                                          SelectedIndex="{Binding SelectedIndex}" HorizontalAlignment="Stretch" />
+                                <Button Grid.Column="3" Content="↺" Padding="8,0" Margin="4,0,0,0" Background="Transparent"
+                                        VerticalAlignment="Center" Command="{Binding ResetCommand}" ToolTip.Tip="Reset" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+            <StackPanel x:Name="ComputingRow" Orientation="Horizontal" Spacing="8" IsVisible="{Binding Computing}">
+                <ProgressBar Width="120" IsIndeterminate="True" />
+                <TextBlock Text="Computing…" Foreground="Gray" VerticalAlignment="Center" />
+            </StackPanel>
         </StackPanel>
-        <DockPanel>
-            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
-                <Button Content="Auto" Command="{Binding AutoCommand}" IsVisible="{Binding CanAuto}"
-                        ToolTip.Tip="Values suggested for this image" />
-                <Button Content="Reset" Command="{Binding ResetCommand}" />
-                <c:CompareButton ShowOriginal="{Binding ShowOriginal}" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button x:Name="OkButton" Content="OK" IsDefault="True" Click="OnOk" MinWidth="72" HorizontalContentAlignment="Center" IsEnabled="{Binding !Computing}" />
-                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="72" HorizontalContentAlignment="Center" />
-            </StackPanel>
-        </DockPanel>
-    </StackPanel>
+    </DockPanel>
 </Window>

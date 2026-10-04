@@ -6,61 +6,66 @@
         Title="Comic Page"
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
-    <StackPanel Margin="20" Spacing="12" Width="560">
-        <TextBlock Text="Photos, in the order of the panels:" FontWeight="SemiBold" />
-        <Border BorderBrush="{DynamicResource CinnabarBorderBrush}" BorderThickness="1" CornerRadius="4">
-            <ScrollViewer MaxHeight="220">
-                <ItemsControl x:Name="SourceList" ItemsSource="{Binding Sources}" Margin="6">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ComicSourceViewModel">
-                            <DockPanel Margin="0,2">
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
-                                    <Button Content="↑" Padding="8,0" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} up}"
-                                            Command="{Binding $parent[Window].((vm:ComicPageViewModel)DataContext).MoveUpCommand}"
-                                            CommandParameter="{Binding}" />
-                                    <Button Content="↓" Padding="8,0" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}"
-                                            Command="{Binding $parent[Window].((vm:ComicPageViewModel)DataContext).MoveDownCommand}"
-                                            CommandParameter="{Binding}" />
-                                </StackPanel>
-                                <CheckBox IsChecked="{Binding IsIncluded}" Content="{Binding Name}" />
-                            </DockPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            </StackPanel>
         </Border>
-        <Button Content="Add images…" Click="OnAddImages" HorizontalAlignment="Left" />
+        <StackPanel Margin="20,16,20,20" Spacing="12" Width="560">
+            <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
+            <TextBlock Text="Photos, in the order of the panels:" FontWeight="SemiBold" />
+            <Border BorderBrush="{DynamicResource CinnabarBorderBrush}" BorderThickness="1" CornerRadius="4">
+                <ScrollViewer MaxHeight="220">
+                    <ItemsControl x:Name="SourceList" ItemsSource="{Binding Sources}" Margin="6">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ComicSourceViewModel">
+                                <DockPanel Margin="0,2">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                                        <Button Content="↑" Padding="8,0" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} up}"
+                                                Command="{Binding $parent[Window].((vm:ComicPageViewModel)DataContext).MoveUpCommand}"
+                                                CommandParameter="{Binding}" />
+                                        <Button Content="↓" Padding="8,0" AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}"
+                                                Command="{Binding $parent[Window].((vm:ComicPageViewModel)DataContext).MoveDownCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                    <CheckBox IsChecked="{Binding IsIncluded}" Content="{Binding Name}" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+            <Button Content="Add images…" Click="OnAddImages" HorizontalAlignment="Left" />
 
-        <Grid ColumnDefinitions="110,*" RowDefinitions="Auto" ColumnSpacing="8">
-            <TextBlock Text="Page:" VerticalAlignment="Center" />
-            <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:ComicPageViewModel.Formats}" SelectedItem="{Binding SelectedFormat}"
-                      DisplayMemberBinding="{Binding Name}" HorizontalAlignment="Stretch" AutomationProperties.Name="Page format" />
-        </Grid>
+            <Grid ColumnDefinitions="110,*" RowDefinitions="Auto" ColumnSpacing="8">
+                <TextBlock Text="Page:" VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:ComicPageViewModel.Formats}" SelectedItem="{Binding SelectedFormat}"
+                          DisplayMemberBinding="{Binding Name}" HorizontalAlignment="Stretch" AutomationProperties.Name="Page format" />
+            </Grid>
 
-        <TextBlock Text="Layout:" FontWeight="SemiBold" />
-        <ListBox ItemsSource="{Binding Layouts}" SelectedItem="{Binding SelectedLayout}"
-                 AutomationProperties.Name="Layout" Background="Transparent">
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-            <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:ComicLayoutViewModel">
-                    <StackPanel Width="82" Spacing="4" ToolTip.Tip="{Binding Name}">
-                        <Border Width="{Binding ThumbnailWidth}" Height="{Binding ThumbnailHeight}" Background="White" HorizontalAlignment="Center">
-                            <Path Data="{Binding Thumbnail}" Stroke="Black" StrokeThickness="1.5" Fill="#FFE0E0E0" Margin="2" />
-                        </Border>
-                        <TextBlock Text="{Binding Name}" FontSize="10" TextAlignment="Center" TextWrapping="Wrap" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+            <TextBlock Text="Layout:" FontWeight="SemiBold" />
+            <ListBox ItemsSource="{Binding Layouts}" SelectedItem="{Binding SelectedLayout}"
+                     AutomationProperties.Name="Layout" Background="Transparent">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ComicLayoutViewModel">
+                        <StackPanel Width="82" Spacing="4" ToolTip.Tip="{Binding Name}">
+                            <Border Width="{Binding ThumbnailWidth}" Height="{Binding ThumbnailHeight}" Background="White" HorizontalAlignment="Center">
+                                <Path Data="{Binding Thumbnail}" Stroke="Black" StrokeThickness="1.5" Fill="#FFE0E0E0" Margin="2" />
+                            </Border>
+                            <TextBlock Text="{Binding Name}" FontSize="10" TextAlignment="Center" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
 
-        <TextBlock Text="Next, click a panel on the page and drag the photo to frame it." Foreground="Gray" TextWrapping="Wrap" />
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
-            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            <TextBlock Text="Next, click a panel on the page and drag the photo to frame it." Foreground="Gray" TextWrapping="Wrap" />
         </StackPanel>
-    </StackPanel>
+    </DockPanel>
 </Window>

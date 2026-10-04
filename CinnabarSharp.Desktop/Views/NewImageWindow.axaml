@@ -9,30 +9,35 @@
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
 
-    <StackPanel Margin="20" Spacing="12" MinWidth="280">
-        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="8">
-            <TextBlock Grid.Row="0" Text="Width:" VerticalAlignment="Center" />
-            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="WidthInput"
-                           Value="{Binding Width}" Minimum="1" Maximum="{Binding Max}"
-                           Increment="1" FormatString="0" />
-            <TextBlock Grid.Row="0" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            </StackPanel>
+        </Border>
+        <StackPanel Margin="20,16,20,20" Spacing="12" MinWidth="280">
+            <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="8">
+                <TextBlock Grid.Row="0" Text="Width:" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="WidthInput"
+                               Value="{Binding Width}" Minimum="1" Maximum="{Binding Max}"
+                               Increment="1" FormatString="0" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
 
-            <TextBlock Grid.Row="1" Text="Height:" VerticalAlignment="Center" />
-            <NumericUpDown Grid.Row="1" Grid.Column="1"
-                           Value="{Binding Height}" Minimum="1" Maximum="{Binding Max}"
-                           Increment="1" FormatString="0" />
-            <TextBlock Grid.Row="1" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
-        </Grid>
+                <TextBlock Grid.Row="1" Text="Height:" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Row="1" Grid.Column="1"
+                               Value="{Binding Height}" Minimum="1" Maximum="{Binding Max}"
+                               Increment="1" FormatString="0" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+            </Grid>
 
-        <StackPanel Spacing="4">
-            <TextBlock Text="Background" FontWeight="SemiBold" />
-            <RadioButton GroupName="Background" Content="White" IsChecked="True" />
-            <RadioButton GroupName="Background" Content="Transparent" IsChecked="{Binding TransparentBackground}" />
+            <StackPanel Spacing="4">
+                <TextBlock Text="Background" FontWeight="SemiBold" />
+                <RadioButton GroupName="Background" Content="White" IsChecked="True" />
+                <RadioButton GroupName="Background" Content="Transparent" IsChecked="{Binding TransparentBackground}" />
+            </StackPanel>
+
         </StackPanel>
-
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
-            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
-        </StackPanel>
-    </StackPanel>
+    </DockPanel>
 </Window>

@@ -7,38 +7,43 @@
         Title="{Binding Title}"
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
-    <StackPanel Margin="20" Spacing="12" Width="480">
-        <TextBlock Text="{Binding Folder, StringFormat=Every photo in {0}}" IsVisible="{Binding IsBatch}" TextWrapping="Wrap" />
-        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-            <TextBlock Grid.Row="0" Text="TV resolution:" VerticalAlignment="Center" />
-            <ListBox Grid.Row="0" Grid.Column="1" Classes="segmented" ItemsSource="{x:Static vm:PrepareForTvViewModel.Resolutions}"
-                     SelectedItem="{Binding SelectedResolution}" DisplayMemberBinding="{Binding Label}"
-                     AutomationProperties.Name="TV resolution" />
-            <TextBlock Grid.Row="1" Text="Photo:" VerticalAlignment="Center" />
-            <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:PrepareForTvViewModel.Fits}"
-                      SelectedItem="{Binding SelectedFit}" DisplayMemberBinding="{Binding Label}" HorizontalAlignment="Stretch" />
-            <TextBlock Grid.Row="2" Text="Background:" VerticalAlignment="Center" IsVisible="{Binding ShowBackground}" />
-            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:PrepareForTvViewModel.Backgrounds}"
-                      SelectedItem="{Binding SelectedBackground}" DisplayMemberBinding="{Binding Label}" HorizontalAlignment="Stretch"
-                      IsVisible="{Binding ShowBackground}" />
-            <CheckBox Grid.Row="3" Grid.Column="0" Content="Side by side:" IsChecked="{Binding SideBySide}"
-                      IsVisible="{Binding CanSideBySide}" Grid.ColumnSpan="1" />
-            <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding OtherPhotos}" SelectedItem="{Binding SecondPhoto}"
-                      IsVisible="{Binding CanSideBySide}" IsEnabled="{Binding SideBySide}" HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:DocumentViewModel">
-                        <TextBlock Text="{Binding Title}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </Grid>
-        <TextBlock Text="{Binding ResultText}" FontSize="12" />
-        <Border IsVisible="{Binding HasWarning}" Background="{DynamicResource CinnabarWarningBackgroundBrush}" BorderBrush="{DynamicResource CinnabarWarningBorderBrush}" BorderThickness="1" Padding="8" CornerRadius="4">
-            <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="{DynamicResource CinnabarWarningTextBrush}" />
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            </StackPanel>
         </Border>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-            <Button Content="OK" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
-            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+        <StackPanel Margin="20,16,20,20" Spacing="12" Width="480">
+            <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
+            <TextBlock Text="{Binding Folder, StringFormat=Every photo in {0}}" IsVisible="{Binding IsBatch}" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+                <TextBlock Grid.Row="0" Text="TV resolution:" VerticalAlignment="Center" />
+                <ListBox Grid.Row="0" Grid.Column="1" Classes="segmented" ItemsSource="{x:Static vm:PrepareForTvViewModel.Resolutions}"
+                         SelectedItem="{Binding SelectedResolution}" DisplayMemberBinding="{Binding Label}"
+                         AutomationProperties.Name="TV resolution" />
+                <TextBlock Grid.Row="1" Text="Photo:" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:PrepareForTvViewModel.Fits}"
+                          SelectedItem="{Binding SelectedFit}" DisplayMemberBinding="{Binding Label}" HorizontalAlignment="Stretch" />
+                <TextBlock Grid.Row="2" Text="Background:" VerticalAlignment="Center" IsVisible="{Binding ShowBackground}" />
+                <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:PrepareForTvViewModel.Backgrounds}"
+                          SelectedItem="{Binding SelectedBackground}" DisplayMemberBinding="{Binding Label}" HorizontalAlignment="Stretch"
+                          IsVisible="{Binding ShowBackground}" />
+                <CheckBox Grid.Row="3" Grid.Column="0" Content="Side by side:" IsChecked="{Binding SideBySide}"
+                          IsVisible="{Binding CanSideBySide}" Grid.ColumnSpan="1" />
+                <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding OtherPhotos}" SelectedItem="{Binding SecondPhoto}"
+                          IsVisible="{Binding CanSideBySide}" IsEnabled="{Binding SideBySide}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DocumentViewModel">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+            <TextBlock Text="{Binding ResultText}" FontSize="12" />
+            <Border IsVisible="{Binding HasWarning}" Background="{DynamicResource CinnabarWarningBackgroundBrush}" BorderBrush="{DynamicResource CinnabarWarningBorderBrush}" BorderThickness="1" Padding="8" CornerRadius="4">
+                <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="{DynamicResource CinnabarWarningTextBrush}" />
+            </Border>
         </StackPanel>
-    </StackPanel>
+    </DockPanel>
 </Window>

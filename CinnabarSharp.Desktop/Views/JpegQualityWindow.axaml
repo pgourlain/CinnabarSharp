@@ -6,16 +6,21 @@
         Title="JPEG Quality"
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
-    <StackPanel Margin="20" Spacing="12" Width="360">
-        <TextBlock Text="Higher quality keeps more detail and makes a bigger file." TextWrapping="Wrap" />
-        <DockPanel>
-            <NumericUpDown DockPanel.Dock="Right" Value="{Binding Quality}" Minimum="1" Maximum="100" Increment="1"
-                           FormatString="0" Width="110" Margin="8,0,0,0" />
-            <Slider Minimum="1" Maximum="100" Value="{Binding Quality}" VerticalAlignment="Center" />
-        </DockPanel>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-            <Button Content="Save" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
-            <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Save" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            </StackPanel>
+        </Border>
+        <StackPanel Margin="20,16,20,20" Spacing="12" Width="360">
+            <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
+            <TextBlock Text="Higher quality keeps more detail and makes a bigger file." TextWrapping="Wrap" />
+            <DockPanel>
+                <NumericUpDown DockPanel.Dock="Right" Value="{Binding Quality}" Minimum="1" Maximum="100" Increment="1"
+                               FormatString="0" Width="110" Margin="8,0,0,0" />
+                <Slider Minimum="1" Maximum="100" Value="{Binding Quality}" VerticalAlignment="Center" />
+            </DockPanel>
         </StackPanel>
-    </StackPanel>
+    </DockPanel>
 </Window>
