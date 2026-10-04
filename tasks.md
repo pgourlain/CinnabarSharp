@@ -240,7 +240,8 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
   - [x] Colors: `Themes/Cinnabar.axaml` (Light/Dark `ThemeDictionaries`: chrome, panel, surface, border, workspace, text, accent, warning) and the matching Fluent palettes in `App.axaml`; main window workspace, warnings and borders use the tokens. `ViewportTests.Dark_theme_…` checks the dark variant.
   - [ ] Typography: IBM Plex Sans/Mono (OFL) bundled with the app, 13 px body, 4-pt spacing, radii 4/6/10, 28/32 px controls.
   - [x] Components, first part: the dialog's default button (OK, Save…) is the primary one (accent fill, hover/pressed/disabled), buttons have radius 4, the active tab has an accent underline and an unsaved dot replaces the " *".
-  - [ ] Components, rest: segmented control (TV and effect options), slider with a filled track, tab thumbnails, tooltips with the shortcut, ghost button.
+  - [x] Components, second part: segmented control (`ListBox.segmented`, used for the TV resolution in the dialog and the options bar), tooltips (dark, radius 6), readable text selection. The slider already fills with the accent.
+  - [ ] Components, rest: tab thumbnails, shortcut chip in tooltips (needs the shortcut of every command), ghost button.
   - [x] Icons: the toolbar uses `Controls/StrokeIcon` (24 px grid, 1.6 px stroke, drawn in the inherited foreground so Undo/Redo dim when disabled); tools and layer buttons already had them.
   - [ ] New app icon (`packaging/icon.svg`, refinement on the design canvas).
   - [ ] Dialogs restyled to the mockups (Adjust Photo, Prepare for TV; New, Resize, Canvas Size, Layer Properties still to draw).

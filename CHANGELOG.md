@@ -8,6 +8,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 - Paste: moving the pasted image no longer leaves a transparent hole where it was pasted; the pixels it covered come back (Paint.NET's floating paste).
 
 ### Changed
+- Prepare for TV: the resolution is a segmented control (Full HD, 4K, 8K); selected text in fields is readable; tooltips are dark.
 - OK/Save buttons are filled with the accent color; the active tab has an accent underline and an unsaved image shows a dot instead of " *".
 - The toolbar shows icons (New, Open, Save, Undo, Redo, zoom, Fit) instead of text.
 - New "Cinnabar" colors (warm graphite neutrals, one cinnabar accent) in light and dark, from one theme file (`Themes/Cinnabar.axaml`); the canvas background is darker so images stand out.

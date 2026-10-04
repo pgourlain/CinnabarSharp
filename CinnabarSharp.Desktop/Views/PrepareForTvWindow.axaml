@@ -11,8 +11,9 @@
         <TextBlock Text="{Binding Folder, StringFormat=Every photo in {0}}" IsVisible="{Binding IsBatch}" TextWrapping="Wrap" />
         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
             <TextBlock Grid.Row="0" Text="TV resolution:" VerticalAlignment="Center" />
-            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Static vm:PrepareForTvViewModel.Resolutions}"
-                      SelectedItem="{Binding SelectedResolution}" DisplayMemberBinding="{Binding Label}" HorizontalAlignment="Stretch" />
+            <ListBox Grid.Row="0" Grid.Column="1" Classes="segmented" ItemsSource="{x:Static vm:PrepareForTvViewModel.Resolutions}"
+                     SelectedItem="{Binding SelectedResolution}" DisplayMemberBinding="{Binding Label}"
+                     AutomationProperties.Name="TV resolution" />
             <TextBlock Grid.Row="1" Text="Photo:" VerticalAlignment="Center" />
             <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:PrepareForTvViewModel.Fits}"
                       SelectedItem="{Binding SelectedFit}" DisplayMemberBinding="{Binding Label}" HorizontalAlignment="Stretch" />

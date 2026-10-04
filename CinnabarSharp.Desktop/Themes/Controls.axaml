@@ -25,6 +25,11 @@
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
+    <!-- Selected text: a light accent tint with the normal text color (the accent itself made it unreadable). -->
+    <Style Selector="TextBox">
+        <Setter Property="SelectionBrush" Value="{DynamicResource CinnabarAccentTintBrush}" />
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource CinnabarTextBrush}" />
+    </Style>
     <Style Selector="ComboBox">
         <Setter Property="MinHeight" Value="32" />
     </Style>
@@ -52,7 +57,46 @@
         <Setter Property="Background" Value="{DynamicResource CinnabarBorderBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource CinnabarTextSecondaryBrush}" />
     </Style>
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource CinnabarTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource CinnabarChromeBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
     <Style Selector="Slider">
         <Setter Property="MinHeight" Value="32" />
+    </Style>
+
+    <!-- Segmented control: a ListBox with a few short choices in one row, the chosen one raised (resolutions…). -->
+    <Style Selector="ListBox.segmented">
+        <Setter Property="Background" Value="{DynamicResource CinnabarChromeBrush}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource CinnabarTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem:selected">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource CinnabarTextBrush}" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CinnabarSurfaceBrush}" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem:pointerover:not(:selected) /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
 </Styles>

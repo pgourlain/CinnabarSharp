@@ -31,11 +31,12 @@ public partial class PrepareForTvViewModel : ViewModelBase
 
     public sealed record Option<T>(T Value, string Label);
 
+    // Short: they are the segments of a segmented control. The pixel size is shown where the result is described.
     public static IReadOnlyList<Option<TvResolution>> Resolutions { get; } =
     [
-        new(TvResolution.FullHd, "Full HD / 2K (1920 × 1080)"),
-        new(TvResolution.Uhd4K, "4K UHD (3840 × 2160)"),
-        new(TvResolution.Uhd8K, "8K UHD (7680 × 4320)"),
+        new(TvResolution.FullHd, "Full HD"),
+        new(TvResolution.Uhd4K, "4K"),
+        new(TvResolution.Uhd8K, "8K"),
     ];
 
     public static IReadOnlyList<Option<TvFit>> Fits { get; } =
