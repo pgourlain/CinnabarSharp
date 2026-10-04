@@ -87,15 +87,28 @@ public sealed class ComicPageTool(ComicLayout layout, ComicPageOptions options, 
         SelectionChanged?.Invoke();
     }
 
-    /// <summary>Puts a photo (or nothing) in a panel, framed at its center.</summary>
-    public void SetPhoto(int panel, BgraImage? photo)
+    /// <summary>
+    /// Puts a photo (or nothing) in a panel, framed at its center. <paramref name="source"/> and <paramref name="loadFull"/>
+    /// are kept in the panel's content (see <see cref="ComicPanelContent.Source"/>, <see cref="ComicPanelContent.LoadFull"/>).
+    /// </summary>
+    public void SetPhoto(int panel, BgraImage? photo, object? source = null, Func<BgraImage>? loadFull = null)
     {
         if (panel < 0 || panel >= Layout.Panels.Count)
             return;
         while (_contents.Count <= panel)
             _contents.Add(null);
-        _contents[panel] = photo is null ? null : new ComicPanelContent(photo);
+        _contents[panel] = photo is null ? null : new ComicPanelContent(photo) { Source = source, LoadFull = loadFull };
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Replaces the photo of a panel by another copy of the same picture (a proxy of another size) and keeps its framing,
+    /// zoom and stretch. Raises nothing: the caller is already redrawing.
+    /// </summary>
+    public void SwapPhoto(int panel, BgraImage photo)
+    {
+        if (panel >= 0 && panel < _contents.Count && _contents[panel] is { } content)
+            _contents[panel] = content with { Photo = photo };
     }
 
     /// <summary>Zoom of a panel's photo, 1 (the whole panel shape) to 4.</summary>

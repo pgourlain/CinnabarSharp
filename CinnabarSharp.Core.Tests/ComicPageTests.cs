@@ -90,6 +90,113 @@ public sealed class ComicPageTests : BaseTests
         Assert.Equal(new RectangleD(0.25, 0.25, 0.5, 0.5), layout.Panels[0]);
     }
 
+    // ---- Proxies and preview quality (performance-tasks.md P7.1) ----
+
+    /// <summary>A smooth photo (two gradients), so a reduced copy and the original look alike.</summary>
+    private static BgraImage Gradient(int w, int h)
+    {
+        var px = new byte[w * h * 4];
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var i = (y * w + x) * 4;
+                (px[i], px[i + 1], px[i + 2], px[i + 3]) = ((byte)(255 * x / w), (byte)(255 * y / h), (byte)(255 * (x + y) / (w + h)), 255);
+            }
+        return new BgraImage(px, w, h);
+    }
+
+    private static double MeanDifference(BgraImage a, BgraImage b)
+    {
+        Assert.Equal((a.Width, a.Height), (b.Width, b.Height));
+        long sum = 0;
+        for (var i = 0; i < a.Pixels.Length; i++)
+            sum += Math.Abs(a.Pixels[i] - b.Pixels[i]);
+        return (double)sum / a.Pixels.Length;
+    }
+
+    [Fact]
+    public void Needed_scale_is_the_part_of_the_photos_resolution_a_panel_shows_at_the_preview_size()
+    {
+        var panel = new RectangleI(0, 0, 1200, 700); // page pixels
+        var photo = new ComicPanelContent(Solid(4, 4, 0, 0, 0));
+
+        // A 4000 × 3000 photo cropped to the panel's shape shows all of its width: 1200 × 0.5 = 600 pixels of 4000.
+        Assert.Equal(0.15, ComicPage.NeededScale(4000, 3000, photo, panel, 0.5), 3);
+        // Zoom 4 shows a quarter of the width in the same panel: four times the resolution is needed.
+        Assert.Equal(0.6, ComicPage.NeededScale(4000, 3000, photo with { Zoom = 4 }, panel, 0.5), 3);
+        // The final page (preview scale 1) needs twice the preview's.
+        Assert.Equal(0.3, ComicPage.NeededScale(4000, 3000, photo, panel, 1), 3);
+        // A stretched photo shows all of itself, on both axes: the sharper one counts (700 × 0.5 = 350 of 3000 is less than 600 of 4000).
+        Assert.Equal(0.15, ComicPage.NeededScale(4000, 3000, photo with { Stretch = true }, panel, 0.5), 3);
+        // Never more than the photo has, and a photo smaller than the panel needs all of it.
+        Assert.Equal(1, ComicPage.NeededScale(400, 300, photo with { Zoom = 4 }, panel, 1));
+        Assert.Equal(1, ComicPage.NeededScale(0, 0, photo, panel, 1));
+    }
+
+    [Fact]
+    public void A_preview_from_a_proxy_looks_like_one_from_the_full_photo_and_is_framed_the_same()
+    {
+        var options = new ComicPageOptions(new ImageSize(800, 450), 10, 2, ColorBgra.Black, ColorBgra.White);
+        var full = Gradient(1600, 1200);
+        var proxy = new BgraImage(CinnabarSharp.Core.Effects.PhotoMath.Downscale(full.Pixels, 1600, 1200, 600).Pixels, 600, 450);
+        var framing = new ComicPanelContent(full) { Zoom = 2, Center = new PointD(0.3, 0.6) };
+
+        var fromFull = ComicPage.Compose(Layout("2 columns"), options, [framing, null], new ImageSize(400, 225), quality: ComicQuality.Preview);
+        var fromProxy = ComicPage.Compose(Layout("2 columns"), options, [framing with { Photo = proxy }, null], new ImageSize(400, 225), quality: ComicQuality.Preview);
+
+        Assert.True(MeanDifference(fromFull, fromProxy) < 4, "the proxy must show the same part of the photo");
+    }
+
+    [Fact]
+    public void The_final_page_reads_each_photo_at_full_resolution_and_a_preview_never_does()
+    {
+        var options = new ComicPageOptions(new ImageSize(200, 100), 0, 0, ColorBgra.Black, ColorBgra.White);
+        var loaded = 0;
+        var proxy = Solid(20, 10, 0, 0, 255);     // red, tiny
+        var content = new ComicPanelContent(proxy) { LoadFull = () => { loaded++; return Solid(400, 200, 255, 0, 0); } }; // blue, big
+
+        var preview = ComicPage.Compose(Layout("1 panel"), options, [content], quality: ComicQuality.Preview);
+        Assert.Equal(0, loaded);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, At(preview, 100, 50));
+
+        var final = ComicPage.Compose(Layout("1 panel"), options, [content], quality: ComicQuality.Full);
+        Assert.Equal(1, loaded);
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, At(final, 100, 50));
+
+        // Without a loader (the photo is the full one), Full uses it as it is: what the MCP tool and the tests do.
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, At(ComicPage.Compose(Layout("1 panel"), options, [new ComicPanelContent(proxy)]), 100, 50));
+    }
+
+    [Fact]
+    public void Swapping_a_photo_keeps_its_framing_and_source_and_a_cancelled_compose_stops()
+    {
+        var options = new ComicPageOptions(new ImageSize(200, 100), 0, 0, ColorBgra.Black, ColorBgra.White);
+        var source = new object();
+        Func<BgraImage> loader = () => Solid(8, 8, 0, 0, 0);
+        var tool = new ComicPageTool(Layout("2 columns"), options, [null, null]);
+        tool.SetPhoto(0, Solid(10, 10, 0, 0, 255), source, loader);
+        tool.SetZoom(0, 3);
+        tool.SetStretch(0, true);
+        var changes = 0;
+        tool.Changed += () => changes++;
+
+        var bigger = Solid(40, 40, 0, 0, 255);
+        tool.SwapPhoto(0, bigger);
+
+        var content = tool.Contents[0]!;
+        Assert.Same(bigger, content.Photo);
+        Assert.Same(source, content.Source);
+        Assert.Same(loader, content.LoadFull);
+        Assert.Equal((3.0, true), (content.Zoom, content.Stretch));
+        Assert.Equal(0, changes);
+        tool.SwapPhoto(1, bigger); // an empty panel: nothing happens
+        Assert.Null(tool.Contents[1]);
+
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        Assert.Throws<OperationCanceledException>(() => ComicPage.Compose(Layout("2 columns"), options, tool.Contents, cancellation: cancelled.Token));
+    }
+
     [Fact]
     public void Visible_area_has_the_panel_shape_zooms_and_stays_in_the_photo()
     {

@@ -189,13 +189,13 @@ public static class TvExport
         return image;
     }
 
-    /// <summary>Lanczos resize to exactly width × height (the aspect ratio is not kept).</summary>
-    internal static byte[] Resize(BgraImage source, int width, int height)
+    /// <summary>Lanczos resize to exactly width × height (the aspect ratio is not kept); <paramref name="fast"/> is bilinear, for previews.</summary>
+    internal static byte[] Resize(BgraImage source, int width, int height, bool fast = false)
     {
         if (source.Width == width && source.Height == height)
             return (byte[])source.Pixels.Clone();
         using var image = Utility.FromBgra(source.Pixels, source.Width, source.Height);
-        image.FilterType = FilterType.Lanczos;
+        image.FilterType = fast ? FilterType.Triangle : FilterType.Lanczos;
         image.Resize(new MagickGeometry((uint)width, (uint)height) { IgnoreAspectRatio = true });
         return image.ToBgra();
     }

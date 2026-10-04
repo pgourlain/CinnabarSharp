@@ -32,6 +32,28 @@ public sealed record ComicPanelContent(BgraImage Photo, double Zoom, PointD Cent
 
     /// <summary>The whole photo is stretched to the panel (its proportions change); zoom and center are ignored.</summary>
     public bool Stretch { get; init; }
+
+    /// <summary>
+    /// Whatever the caller wants to know the photo by (the UI sets the source it came from): the same value stays when
+    /// <see cref="Photo"/> is replaced by a bigger or smaller copy of the same picture.
+    /// </summary>
+    public object? Source { get; init; }
+
+    /// <summary>
+    /// Reads the photo at full resolution, when <see cref="Photo"/> is only a reduced copy of it (a proxy): used by
+    /// <see cref="ComicQuality.Full"/> and called one panel at a time, so only one full photo is in memory at once.
+    /// </summary>
+    public Func<BgraImage>? LoadFull { get; init; }
+}
+
+/// <summary>What <see cref="ComicPage.Compose"/> draws the panels from.</summary>
+public enum ComicQuality
+{
+    /// <summary>The final page: each panel's full photo (<see cref="ComicPanelContent.LoadFull"/> when it has one), Lanczos resizing.</summary>
+    Full,
+
+    /// <summary>A preview while editing: the photo each panel holds (a proxy), bilinear resizing: much faster.</summary>
+    Preview,
 }
 
 /// <summary>Assembles photos into one image like a comic page: panels, gutters, borders.</summary>
@@ -135,7 +157,7 @@ public static class ComicPage
     /// photo stay empty with their border. <paramref name="size"/> renders the same page smaller (a preview).
     /// </summary>
     public static BgraImage Compose(ComicLayout layout, ComicPageOptions options, IReadOnlyList<ComicPanelContent?> contents,
-        ImageSize? size = null, CancellationToken cancellation = default)
+        ImageSize? size = null, CancellationToken cancellation = default, ComicQuality quality = ComicQuality.Full)
     {
         var page = options.Page;
         var target = size ?? page;
@@ -152,8 +174,10 @@ public static class ComicPage
             var r = Scale(rects[i], scale);
             if (i < contents.Count && contents[i] is { } content)
             {
-                var photo = content.Photo;
-                var area = SourceArea(content, rects[i].Width, rects[i].Height);
+                // The final page reads each photo at full resolution, one at a time; a preview uses what the panel holds.
+                var photo = quality == ComicQuality.Full && content.LoadFull is { } load ? load() : content.Photo;
+                cancellation.ThrowIfCancellationRequested();
+                var area = SourceArea(content with { Photo = photo }, rects[i].Width, rects[i].Height);
                 var crop = new RectangleI((int)Math.Round(area.X), (int)Math.Round(area.Y),
                     Math.Max(1, (int)Math.Round(area.Width)), Math.Max(1, (int)Math.Round(area.Height)));
                 crop = crop with
@@ -162,7 +186,7 @@ public static class ComicPage
                     Height = Math.Min(crop.Height, photo.Height - crop.Y),
                 };
                 var part = new BgraImage(PixelRegion.Extract(photo.Pixels, photo.Width, crop), crop.Width, crop.Height);
-                var pixels = TvExport.Resize(part, r.Width, r.Height);
+                var pixels = TvExport.Resize(part, r.Width, r.Height, fast: quality == ComicQuality.Preview);
                 PixelRegion.Place(result, target.Width, target.Height, pixels, r.Width, r.Height, r.X, r.Y, composite: true);
             }
             if (border > 0)
@@ -174,6 +198,22 @@ public static class ComicPage
             }
         }
         return new BgraImage(result, target.Width, target.Height);
+    }
+
+    /// <summary>
+    /// How much of a photo's resolution a panel needs, from 0 to 1: the photo pixels per original pixel so that the part of
+    /// the photo the panel shows has as many pixels as the panel has on screen. <paramref name="panelOnPage"/> is the panel in
+    /// page pixels and <paramref name="previewScale"/> the preview's size over the page's (1 for the final page).
+    /// </summary>
+    public static double NeededScale(int photoWidth, int photoHeight, ComicPanelContent content, RectangleI panelOnPage, double previewScale)
+    {
+        if (photoWidth <= 0 || photoHeight <= 0)
+            return 1;
+        double panelWidth = Math.Max(1, panelOnPage.Width * previewScale), panelHeight = Math.Max(1, panelOnPage.Height * previewScale);
+        var needed = content.Stretch
+            ? Math.Max(panelWidth / photoWidth, panelHeight / photoHeight)
+            : panelWidth / VisibleArea(photoWidth, photoHeight, panelOnPage.Width, panelOnPage.Height, content.Zoom, content.Center).Width;
+        return Math.Clamp(needed, 0, 1);
     }
 
     private static RectangleI Scale(RectangleI r, double scale)

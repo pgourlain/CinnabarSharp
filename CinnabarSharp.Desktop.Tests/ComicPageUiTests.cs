@@ -155,7 +155,7 @@ public sealed class ComicPageUiTests : IDisposable
         Assert.Equal(0, tool.Selected);
         Assert.Empty(_h.Dialogs.FilesToOpen);
         Assert.NotSame(before, tool.Contents[0]!.Photo);
-        Assert.Same(Vm.Comic.Sources[^1].Source.Photo, tool.Contents[0]!.Photo);
+        Assert.Same(Vm.Comic.Sources[^1].Source, tool.Contents[0]!.Source);
     }
 
     [AvaloniaFact]

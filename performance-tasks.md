@@ -203,6 +203,48 @@ Where the ~455 ms of the ReadyToRun build go: runtime start to `Main` ≈ 25 ms;
   - [x] Shipped: `packaging/package.sh` publishes with Native AOT, falling back to ReadyToRun (with a `::warning::` in the CI log) if the AOT build fails; `CINNABARSHARP_PUBLISH=r2r` forces ReadyToRun. The release workflow installs `clang` and `zlib1g-dev` on Linux. `IsAotCompatible` (Core, Mcp) and the trim/AOT analyzers (Desktop) report new problems at build time. Checked locally: osx-arm64 and osx-x64 (cross-compiled) packages build and start; Windows and Linux are first built by the release workflow.
 - [ ] Reply to the issue with these numbers once the release with ReadyToRun is out.
 
+## P7 — Work on reduced versions; hibernate inactive images
+
+Origin: with 15 photos open you only work on one at full resolution, and the comic page with 9 photos is slow to react before Apply.
+
+### P7.1 Comic page on proxies (first)
+
+Today (`MainViewModel.ComicPage`, `RefreshComicPreviewAsync`):
+- the start dialog flattens **every** open document into a full-resolution `ComicSource` (about 48 MB per 12 MP photo, 720 MB for 15), kept for as long as the page is edited, including photos not placed on the page;
+- every change (drag, zoom, gutter, divider, layout, options) recomposes the preview from the full-resolution photos: each panel crops its photo and resizes it with Lanczos (`TvExport.Resize`) to a page up to 2560 px wide. Changes made during a refresh are merged, but a running refresh is never cancelled.
+
+**Done** (macOS, Apple M5, `CinnabarSharp.Benchmarks`: `ComicPageBenchmarks` and `dotnet run -c Release -- --memory 15 12`):
+
+| 3 × 3 page of a 16:9 4K, 9 photos of 12 MP, preview 1920 px wide | Before | After |
+|---|---:|---:|
+| One preview (every drag, zoom, divider move) | **775 ms** | **64 ms** (12× faster) |
+| Allocated per preview | 186 MB | 27 MB |
+| Managed memory held by the comic mode, 15 photos open | 702 MB (a full copy of every open image) | **16 MB** (9 proxies) |
+
+- [x] Measure first (the numbers above; the memory part also gives P7.2's baseline, below).
+- [x] Proxies sized for the panel (`ComicSource` in `ViewModels`, `ComicProxies` in `Services`, `ComicPage.NeededScale` in Core): made in the background with a box filter, 25 % more resolution than needed so small changes don't make a new one, a bigger one when the layout, a divider, the gutter or the zoom ask for more (up to the full photo), a smaller one only if the proxy is over 16 MB and more than twice what is needed. The panel keeps its framing (`ComicPageTool.SwapPhoto`); `ComicPanelContent.Source` says which picture a panel shows whatever copy it holds. At most 3 photos are read at once while proxies are made.
+- [x] Bilinear for the preview, Lanczos for Apply (`ComicQuality.Preview` / `Full` in `ComicPage.Compose`; the default is `Full`, so MCP and the pinned results don't change).
+- [x] No full-resolution copy while editing: open images are flattened only when a panel needs them (proxy), or for a thumbnail (in the background, nothing kept), or at Apply; a file added in the dialog is read once for its size and first proxy (1600 px). Apply reads each photo at full size, one panel at a time (`ComicPanelContent.LoadFull`), so a single full photo is in memory at once. A file moved meanwhile makes Apply say so and leave the page open.
+- [x] Cancel a running preview when a newer change comes (the `CancellationToken` of `Compose`).
+- [x] Tests: `NeededScale`; a preview from a proxy matches one from the full photo (same framing); Full reads `LoadFull`, Preview never does; `SwapPhoto` keeps the framing; cancelled compose; sources not read until needed; a sharper proxy after a zoom (and none for a small change); Apply with a missing file; background thumbnails. The existing Apply pixel checks pass unchanged.
+
+### P7.2 Hibernate inactive images (after measuring)
+
+Each open image keeps all its layers in memory (`Layer.Surface`, ~48 MB per 12 MP layer) whether you look at it or not. The history already has a budget and spills to disk (P1), the layers don't.
+
+Idea: when the memory of all open images goes over a budget, write the layers of the least recently used inactive images to disk (compressed, reusing the P1.4 history storage), free them, keep the tab and thumbnails, and read them back when the image is used again. The active image and the last 2 used always stay in memory.
+
+- [x] Measure first (`dotnet run -c Release --project CinnabarSharp.Benchmarks -- --memory 15 12`, macOS): 15 photos of 12 MP open take **779 MB** (about 52 MB each, 49 MB at start). One more full-size layer in each (a worst case; real edits mostly add diffs) brings it to 1467 MB. So hibernating the 14 inactive photos would free about **700 MB of 780**, and more once they are edited. Not measured on Linux and Windows. Decision left to the user: real, but a moderate gain on a typical machine, for the riskiest change of the phase.
+- [ ] If yes: a Core service that owns "loaded or hibernated" per document, with **one** way in for anything that reads pixels (`ImageDocument.Layers`, flatten, save, MCP tools, comic page, Prepare for TV), which reloads transparently; tests in the style of `HistoryTests` (hibernate → every action → identical pixels, history, dirty flag).
+- [ ] Budget and timing (decision 3, still open), and what the user sees while an image is read back (a short busy indicator over 100 ms?).
+
+### Decisions (2026-10-04)
+
+1. **Proxy size computed from the page and the panel**, since a double click can put a new photo in any panel: a photo's proxy has the pixels its panel needs at the preview's resolution, times its zoom, never more than the photo. When the layout, a divider, the gutter or the zoom asks for more than the proxy has, a bigger proxy is made in the background (from the open document, or by decoding the file again); it is not made smaller on every change, only when it is more than twice what is needed, so dragging doesn't keep re-making proxies. While a new proxy is being made, the preview uses the current one.
+2. **Files added in the dialog or by double click are decoded at full size only at Apply.** When added they are decoded once to make the proxy, then the full image is dropped. Apply decodes them again; if one is gone, Apply says which and the page stays open.
+3. **Hibernation budget**: open, to settle with the P7.2 measure.
+4. **Order**: P7.1 now, with the P7.2 measure; P7.2 only if the measure shows a real problem.
+
 ## Validation
 
 - [ ] P0 benchmarks before and after each phase, numbers recorded here, on macOS (Apple Silicon), Windows 11 and Linux.

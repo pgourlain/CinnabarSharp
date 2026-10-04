@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -1391,8 +1392,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (Dialogs is null || IsBusy || IsTvMode || IsComicMode)
             return;
-        var sources = Documents.Select(d => new ComicSource(d.Document.DisplayName,
-            new BgraImage(d.Document.Layers.GetFlattenedBgra(includeToolLayer: false), d.Document.ImageSize.Width, d.Document.ImageSize.Height)));
+        // Open images are flattened only when a panel needs them (a proxy, a thumbnail, Apply), not all at once here.
+        var sources = Documents.Select(d =>
+        {
+            var document = d.Document;
+            var (width, height) = (document.ImageSize.Width, document.ImageSize.Height);
+            return new ComicSource(document.DisplayName, width, height,
+                () => new BgraImage(document.Layers.GetFlattenedBgra(includeToolLayer: false), width, height));
+        });
         var comic = new ComicPageViewModel(sources, ComicDefaults);
         if (!await Dialogs.ShowComicPageAsync(comic))
             return;
@@ -1420,7 +1427,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var files = await Dialogs.PickFilesToOpenAsync(_formats.Formats);
         if (files.Count == 0 || Comic != comic || comic.AddFiles(files.Take(1)) == 0)
             return;
-        tool.SetPhoto(panel, comic.Sources[^1].Source.Photo);
+        var added = comic.Sources[^1].Source;
+        tool.SetPhoto(panel, added.Proxy ?? added.Placeholder(), added, added.LoadFull);
     }
 
     [RelayCommand(CanExecute = nameof(IsComicMode))]
@@ -1429,9 +1437,23 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (Comic?.Tool is not { } tool || _comicDocument is not { } page)
             return;
         var (layout, options, contents) = (tool.Layout, tool.Options, tool.Contents.ToList());
+        // The page is composed from the photos at full resolution, read one panel at a time (the editing used proxies). A
+        // file that was moved fails here, and the page stays open to put another photo in that panel.
+        BgraImage result;
+        try
+        {
+            result = await RunBusyAsync("Composing the comic page", _ =>
+                Task.Run(() => Core.Photo.ComicPage.Compose(layout, options, contents, quality: Core.Photo.ComicQuality.Full)));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ImageMagick.MagickException)
+        {
+            if (Dialogs is not null)
+                await Dialogs.ShowErrorAsync("Could not create the comic page", Describe(e));
+            return;
+        }
+        if (Comic?.Tool != tool)
+            return;
         ExitComic(closeDocument: false);
-        var result = await RunBusyAsync("Composing the comic page", _ =>
-            Task.Run(() => Core.Photo.ComicPage.Compose(layout, options, contents)));
         page.Actions.ReplaceLayerPixels("Comic Page", result.Pixels);
     }
 
@@ -1453,6 +1475,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     private bool _comicPreviewRunning;
+    private CancellationTokenSource? _comicPreviewCts;
     private bool _comicPreviewDirty;
 
     /// <summary>
@@ -1463,7 +1486,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (_comicPreviewRunning)
         {
+            // A newer change makes the preview being computed out of date: stop it and start again.
             _comicPreviewDirty = true;
+            _comicPreviewCts?.Cancel();
             return;
         }
         _comicPreviewRunning = true;
@@ -1474,17 +1499,28 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 _comicPreviewDirty = false;
                 if (Comic?.Tool is not { } tool || _comicDocument is not { } page)
                     return;
-                var (layout, options, contents) = (tool.Layout, tool.Options, tool.Contents.ToList());
-                var size = options.Page;
-                // As many pixels as the screen shows (twice for high-DPI displays), never more than the page has.
-                var width = (int)Math.Clamp(size.Width * page.Workspace.Scale * 2, 64, Math.Min(size.Width, 2560));
-                var preview = new ImageSize(width, Math.Max(1, (int)Math.Round((double)width * size.Height / size.Width)));
-                var result = await Task.Run(() => Core.Photo.ComicPage.Compose(layout, options, contents, preview));
-                if (Comic?.Tool != tool)
-                    return;
-                tool.Preview = new OverlayPicture(result.Pixels, result.Width, result.Height,
-                    new RectangleD(0, 0, size.Width, size.Height));
-                UpdateOverlay();
+                using var cts = _comicPreviewCts = new CancellationTokenSource();
+                try
+                {
+                    var (layout, options) = (tool.Layout, tool.Options);
+                    var size = options.Page;
+                    // As many pixels as the screen shows (twice for high-DPI displays), never more than the page has.
+                    var width = (int)Math.Clamp(size.Width * page.Workspace.Scale * 2, 64, Math.Min(size.Width, 2560));
+                    var preview = new ImageSize(width, Math.Max(1, (int)Math.Round((double)width * size.Height / size.Width)));
+                    // Panels draw from proxies sized for this preview (a bigger one is made in the background if needed).
+                    await ComicProxies.EnsureAsync(tool, (double)width / size.Width, cts.Token);
+                    var contents = tool.Contents.ToList();
+                    var result = await Task.Run(() => Core.Photo.ComicPage.Compose(layout, options, contents, preview, cts.Token, Core.Photo.ComicQuality.Preview));
+                    if (Comic?.Tool != tool)
+                        return;
+                    tool.Preview = new OverlayPicture(result.Pixels, result.Width, result.Height,
+                        new RectangleD(0, 0, size.Width, size.Height));
+                    UpdateOverlay();
+                }
+                catch (OperationCanceledException)
+                {
+                    // Replaced by a newer change: the loop starts again with it.
+                }
             }
             while (_comicPreviewDirty);
         }

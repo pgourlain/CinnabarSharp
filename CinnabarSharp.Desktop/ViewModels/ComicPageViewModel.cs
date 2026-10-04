@@ -18,26 +18,45 @@ using ImageMagick;
 
 namespace CinnabarSharp.Desktop.ViewModels;
 
-/// <summary>A photo that can go in a panel: an open image (flattened) or a file added in the dialog.</summary>
-public sealed record ComicSource(string Name, BgraImage Photo);
-
 public partial class ComicSourceViewModel(ComicSource source, bool included) : ViewModelBase
 {
     public const int ThumbnailSize = 48;
 
     private Bitmap? _thumbnail;
+    private bool _thumbnailRequested;
 
     public ComicSource Source => source;
     public string Name => source.Name;
 
-    /// <summary>A small picture of the photo for the panel's photo list; null for "(empty)".</summary>
-    public Bitmap? Thumbnail => _thumbnail ??= CreateThumbnail();
-
-    private Bitmap? CreateThumbnail()
+    /// <summary>
+    /// A small picture of the photo for the panel's photo list; null for "(empty)", and for an open image until it has been
+    /// read in the background (the list then updates).
+    /// </summary>
+    public Bitmap? Thumbnail
     {
-        var photo = source.Photo;
-        if (photo.Width == 0 || photo.Height == 0)
-            return null;
+        get
+        {
+            if (_thumbnail is null && !_thumbnailRequested && source.FullWidth > 0 && source.FullHeight > 0)
+            {
+                _thumbnailRequested = true;
+                if (source.Proxy is { } proxy)
+                    _thumbnail = ToBitmap(proxy);
+                else
+                    _ = LoadThumbnailAsync();
+            }
+            return _thumbnail;
+        }
+    }
+
+    private async System.Threading.Tasks.Task LoadThumbnailAsync()
+    {
+        var small = await System.Threading.Tasks.Task.Run(() => ComicSource.Reduce(source.Proxy ?? source.LoadFull(), ThumbnailSize));
+        _thumbnail = ToBitmap(small);
+        OnPropertyChanged(nameof(Thumbnail));
+    }
+
+    private static Bitmap ToBitmap(BgraImage photo)
+    {
         var (pixels, width, height) = CinnabarSharp.Core.Effects.PhotoMath.Downscale(photo.Pixels, photo.Width, photo.Height, ThumbnailSize);
         var bitmap = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using var fb = bitmap.Lock();
@@ -206,7 +225,14 @@ public partial class ComicPageViewModel : ViewModelBase
         {
             try
             {
-                Sources.Add(new ComicSourceViewModel(new ComicSource(Path.GetFileName(path), TvExport.Load(new FileInfo(path))), included: true));
+                // Read once to know the size and make the first proxy; the full photo is read again only when a panel needs
+                // more pixels than the proxy has, and at Apply.
+                var file = new FileInfo(path);
+                var photo = TvExport.Load(file);
+                var proxy = Math.Max(photo.Width, photo.Height) > ComicSource.FileProxySide
+                    ? ComicSource.Reduce(photo, ComicSource.FileProxySide)
+                    : photo;
+                Sources.Add(new ComicSourceViewModel(new ComicSource(file.Name, photo.Width, photo.Height, () => TvExport.Load(file), proxy), included: true));
                 added++;
             }
             catch (Exception e) when (e is MagickException or IOException or UnauthorizedAccessException)
@@ -244,7 +270,9 @@ public partial class ComicPageViewModel : ViewModelBase
     {
         var photos = Included;
         var contents = Enumerable.Range(0, SelectedLayout.Layout.Panels.Count)
-            .Select(i => i < photos.Count ? new ComicPanelContent(photos[i].Photo) : null);
+            .Select(i => i < photos.Count
+                ? new ComicPanelContent(photos[i].Proxy ?? photos[i].Placeholder()) { Source = photos[i], LoadFull = photos[i].LoadFull }
+                : null);
         Tool = new ComicPageTool(SelectedLayout.Layout, Options, contents);
         Tool.SelectionChanged += RefreshPanel;
         Tool.Changed += RefreshPanel;
@@ -266,13 +294,16 @@ public partial class ComicPageViewModel : ViewModelBase
         {
             if (Tool is not { Selected: >= 0 } tool || tool.Contents[tool.Selected] is not { } content)
                 return Empty;
-            return Sources.FirstOrDefault(s => ReferenceEquals(s.Source.Photo, content.Photo)) ?? Empty;
+            return Sources.FirstOrDefault(s => ReferenceEquals(s.Source, content.Source)) ?? Empty;
         }
         set
         {
             if (_syncing || Tool is not { Selected: >= 0 } tool || value is null || value == SelectedPanelChoice)
                 return;
-            tool.SetPhoto(tool.Selected, value == Empty ? null : value.Source.Photo);
+            if (value == Empty)
+                tool.SetPhoto(tool.Selected, null);
+            else
+                tool.SetPhoto(tool.Selected, value.Source.Proxy ?? value.Source.Placeholder(), value.Source, value.Source.LoadFull);
         }
     }
 
