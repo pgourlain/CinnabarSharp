@@ -15,14 +15,20 @@
         DragDrop.AllowDrop="True">
 
     <Window.Styles>
+        <!-- 4-pt grid (4, 8, 12, 16, 24, 32): panels pad 12, a panel title sits 8 above its content. -->
         <Style Selector="Border.panel">
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CinnabarBorderBrush}" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="Padding" Value="8" />
+            <Setter Property="Padding" Value="12" />
         </Style>
         <Style Selector="TextBlock.panelTitle">
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="Foreground" Value="{DynamicResource CinnabarTextSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style Selector="ListBox.history, ListBox#LayersList">
+            <Setter Property="CornerRadius" Value="6" />
         </Style>
         <Style Selector="StackPanel.toolbar > Button">
             <Setter Property="Padding" Value="8,4" />
@@ -52,7 +58,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="ListBox.tabs ListBoxItem">
-            <Setter Property="Padding" Value="12,4,6,4" />
+            <Setter Property="Padding" Value="12,4,8,4" />
             <Setter Property="Foreground" Value="{DynamicResource CinnabarTextSecondaryBrush}" />
         </Style>
         <!-- The active tab: no filled background, an accent line under it and the text at full strength. -->
@@ -87,15 +93,15 @@
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="WrapPanel.layerButtons > Button">
-            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="Padding" Value="4,2" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="MinWidth" Value="0" />
         </Style>
         <Style Selector="ListBox#LayersList ListBoxItem">
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Padding" Value="8,4" />
         </Style>
         <Style Selector="ListBox.history ListBoxItem">
-            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Padding" Value="8,4" />
         </Style>
         <Style Selector="StackPanel.toolOptions > StackPanel">
             <Setter Property="Spacing" Value="8" />
@@ -194,7 +200,7 @@
                           AutomationProperties.Name="Photo in this panel" MaxWidth="190" Focusable="False">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:ComicSourceViewModel">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Image Source="{Binding Thumbnail}" Width="36" Height="24" Stretch="Uniform" IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}" />
                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
@@ -435,7 +441,7 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:DocumentViewModel">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
                                 <Ellipse Width="6" Height="6" Fill="{DynamicResource CinnabarAccentBrush}" VerticalAlignment="Center"
                                          IsVisible="{Binding IsDirty}" AutomationProperties.Name="Unsaved changes" />
@@ -470,7 +476,7 @@
                                 Background="{DynamicResource CinnabarPanelBrush}" BoxShadow="0 20 48 0 #59000000">
                             <Grid ColumnDefinitions="1.5*,1*">
                                 <StackPanel Margin="40" Spacing="24">
-                                    <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
                                         <Image Source="avares://CinnabarSharp/Assets/icon.png" Width="44" Height="44" />
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="CinnabarSharp" FontSize="26" FontWeight="SemiBold" />
@@ -488,7 +494,7 @@
                                         <ItemsControl ItemsSource="{Binding RecentItems}" AutomationProperties.Name="Recent files">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
-                                                    <WrapPanel ItemSpacing="14" LineSpacing="14" />
+                                                    <WrapPanel ItemSpacing="16" LineSpacing="16" />
                                                 </ItemsPanelTemplate>
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
@@ -497,7 +503,7 @@
                                                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenRecentItemCommand}"
                                                             CommandParameter="{Binding}" ToolTip.Tip="{Binding Path}"
                                                             AutomationProperties.Name="{Binding Name, StringFormat=Open {0}}">
-                                                        <StackPanel Spacing="6">
+                                                        <StackPanel Spacing="8">
                                                             <Border Height="72" CornerRadius="6" BorderThickness="1"
                                                                     Background="{DynamicResource CinnabarChromeBrush}"
                                                                     BorderBrush="{DynamicResource CinnabarBorderBrush}">
@@ -521,7 +527,7 @@
                                 </StackPanel>
                                 <Border Grid.Column="1" Background="{DynamicResource CinnabarChromeBrush}" BorderThickness="1,0,0,0"
                                         BorderBrush="{DynamicResource CinnabarBorderBrush}">
-                                    <DockPanel Margin="36,40">
+                                    <DockPanel Margin="32,40">
                                         <CheckBox DockPanel.Dock="Bottom" Margin="0,16,0,0" IsChecked="{Binding ShowWelcomeScreen}"
                                                   Content="Show this screen when no image is open" />
                                         <StackPanel Spacing="12">
@@ -529,7 +535,7 @@
                                             <ItemsControl ItemsSource="{x:Static vm:MainViewModel.WelcomeShortcuts}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:WelcomeShortcut">
-                                                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
                                                             <TextBlock Text="{Binding What}" VerticalAlignment="Center" TextWrapping="Wrap" />
                                                             <Border Grid.Column="1" Padding="8,2" CornerRadius="4" BorderThickness="1" Margin="12,0,0,0"
                                                                     Background="{DynamicResource CinnabarSurfaceBrush}"
@@ -574,8 +580,8 @@
                                         ToolTip.Tip="Black and white (D)" />
                             </StackPanel>
                         </StackPanel>
-                        <StackPanel Spacing="3" Margin="0,8,0,0">
-                            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding PrimaryColorDetails}">
+                        <StackPanel Spacing="4" Margin="0,8,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{Binding PrimaryColorDetails}">
                                 <Border Width="10" Height="10" Background="{Binding PrimaryBrush}" BorderBrush="Gray"
                                         BorderThickness="1" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding PrimaryColorHex}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
@@ -608,7 +614,7 @@
                                     </Button.Flyout>
                                 </Button>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding SecondaryColorDetails}">
+                            <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{Binding SecondaryColorDetails}">
                                 <Border Width="10" Height="10" Background="{Binding SecondaryBrush}" BorderBrush="Gray"
                                         BorderThickness="1" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding SecondaryColorHex}" FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
@@ -663,7 +669,7 @@
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="Layers" />
                         <WrapPanel DockPanel.Dock="Bottom" Classes="layerButtons" Orientation="Horizontal"
-                                   ItemSpacing="2" LineSpacing="2" Margin="0,6,0,0">
+                                   ItemSpacing="4" LineSpacing="4" Margin="0,8,0,0">
                             <Button Command="{Binding AddNewLayerCommand}" ToolTip.Tip="Add new layer" AutomationProperties.Name="Add">
                                 <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
                                     <Path Data="M12,5 L12,19 M5,12 L19,12" Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round" />

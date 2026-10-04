@@ -11,6 +11,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 - Welcome screen when no image is open: Open / New / Paste buttons, recent files, a shortcut cheat sheet; "Show this screen when no image is open" turns it off.
 
 ### Changed
+- Side panels use a 4-point grid: more air around Layers, History and Colors, smaller section titles.
 - IBM Plex Sans and Mono (SIL Open Font License) ship with the app: the text looks the same on every OS.
 - New app icon (a cinnabar square with a brush stroke).
 - Dialogs show their title in the body and their buttons in a footer band.
