@@ -8,6 +8,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 - Paste: moving the pasted image no longer leaves a transparent hole where it was pasted; the pixels it covered come back (Paint.NET's floating paste).
 
 ### Changed
+- The toolbar shows icons (New, Open, Save, Undo, Redo, zoom, Fit) instead of text.
 - New "Cinnabar" colors (warm graphite neutrals, one cinnabar accent) in light and dark, from one theme file (`Themes/Cinnabar.axaml`); the canvas background is darker so images stand out.
 - Zooming is faster on large images: a zoom step no longer recomposes all the layers (it did it twice per step).
 

@@ -127,17 +127,17 @@
         <!-- Toolbar -->
         <Border DockPanel.Dock="Top" Classes="panel" Padding="4" IsEnabled="{Binding IsIdle}">
             <StackPanel Classes="toolbar" Orientation="Horizontal" Spacing="2">
-                <Button Content="New" Command="{Binding NewImageCommand}" ToolTip.Tip="New image" />
-                <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open" />
-                <Button Content="Save" Command="{Binding SaveCommand}" ToolTip.Tip="Save" />
+                <Button Command="{Binding NewImageCommand}" AutomationProperties.Name="New image" ToolTip.Tip="New image"><c:StrokeIcon Data="M6,3 L14,3 L18,7 L18,21 L6,21 Z M14,3 L14,7 L18,7" /></Button>
+                <Button Command="{Binding OpenCommand}" AutomationProperties.Name="Open" ToolTip.Tip="Open"><c:StrokeIcon Data="M3,7 L9,7 L11,9 L21,9 L21,19 L3,19 Z" /></Button>
+                <Button Command="{Binding SaveCommand}" AutomationProperties.Name="Save" ToolTip.Tip="Save"><c:StrokeIcon Data="M5,3 L16,3 L19,6 L19,21 L5,21 Z M8,3 L8,8 L16,8 L16,3 M8,21 L8,14 L16,14 L16,21" /></Button>
                 <Border Classes="toolbarSeparator" />
-                <Button Content="Undo" Command="{Binding UndoCommand}" ToolTip.Tip="Undo" />
-                <Button Content="Redo" Command="{Binding RedoCommand}" ToolTip.Tip="Redo" />
+                <Button Command="{Binding UndoCommand}" AutomationProperties.Name="Undo" ToolTip.Tip="Undo"><c:StrokeIcon Data="M9,14 L4,9 L9,4 M4,9 L14,9 A6,6 0 0 1 14,21 L10,21" /></Button>
+                <Button Command="{Binding RedoCommand}" AutomationProperties.Name="Redo" ToolTip.Tip="Redo"><c:StrokeIcon Data="M15,14 L20,9 L15,4 M20,9 L10,9 A6,6 0 0 0 10,21 L14,21" /></Button>
                 <Border Classes="toolbarSeparator" />
-                <Button Content="−" Command="{Binding ZoomOutCommand}" AutomationProperties.Name="Zoom out" ToolTip.Tip="Zoom out" />
+                <Button Command="{Binding ZoomOutCommand}" AutomationProperties.Name="Zoom out" ToolTip.Tip="Zoom out"><c:StrokeIcon Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M15,15 L21,21 M7,10 L13,10" /></Button>
                 <TextBlock Text="{Binding ZoomText}" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center" />
-                <Button Content="+" Command="{Binding ZoomInCommand}" AutomationProperties.Name="Zoom in" ToolTip.Tip="Zoom in" />
-                <Button Content="Fit" Command="{Binding BestFitCommand}" ToolTip.Tip="Best fit" />
+                <Button Command="{Binding ZoomInCommand}" AutomationProperties.Name="Zoom in" ToolTip.Tip="Zoom in"><c:StrokeIcon Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M15,15 L21,21 M7,10 L13,10 M10,7 L10,13" /></Button>
+                <Button Command="{Binding BestFitCommand}" AutomationProperties.Name="Best fit" ToolTip.Tip="Best fit"><c:StrokeIcon Data="M4,9 L4,4 L9,4 M15,4 L20,4 L20,9 M20,15 L20,20 L15,20 M9,20 L4,20 L4,15" /></Button>
                 <Button Content="1:1" Command="{Binding ActualSizeCommand}" ToolTip.Tip="Actual size" />
             </StackPanel>
         </Border>

@@ -240,7 +240,8 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
   - [x] Colors: `Themes/Cinnabar.axaml` (Light/Dark `ThemeDictionaries`: chrome, panel, surface, border, workspace, text, accent, warning) and the matching Fluent palettes in `App.axaml`; main window workspace, warnings and borders use the tokens. `ViewportTests.Dark_theme_…` checks the dark variant.
   - [ ] Typography: IBM Plex Sans/Mono (OFL) bundled with the app, 13 px body, 4-pt spacing, radii 4/6/10, 28/32 px controls.
   - [ ] Components: primary/secondary/ghost buttons, segmented control, slider, tabs with thumbnail and unsaved dot, tooltips with shortcut.
-  - [ ] Icons for every toolbar and layer-panel button (24 px grid, 1.6 px stroke); new app icon (`packaging/icon.svg`).
+  - [x] Icons: the toolbar uses `Controls/StrokeIcon` (24 px grid, 1.6 px stroke, drawn in the inherited foreground so Undo/Redo dim when disabled); tools and layer buttons already had them.
+  - [ ] New app icon (`packaging/icon.svg`, refinement on the design canvas).
   - [ ] Dialogs restyled to the mockups (Adjust Photo, Prepare for TV; New, Resize, Canvas Size, Layer Properties still to draw).
 - [ ] Dock-able / collapsible panels, compact and full toolbar modes, remember panel layout.
 - [ ] Accessibility: keyboard navigation everywhere, focus visuals, contrast ratios, scalable UI at 150–200 % (with the theme). Screen-reader names done: every button, field and list in the main window has one (`AccessibilityTests` checks all tools' option bars).
