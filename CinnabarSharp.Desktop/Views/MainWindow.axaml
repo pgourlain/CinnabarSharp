@@ -53,6 +53,20 @@
         </Style>
         <Style Selector="ListBox.tabs ListBoxItem">
             <Setter Property="Padding" Value="12,4,6,4" />
+            <Setter Property="Foreground" Value="{DynamicResource CinnabarTextSecondaryBrush}" />
+        </Style>
+        <!-- The active tab: no filled background, an accent line under it and the text at full strength. -->
+        <Style Selector="ListBox.tabs ListBoxItem:selected">
+            <Setter Property="Foreground" Value="{DynamicResource CinnabarTextBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CinnabarAccentBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,2" />
+        </Style>
+        <Style Selector="ListBox.tabs ListBoxItem:pointerover:not(:selected) /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource CinnabarChromeBrush}" />
         </Style>
         <Style Selector="Button.copyColor">
             <Setter Property="Padding" Value="3" />
@@ -410,7 +424,9 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:DocumentViewModel">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                <Ellipse Width="6" Height="6" Fill="{DynamicResource CinnabarAccentBrush}" VerticalAlignment="Center"
+                                         IsVisible="{Binding IsDirty}" AutomationProperties.Name="Unsaved changes" />
                                 <Button Classes="closeTab" Content="×" ToolTip.Tip="Close"
                                         AutomationProperties.Name="{Binding Title, StringFormat=Close {0}}"
                                         Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseTabCommand}"

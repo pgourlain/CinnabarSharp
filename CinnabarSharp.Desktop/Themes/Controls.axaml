@@ -31,6 +31,26 @@
     <Style Selector="Button">
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <!-- The primary button is the dialog's default one (OK, Save…): filled with the accent. -->
+    <Style Selector="Button[IsDefault=True]">
+        <Setter Property="Background" Value="{DynamicResource CinnabarAccentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource CinnabarOnAccentBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button[IsDefault=True]:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CinnabarAccentHoverBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource CinnabarOnAccentBrush}" />
+    </Style>
+    <Style Selector="Button[IsDefault=True]:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CinnabarAccentPressedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource CinnabarOnAccentBrush}" />
+    </Style>
+    <Style Selector="Button[IsDefault=True]:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CinnabarBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource CinnabarTextSecondaryBrush}" />
     </Style>
     <Style Selector="Slider">
         <Setter Property="MinHeight" Value="32" />

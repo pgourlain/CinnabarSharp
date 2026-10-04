@@ -8,6 +8,9 @@
         <ResourceDictionary x:Key="Light">
             <Color x:Key="CinnabarAccentColor">#B23A2A</Color>
             <SolidColorBrush x:Key="CinnabarAccentBrush" Color="#B23A2A" />
+            <SolidColorBrush x:Key="CinnabarAccentHoverBrush" Color="#8E2C1F" />
+            <SolidColorBrush x:Key="CinnabarAccentPressedBrush" Color="#7A2619" />
+            <SolidColorBrush x:Key="CinnabarOnAccentBrush" Color="#FFFFFF" />
             <SolidColorBrush x:Key="CinnabarAccentTintBrush" Color="#F6DDD8" />
             <SolidColorBrush x:Key="CinnabarChromeBrush" Color="#F4F2EF" />
             <SolidColorBrush x:Key="CinnabarPanelBrush" Color="#FBFAF8" />
@@ -23,6 +26,9 @@
         <ResourceDictionary x:Key="Dark">
             <Color x:Key="CinnabarAccentColor">#EE6A55</Color>
             <SolidColorBrush x:Key="CinnabarAccentBrush" Color="#EE6A55" />
+            <SolidColorBrush x:Key="CinnabarAccentHoverBrush" Color="#F28370" />
+            <SolidColorBrush x:Key="CinnabarAccentPressedBrush" Color="#F59A8A" />
+            <SolidColorBrush x:Key="CinnabarOnAccentBrush" Color="#1B1A18" />
             <SolidColorBrush x:Key="CinnabarAccentTintBrush" Color="#4A2620" />
             <SolidColorBrush x:Key="CinnabarChromeBrush" Color="#1B1A18" />
             <SolidColorBrush x:Key="CinnabarPanelBrush" Color="#22211F" />
