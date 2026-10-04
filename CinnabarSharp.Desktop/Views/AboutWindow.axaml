@@ -10,7 +10,7 @@
         <TextBlock Text="CinnabarSharp" FontSize="22" FontWeight="SemiBold" />
         <TextBlock x:Name="VersionText" />
         <TextBlock TextWrapping="Wrap"
-                   Text="A cross-platform image editor inspired by Paint.NET. Portions of the code are ported from Pinta (MIT license)." />
+                   Text="A cross-platform image editor inspired by Paint.NET. Portions of the code are ported from Pinta (MIT license). Text is set in IBM Plex (SIL Open Font License)." />
         <TextBlock x:Name="RuntimeText" Foreground="Gray" />
         <Button Content="Close" IsCancel="True" IsDefault="True" HorizontalAlignment="Right"
                 Click="OnClose" Margin="0,8,0,0" />

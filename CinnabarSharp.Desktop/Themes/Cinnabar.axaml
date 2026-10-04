@@ -4,6 +4,11 @@
     <!-- Cinnabar design system (tasks.md, Phase 12): warm graphite neutrals and one cinnabar accent.
          Brushes are looked up with DynamicResource so they follow the OS theme. The Fluent palettes in App.axaml
          carry the same colors for the stock controls. -->
+    <!-- IBM Plex (SIL Open Font License, Assets/Fonts/OFL.txt) ships with the app so the text is the same on every OS.
+         Only Regular, Italic and Bold are embedded: SemiBold and Medium resolve to the nearest of them. -->
+    <FontFamily x:Key="CinnabarSansFont">avares://CinnabarSharp/Assets/Fonts#IBM Plex Sans</FontFamily>
+    <FontFamily x:Key="CinnabarMonoFont">avares://CinnabarSharp/Assets/Fonts#IBM Plex Mono</FontFamily>
+
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
             <Color x:Key="CinnabarAccentColor">#B23A2A</Color>

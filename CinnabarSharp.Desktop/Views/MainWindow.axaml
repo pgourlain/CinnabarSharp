@@ -161,7 +161,7 @@
                 <Button Command="{Binding RedoCommand}" AutomationProperties.Name="Redo" ToolTip.Tip="Redo"><c:StrokeIcon Data="M15,14 L20,9 L15,4 M20,9 L10,9 A6,6 0 0 0 10,21 L14,21" /></Button>
                 <Border Classes="toolbarSeparator" />
                 <Button Command="{Binding ZoomOutCommand}" AutomationProperties.Name="Zoom out" ToolTip.Tip="Zoom out"><c:StrokeIcon Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M15,15 L21,21 M7,10 L13,10" /></Button>
-                <TextBlock Text="{Binding ZoomText}" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock Classes="mono" Text="{Binding ZoomText}" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center" />
                 <Button Command="{Binding ZoomInCommand}" AutomationProperties.Name="Zoom in" ToolTip.Tip="Zoom in"><c:StrokeIcon Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M15,15 L21,21 M7,10 L13,10 M10,7 L10,13" /></Button>
                 <Button Command="{Binding BestFitCommand}" AutomationProperties.Name="Best fit" ToolTip.Tip="Best fit"><c:StrokeIcon Data="M4,9 L4,4 L9,4 M15,4 L20,4 L20,9 M20,15 L20,20 L15,20 M9,20 L4,20 L4,15" /></Button>
                 <Button Content="1:1" Command="{Binding ActualSizeCommand}" ToolTip.Tip="Actual size" />
@@ -534,7 +534,7 @@
                                                             <Border Grid.Column="1" Padding="8,2" CornerRadius="4" BorderThickness="1" Margin="12,0,0,0"
                                                                     Background="{DynamicResource CinnabarSurfaceBrush}"
                                                                     BorderBrush="{DynamicResource CinnabarBorderBrush}">
-                                                                <TextBlock Text="{Binding Keys}" FontSize="12" FontFamily="Menlo,Consolas,monospace" />
+                                                                <TextBlock Text="{Binding Keys}" FontSize="12" Classes="mono" />
                                                             </Border>
                                                         </Grid>
                                                     </DataTemplate>

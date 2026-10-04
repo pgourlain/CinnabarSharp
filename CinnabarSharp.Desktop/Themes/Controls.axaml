@@ -1,6 +1,18 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Cinnabar type (tasks.md, Phase 12): IBM Plex Sans at 13 px everywhere, Plex Mono for numbers. -->
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="{DynamicResource CinnabarSansFont}" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox">
+        <Setter Property="FontFamily" Value="{DynamicResource CinnabarMonoFont}" />
+    </Style>
+    <Style Selector="TextBlock.mono">
+        <Setter Property="FontFamily" Value="{DynamicResource CinnabarMonoFont}" />
+    </Style>
+
     <!-- Cinnabar controls (tasks.md, Phase 12): one 32 px height for edit boxes, in dialogs and in the bars. -->
     <Style Selector="NumericUpDown">
         <Setter Property="MinHeight" Value="32" />
