@@ -4,6 +4,8 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.7.0-rc4] - 2026-10-04
+
 ### Changed
 - Comic page: the preview is much more responsive and uses far less memory. Panels work on reduced copies of the photos until Apply (a sharper copy is made in the background when a panel is zoomed or enlarged); a preview that took 775 ms with 9 photos of 12 MP takes 64 ms, and the comic mode holds 16 MB instead of 700 MB with 15 photos open. Apply still builds the page from the photos at full resolution.
 

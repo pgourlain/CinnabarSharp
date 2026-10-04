@@ -43,6 +43,10 @@ public class AttachTests
                 var result = await client.CallToolAsync("new_image",
                     new Dictionary<string, object?> { ["width"] = 20, ["height"] = 10 }, cancellationToken: Ct);
                 Assert.NotEqual(true, result.IsError);
+                // The probe that Start made to check that no other app listens is a connection too, until its session
+                // ends: wait for it to go, instead of counting it on a slow machine.
+                for (var i = 0; i < 300 && listener.ClientCount > 1; i++)
+                    await Task.Delay(10, Ct);
                 Assert.Equal(1, listener.ClientCount);
             }
 
