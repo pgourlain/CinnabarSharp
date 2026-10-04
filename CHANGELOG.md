@@ -4,6 +4,8 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-04
+
 ### Added
 - Comic page: two new layouts, "Large centre + surround" and "3 × 3 + overlapping centre" (the centre photo covers its neighbours by 10–25 %, set with the Overlap slider in the options bar).
 - Comic page: drag the gutter between panels to resize them (minimum 5 % of the page); picking the layout again restores its proportions.
