@@ -52,6 +52,8 @@ public sealed class MoveSelectedPixelsTool : ITool
     private byte[] _base = [];
     private byte[] _lifted = [];
     private SelectionMask? _selectionBefore;
+    private FloatingPaste? _floating;
+    private FloatingStep? _floatingStep;
     private PointD _start;
 
     public string Name => "Move Selected Pixels";
@@ -63,6 +65,18 @@ public sealed class MoveSelectedPixelsTool : ITool
         _original = _layer.Surface;
         _selectionBefore = document.Selection;
         _start = pointer.Position;
+
+        _floating = document.Floating;
+        _floatingStep = _floating?.Current(document);
+        if (_floating is not null && _floatingStep is not null)
+        {
+            // A paste that is still floating: lift the pasted image and put back what was under it.
+            _base = (byte[])_floating.Underlying.Clone();
+            _lifted = new byte[_base.Length];
+            PixelRegion.Place(_lifted, w, h, _floating.Image.Bgra, _floating.Image.Width, _floating.Image.Height,
+                _floatingStep.Position.X, _floatingStep.Position.Y, composite: false);
+            return;
+        }
 
         var mask = (_selectionBefore ?? SelectionMask.All(w, h)).Data;
         var pixels = _original.ToBgra();
@@ -117,12 +131,23 @@ public sealed class MoveSelectedPixelsTool : ITool
                 OnPointerMove(document, pointer);
                 _layer = null;
             }
-            document.Workspace.History.PushNewItem(new CompoundHistoryItem(Name,
+            var item = new CompoundHistoryItem(Name,
             [
                 new SwapSurfaceHistoryItem("", layer, _original!, layer.Surface),
                 new SelectionHistoryItem("", document, _selectionBefore, document.Selection),
-            ]));
+            ]);
+            document.Workspace.History.PushNewItem(item);
+            if (_floating is not null && _floatingStep is not null && document.Selection is { } moved)
+            {
+                // The push dropped the floating paste; keep it, with the move as its newest state.
+                _floating.AddStep(new FloatingStep(
+                    new PointI(_floatingStep.Position.X + Delta(pointer).X, _floatingStep.Position.Y + Delta(pointer).Y),
+                    item, moved, layer.Surface));
+                document.Floating = _floating;
+            }
         }
+        _floating = null;
+        _floatingStep = null;
         _preview = null;
         _base = [];
         _lifted = [];

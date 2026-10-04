@@ -205,6 +205,24 @@ public sealed class SelectionUiTests : IDisposable
         Assert.Equal(["Nothing to paste"], _h.Dialogs.Errors);
     }
 
+    // Paint.NET's floating paste: dragging a fresh paste must not leave a hole where it was.
+    [AvaloniaFact]
+    public async Task Dragging_a_fresh_paste_puts_back_the_pixels_under_it()
+    {
+        NewImage(120, 80);
+        var red = ColorBgra.FromBgra(40, 30, 220, 255);
+        _h.Clipboard.Image = new ClipboardImage(Enumerable.Repeat(new[] { red.B, red.G, red.R, red.A }, 20 * 20).SelectMany(p => p).ToArray(), 20, 20);
+
+        await Vm.PasteCommand.ExecuteAsync(null);
+        var at = Doc.Selection!.Bounds;
+        Drag(at.X + 5, at.Y + 5, at.X + 65, at.Y + 5);
+
+        var frame = _h.Capture("41-floating-paste");
+        Assert.Equal("Move Selected Pixels", Vm.History[^1].Text);
+        Assert.Equal((255, 255, 255), TestHarness.PixelAt(frame, _h.CanvasToWindow(at.X + 10, at.Y + 10)));
+        Assert.Equal((220, 30, 40), TestHarness.PixelAt(frame, _h.CanvasToWindow(at.X + 70, at.Y + 10)));
+    }
+
     [AvaloniaFact]
     public async Task Cut_clears_pixels_and_fills_clipboard()
     {

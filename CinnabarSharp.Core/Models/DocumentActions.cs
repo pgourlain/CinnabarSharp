@@ -236,6 +236,7 @@ public class DocumentActions(ImageDocument document)
         var layer = Layers.CurrentUserLayer;
         var before = layer.Surface;
         var bgra = before.ToBgra();
+        var underlying = (byte[])bgra.Clone();
         var area = PixelRegion.Place(bgra, Width, Height, image.Bgra, image.Width, image.Height, at.X, at.Y, composite: true);
         if (area.IsEmpty)
             return;
@@ -243,11 +244,15 @@ public class DocumentActions(ImageDocument document)
         var selectionBefore = document.Selection;
         document.SetSelection(RectangleSelection(area));
         document.Workspace.Invalidate();
-        History.PushNewItem(new CompoundHistoryItem("Paste",
+        var item = new CompoundHistoryItem("Paste",
         [
             new SwapSurfaceHistoryItem("", layer, before, layer.Surface),
             new SelectionHistoryItem("", document, selectionBefore, document.Selection),
-        ]));
+        ]);
+        History.PushNewItem(item);
+        // Moving the pasted pixels afterwards puts the layer's own pixels back (Paint.NET's floating paste).
+        document.Floating = new FloatingPaste(layer, underlying, image,
+            new FloatingStep(at, item, document.Selection!, layer.Surface));
     }
 
     /// <summary>Pastes into a new layer above the current one at (x, y) and selects the pasted area.</summary>

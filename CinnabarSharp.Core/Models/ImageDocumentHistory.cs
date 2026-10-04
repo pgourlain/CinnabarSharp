@@ -70,6 +70,7 @@ public class ImageDocumentHistory : IImageDocumentHistory
             _items.RemoveAt(i);
         }
 
+        _document.Floating = null; // a tool that keeps one sets it again after pushing its step
         _items.Add(newItem);
         Pointer = _items.Count - 1;
         TrimToBudget();

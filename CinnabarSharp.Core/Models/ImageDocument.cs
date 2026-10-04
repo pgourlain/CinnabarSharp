@@ -36,6 +36,9 @@ namespace CinnabarSharp.Core.Models
 
         public bool HasSelection => Selection is not null;
 
+        /// <summary>The last paste while it can still be moved without leaving a hole (see <see cref="FloatingPaste"/>).</summary>
+        public FloatingPaste? Floating { get; set; }
+
         /// <summary>Replaces the selection without recording history; an empty mask means no selection.</summary>
         public void SetSelection(SelectionMask? selection)
         {

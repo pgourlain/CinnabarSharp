@@ -118,7 +118,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] Animated marching ants; status bar shows the selection size. Edit › Select All / Deselect All / Invert Selection.
 - [x] Move Selected Pixels (area left behind becomes transparent) and Move Selection (outline only), by dragging.
 - [ ] Move handles (scale/rotate the selection or selected pixels, as in Paint.NET).
-- [ ] Paste keeps the pixels under the pasted image while it is being moved (Paint.NET's floating paste); today Paste composites onto the layer, so moving it afterwards leaves a transparent hole. Paste Into New Layer doesn't have this issue.
+- [x] Paste keeps the pixels under the pasted image while it is being moved (Paint.NET's floating paste): `FloatingPaste` keeps the layer's pixels from before the paste, so Move Selected Pixels puts them back; it follows later moves and undo/redo and ends with any other history step. Pasting into a partly off-canvas area clips the part outside, as before.
 - [x] Image › Crop to Selection (non-rectangular selections make outside pixels transparent); Edit › Erase Selection (Delete) and Fill Selection with the primary color (Backspace).
 - [x] System clipboard (`IClipboardService` in Core, Avalonia implementation in Desktop): Cut, Copy, Copy Merged, Paste (then switches to Move Selected Pixels), Paste Into New Layer, Paste Into New Image; Paste with no image open creates one. All undoable.
 - [x] Replace the `object clipboard` parameters in `TextEngine.PerformCopy/Cut/Paste` with `IClipboardService` (done with the Text tool, Phase 6).
