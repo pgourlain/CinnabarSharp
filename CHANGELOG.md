@@ -4,6 +4,8 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.7.0-rc3] - 2026-10-04
+
 ### Added
 - Automation: `CinnabarSharp --run script.txt [--input files] [--var name=value]` runs a text script of the MCP tools (open, effects, resize, save…) without a window, on one or many files (`--keep-going` to continue after a failing file). See `docs/automation.md`.
 - Release smoke test: the release workflow runs a script that calls every MCP tool and every effect and saves in every format on the packaged app of each OS, so a broken native build fails the release.
