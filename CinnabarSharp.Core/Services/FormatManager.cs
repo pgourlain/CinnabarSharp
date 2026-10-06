@@ -1,4 +1,5 @@
 using CinnabarSharp.Core.Models;
+using CinnabarSharp.Core.Vector;
 
 namespace CinnabarSharp.Core.Services;
 
@@ -6,10 +7,13 @@ public interface IFormatManager
 {
     IReadOnlyList<ImageFormat> Formats { get; }
 
-    /// <summary>Formats that can be written (for Save As).</summary>
+    /// <summary>Raster formats that can be written (for Save As of an image).</summary>
     IReadOnlyList<ImageFormat> SaveFormats { get; }
 
-    /// <summary>Formats a document of this kind can be saved to (Save As lists only these).</summary>
+    /// <summary>
+    /// Formats a document of this kind can be saved to (Save As lists only these). An SVG drawing lists SVG first, then the
+    /// raster formats: those are exports, the drawing stays an SVG document.
+    /// </summary>
     IReadOnlyList<ImageFormat> GetSaveFormats(DocumentKind kind);
 
     /// <summary>Extension with or without the leading dot, any case.</summary>
@@ -27,6 +31,14 @@ public interface IFormatManager
     /// For a UI caller, wrap it in something that disables editing meanwhile (<c>MainViewModel.RunBusyAsync</c>).
     /// </summary>
     Task<IDocument> OpenAsync(ImageFile file, CancellationToken cancellation = default);
+
+    /// <summary>Opens an SVG file as a raster image (File › Open as Image), so it can be painted on. The image has no file: Save asks for one.</summary>
+    IDocument OpenAsImage(ImageFile file);
+
+    /// <summary>Writes an SVG drawing as a picture (PNG, JPEG, WebP, BMP, TIFF, ORA). The drawing keeps its file and its unsaved-changes state.</summary>
+    void Export(SvgDocument document, ImageFile file, SvgExportOptions options, ImageFormat? format = null);
+
+    Task ExportAsync(SvgDocument document, ImageFile file, SvgExportOptions options, ImageFormat? format = null, CancellationToken cancellation = default);
 
     /// <summary>The image's pixel size without decoding it, via the matching format's <see cref="ImageFormat.PeekSize"/>;
     /// null if the format isn't recognized or can't tell without a full <see cref="Open"/>.</summary>
@@ -49,18 +61,26 @@ public class FormatManager : IFormatManager
 {
     private readonly IWorkspaceService _workspace;
 
-    public FormatManager(IEnumerable<IImageImporter> importers, IWorkspaceService workspace)
+    private readonly SvgRasterFormat? _svgRaster;
+
+    public FormatManager(IEnumerable<IImageImporter> importers, IWorkspaceService workspace, SvgRasterFormat? svgRaster = null)
     {
         Formats = importers.OfType<ImageFormat>().ToList();
         _workspace = workspace;
+        _svgRaster = svgRaster;
     }
 
     public IReadOnlyList<ImageFormat> Formats { get; }
 
-    public IReadOnlyList<ImageFormat> SaveFormats => Formats.Where(f => f.SupportsSaving).ToList();
+    public IReadOnlyList<ImageFormat> SaveFormats =>
+        Formats.Where(f => f.SupportsSaving && f.DocumentKind == DocumentKind.Image).ToList();
 
-    public IReadOnlyList<ImageFormat> GetSaveFormats(DocumentKind kind) =>
-        kind == DocumentKind.Image ? SaveFormats : [];
+    public IReadOnlyList<ImageFormat> GetSaveFormats(DocumentKind kind) => kind switch
+    {
+        DocumentKind.Image => SaveFormats,
+        DocumentKind.Svg => [.. Formats.Where(f => f.DocumentKind == DocumentKind.Svg), .. SaveFormats],
+        _ => [],
+    };
 
     public ImageFormat? GetFormatByExtension(string extension)
     {
@@ -115,36 +135,90 @@ public class FormatManager : IFormatManager
 
     public ImageSize? PeekSize(ImageFile file) => GetFormatForFile(file)?.PeekSize(file);
 
+    public IDocument OpenAsImage(ImageFile file)
+    {
+        var raster = _svgRaster ?? throw new NotSupportedException("Opening an SVG as an image is not available.");
+        raster.Import(file);
+        var image = _workspace.ActiveImageDocument!;
+        // Not the SVG's own file: saving would try to write a raster back as SVG.
+        image.File = null;
+        image.FileType = null;
+        image.DisplayName = file.Name;
+        return image;
+    }
+
     public void Save(IDocument document, ImageFile file, ImageFormat? format = null)
     {
-        var image = RequireImage(document);
-        format = ResolveSaveFormat(file, format);
-        format.Export(image, file);
+        format = ResolveSaveFormat(document.Kind, file, format);
+        if (document is SvgDocument svg && format.DocumentKind != DocumentKind.Svg)
+        {
+            Export(svg, file, SvgExportOptions.Default, format);
+            return;
+        }
+        format.ExportDocument(document, file);
         FinishSave(document, file, format);
     }
 
     public async Task SaveAsync(IDocument document, ImageFile file, ImageFormat? format = null, CancellationToken cancellation = default)
     {
-        var image = RequireImage(document);
-        format = ResolveSaveFormat(file, format);
-        var resolved = format;
-        await Task.Run(() => resolved.Export(image, file), cancellation);
+        var resolved = ResolveSaveFormat(document.Kind, file, format);
+        if (document is SvgDocument svg && resolved.DocumentKind != DocumentKind.Svg)
+        {
+            await ExportAsync(svg, file, SvgExportOptions.Default, resolved, cancellation);
+            return;
+        }
+        await Task.Run(() => resolved.ExportDocument(document, file), cancellation);
         FinishSave(document, file, resolved);
     }
 
-    private ImageFormat ResolveSaveFormat(ImageFile file, ImageFormat? format) =>
-        format ?? GetFormatByExtension(file.Extension)
-            ?? throw new NotSupportedException($"No image format matches the extension of '{file.Name}'.");
+    public void Export(SvgDocument document, ImageFile file, SvgExportOptions options, ImageFormat? format = null)
+    {
+        var resolved = ResolveExportFormat(file, format);
+        var (pixels, width, height) = options.Render(document);
+        resolved.ExportPixels(pixels, width, height, file);
+        file.Refresh();
+    }
 
-    private static ImageDocument RequireImage(IDocument document) =>
-        document as ImageDocument ?? throw new NotSupportedException($"Saving a {document.Kind} document is not supported here.");
+    public async Task ExportAsync(SvgDocument document, ImageFile file, SvgExportOptions options, ImageFormat? format = null,
+        CancellationToken cancellation = default)
+    {
+        var resolved = ResolveExportFormat(file, format);
+        await Task.Run(() =>
+        {
+            var (pixels, width, height) = options.Render(document, cancellation);
+            resolved.ExportPixels(pixels, width, height, file);
+        }, cancellation);
+        file.Refresh();
+    }
+
+    private ImageFormat ResolveExportFormat(ImageFile file, ImageFormat? format)
+    {
+        var resolved = format ?? GetFormatByExtension(file.Extension)
+            ?? throw new NotSupportedException($"No image format matches the extension of '{file.Name}'.");
+        if (resolved.DocumentKind != DocumentKind.Image || !resolved.SupportsSaving)
+            throw new NotSupportedException($"{resolved.DisplayName} cannot be used to export a picture.");
+        return resolved;
+    }
+
+    private ImageFormat ResolveSaveFormat(DocumentKind kind, ImageFile file, ImageFormat? format)
+    {
+        var resolved = format ?? GetFormatByExtension(file.Extension)
+            ?? throw new NotSupportedException($"No image format matches the extension of '{file.Name}'.");
+        // An image is saved in a raster format; an SVG drawing in SVG, or exported to a raster format.
+        var allowed = resolved.SupportsSaving && (kind == DocumentKind.Svg || resolved.DocumentKind == kind);
+        if (!allowed)
+            throw new NotSupportedException($"A {kind} document cannot be saved as {resolved.DisplayName}.");
+        return resolved;
+    }
 
     private static void FinishSave(IDocument document, ImageFile file, ImageFormat format)
     {
         file.Refresh();
         document.File = file;
-        document.FileType = format.SupportedExtensions[0];
-        document.Workspace.History.SetClean();
+        document.FileType = document.Kind == DocumentKind.Svg && file.Extension.Equals(".svgz", StringComparison.OrdinalIgnoreCase)
+            ? "svgz"
+            : format.SupportedExtensions[0];
+        document.History.SetClean();
     }
 
     private static bool PathsEqual(string a, string b) =>

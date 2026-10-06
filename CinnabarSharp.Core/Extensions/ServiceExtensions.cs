@@ -29,8 +29,9 @@ namespace CinnabarSharp.Core.Extensions
 				[MagickFormat.WebP]);
 			AddFormat(services, "HeicFormat", "HEIC", ["heic", "heif"],
 				[MagickFormat.Heic, MagickFormat.Heif], canSave: false);
-			AddFormat(services, "SvgFormat", "SVG", ["svg", "svgz"],
-				[MagickFormat.Svg, MagickFormat.Svgz, MagickFormat.Msvg], canSave: false);
+			// SVG files open as vector documents; the Magick.NET reading is only File > Open as Image.
+			services.AddSingleton<IImageImporter, CinnabarSharp.Core.Vector.SvgFormat>();
+			services.AddSingleton<CinnabarSharp.Core.Vector.SvgRasterFormat>();
 			services.AddSingleton<IImageImporter, OraFormat>();
 
 			services.AddTransient<ImageDocument>();

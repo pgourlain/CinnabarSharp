@@ -126,7 +126,24 @@ public class OraFormat : ImageFormat
 
     public override void Export(ImageDocument document, ImageFile file)
     {
-        var size = document.ImageSize;
+        var layers = document.Layers.UserLayers
+            .Select(l => new OraLayer(l.Name, l.Surface, l.Opacity, l.Hidden, l.BlendMode)).ToList();
+        using var merged = document.GetFlattenedImage();
+        Write(file, document.ImageSize, layers, merged);
+    }
+
+    /// <summary>A drawing exported as OpenRaster has one layer: the rendered picture.</summary>
+    public override void ExportPixels(byte[] bgra, int width, int height, ImageFile file)
+    {
+        using var image = Utility.FromBgra(bgra, width, height);
+        Write(file, new ImageSize(width, height), [new OraLayer("Layer 1", image, 1, false, BlendMode.Normal)], image);
+    }
+
+    private sealed record OraLayer(string Name, IMagickImage<byte> Image, double Opacity, bool Hidden, BlendMode Mode);
+
+    /// <summary>Layers bottom first.</summary>
+    private static void Write(ImageFile file, ImageSize size, IReadOnlyList<OraLayer> layers, IMagickImage<byte> merged)
+    {
         var temp = file.FullName + ".tmp";
         using (var stream = File.Create(temp))
         using (var zip = new ZipArchive(stream, ZipArchiveMode.Create))
@@ -137,12 +154,11 @@ public class OraFormat : ImageFormat
                 w.Write(MimeType);
 
             var stack = new XElement("stack");
-            var layers = document.Layers.UserLayers;
             for (var i = layers.Count - 1; i >= 0; i--)
             {
                 var layer = layers[i];
                 var src = $"data/layer{i}.png";
-                WritePng(zip, src, layer.Surface);
+                WritePng(zip, src, layer.Image);
                 stack.Add(new XElement("layer",
                     new XAttribute("name", layer.Name),
                     new XAttribute("src", src),
@@ -150,7 +166,7 @@ public class OraFormat : ImageFormat
                     new XAttribute("y", 0),
                     new XAttribute("opacity", layer.Opacity.ToString("0.###", CultureInfo.InvariantCulture)),
                     new XAttribute("visibility", layer.Hidden ? "hidden" : "visible"),
-                    new XAttribute("composite-op", ToCompositeOp(layer.BlendMode))));
+                    new XAttribute("composite-op", ToCompositeOp(layer.Mode))));
             }
 
             var xml = new XDocument(new XElement("image",
@@ -161,7 +177,6 @@ public class OraFormat : ImageFormat
             using (var s = zip.CreateEntry("stack.xml").Open())
                 xml.Save(s);
 
-            using var merged = document.GetFlattenedImage();
             WritePng(zip, "mergedimage.png", merged);
             using var thumbnail = merged.Clone();
             thumbnail.Resize(new MagickGeometry(ThumbnailMaxSize, ThumbnailMaxSize));

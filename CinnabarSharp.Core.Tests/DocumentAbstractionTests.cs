@@ -150,6 +150,9 @@ public class DocumentAbstractionTests : BaseTests
     {
         var formats = CinnabarSharpService().GetRequiredService<IFormatManager>();
         Assert.Contains(formats.GetSaveFormats(DocumentKind.Image), f => f.SupportedExtensions.Contains("png"));
-        Assert.DoesNotContain(formats.GetSaveFormats(DocumentKind.Svg), f => f.DocumentKind != DocumentKind.Svg);
+        var svg = formats.GetSaveFormats(DocumentKind.Svg);
+        Assert.Equal(DocumentKind.Svg, svg[0].DocumentKind); // SVG first, then the exports
+        Assert.Contains(svg, f => f.SupportedExtensions.Contains("png"));
+        Assert.DoesNotContain(formats.GetSaveFormats(DocumentKind.Image), f => f.DocumentKind == DocumentKind.Svg);
     }
 }

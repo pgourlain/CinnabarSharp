@@ -114,6 +114,16 @@ public class MagickImageFormat : ImageFormat
         image.Write(file);
     }
 
+    public override void ExportPixels(byte[] bgra, int width, int height, ImageFile file)
+    {
+        if (!SupportsSaving)
+            throw new NotSupportedException($"{DisplayName} files can be opened but not saved.");
+        using var image = Utility.FromBgra(bgra, width, height);
+        PrepareForSave(image);
+        image.Format = _magickFormats[0];
+        image.Write(file);
+    }
+
     protected virtual void PrepareForSave(IMagickImage<byte> image)
     {
     }

@@ -93,6 +93,9 @@ namespace CinnabarSharp.Core.Services
 
         private int new_svg_name = 1;
 
+        public CinnabarSharp.Core.Vector.SvgDocument NewSvgDocument(double width, double height, CinnabarSharp.Core.Vector.SvgUnit unit) =>
+            OpenSvgDocument(CinnabarSharp.Core.Vector.SvgDocumentFactory.Create(width, height, unit), null, null);
+
         public CinnabarSharp.Core.Vector.SvgDocument OpenSvgDocument(CinnabarSharp.Vector.SvgRoot root, ImageFile? file, string? fileType)
         {
             var doc = serviceProvider.GetService<CinnabarSharp.Core.Vector.SvgDocument>()!;

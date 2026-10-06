@@ -52,4 +52,18 @@ public abstract class ImageFormat : IImageImporter, IImageExporter
     public virtual void Import(ImageFile file, object? decoded) => Import(file);
 
     public abstract void Export(ImageDocument document, ImageFile file);
+
+    /// <summary>
+    /// Writes a document of any kind this format handles (the document's own file format). The default is the raster
+    /// <see cref="Export(ImageDocument, ImageFile)"/>; the SVG format overrides it for vector drawings.
+    /// </summary>
+    public virtual void ExportDocument(IDocument document, ImageFile file) =>
+        Export(document as ImageDocument ?? throw new NotSupportedException($"{DisplayName} cannot store a {document.Kind} document."), file);
+
+    /// <summary>
+    /// Writes a flat picture (straight-alpha BGRA) in this format: how an SVG drawing is exported to PNG, JPEG, WebP,
+    /// BMP, TIFF or ORA.
+    /// </summary>
+    public virtual void ExportPixels(byte[] bgra, int width, int height, ImageFile file) =>
+        throw new NotSupportedException($"{DisplayName} cannot be written.");
 }

@@ -20,6 +20,9 @@ namespace CinnabarSharp.Core.Services
         /// <summary>Opens a vector drawing as a new tab: the document is built from DI, gets the root and the file, starts its history and becomes active.</summary>
         CinnabarSharp.Core.Vector.SvgDocument OpenSvgDocument(CinnabarSharp.Vector.SvgRoot root, ImageFile? file, string? fileType);
 
+        /// <summary>A new empty drawing (File › New › SVG drawing): size in the given unit, one empty layer group.</summary>
+        CinnabarSharp.Core.Vector.SvgDocument NewSvgDocument(double width, double height, CinnabarSharp.Core.Vector.SvgUnit unit);
+
         void SetActiveDocument(IDocument document);
 
         /// <summary>Closes the document without saving; the next document (or the previous one, if it was last) becomes active.</summary>
