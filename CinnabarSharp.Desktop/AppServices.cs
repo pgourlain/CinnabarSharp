@@ -22,6 +22,8 @@ public static class AppServices
         // throwaway temp folder (see TestHarness) so it never touches the real user's app data.
         services.AddSingleton<IHistoryStorage>(_ => FileHistoryStorage.CreateDefault());
         services.AddSingleton<CinnabarSharp.Core.Tools.ITextRasterizer, AvaloniaTextRasterizer>();
+        // Text in SVG drawings is drawn from the platform fonts (SvgDocument takes this from the container).
+        services.AddSingleton<CinnabarSharp.Vector.IGlyphOutlineProvider, AvaloniaGlyphOutlineProvider>();
         services.AddSingleton<AgentConnection>();
         services.AddSingleton<MainViewModel>();
         configure?.Invoke(services);

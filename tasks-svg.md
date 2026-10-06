@@ -122,8 +122,11 @@ All tasks go in `CinnabarSharp.Vector` with tests in `CinnabarSharp.Vector.Tests
 
 ## Phase S5 — Canvas and panels for SVG documents (Desktop)
 
-- [ ] `CanvasView` draws an `SvgDocument` by asking `VectorRasterizer` for the visible region at the current zoom (re-render on zoom so edges stay sharp, not a scaled bitmap). Region invalidation from `VectorNodeChanged` (node bounds before ∪ after) to avoid full redraws while dragging.
-- [ ] Desktop `AvaloniaGlyphOutlineProvider` implements `IGlyphOutlineProvider` (registered in `AppServices`), so text renders in the app and in attached MCP mode.
+> Note on order: the Objects and Properties panels edit the drawing, which must go through `SvgActions` (Phase S6). The canvas and the glyph provider (first two tasks) are done here; the panels are built right after Phase S6, before Phase S7.
+
+- [x] `CanvasView` draws an `SvgDocument` by asking `VectorRasterizer` for the visible region at the current zoom (re-render on zoom so edges stay sharp, not a scaled bitmap). Region invalidation from `VectorNodeChanged` (node bounds before ∪ after) to avoid full redraws while dragging.
+- [x] Desktop `AvaloniaGlyphOutlineProvider` implements `IGlyphOutlineProvider` (registered in `AppServices`), so text renders in the app and in attached MCP mode.
+  > Note: Avalonia 12 gives no access to the segments of `FormattedText.BuildGeometry` (the geometry is opaque, and walking it with `TryGetPointAtDistance` only measures its first contour). So the provider draws the text once at 192 px per em with the platform's text stack and traces the contours from that picture (marching squares, then Douglas-Peucker); the outlines are polygons with sub-pixel facets, cached per text and font. A font-file parser, or SkiaSharp (which this roadmap does not allow without asking), would give true Bézier curves.
 - [ ] Objects panel (replaces Layers for SVG tabs): tree of nodes (groups expandable; label = `inkscape:label` or `id` or element name), visibility toggle (`display`), lock toggle (`sodipodi:insensitive`), selection synced both ways with the canvas, drag to reorder and to move into/out of groups (through actions, so undoable), rename (id/label).
 - [ ] Properties panel for the selection: fill and stroke (none / flat color / linear / radial gradient, opacity), stroke width, caps, joins, dashes, object opacity; geometry fields X, Y, W, H (of the bounding box, in document units) and rotation. Multiple selection edits all. Each change is one history step (slider drags coalesce into one step, like effect dialogs).
 - [ ] Gradient editor in the properties panel: stops list, add/remove/move stop, color and opacity per stop; on-canvas gradient handles shown by the Gradient tool (Phase S7).
