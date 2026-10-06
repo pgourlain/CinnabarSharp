@@ -165,6 +165,9 @@ public class ToolSettings
     /// <summary>The Select tool snaps moves to the page and to the bounding boxes of other objects.</summary>
     public bool SnapToObjects { get; set; } = true;
 
+    /// <summary>The Pencil tool's smoothing, 0 to 100: how far the fitted curve may stray from the drawn line.</summary>
+    public int PencilSmoothing { get; set; } = 50;
+
     /// <summary>The Gradient tool works on the stroke instead of the fill.</summary>
     public bool GradientOnStroke { get; set; }
 }

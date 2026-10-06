@@ -83,32 +83,8 @@ public abstract class ShapeDrawTool(ToolSettings settings, string name, string h
         _live = null;
     }
 
-    private void ApplyStyle(SvgDocument document, SvgElement shape)
-    {
-        var stroke = Settings.PrimaryColor;
-        var fill = Settings.SecondaryColor;
-        var style = HasFill ? Settings.ShapeStyle : ShapeStyle.Outline;
-        var outline = style is ShapeStyle.Outline or ShapeStyle.OutlineAndFill;
-        var filled = style is ShapeStyle.Fill or ShapeStyle.OutlineAndFill;
-
-        if (filled)
-        {
-            shape.SetAttribute("fill", SvgPaint.FromColor(VColor.FromRgb(fill.R, fill.G, fill.B)).ToText());
-            if (fill.A < 255)
-                shape.SetAttribute("fill-opacity", NumberFormat.Format(fill.A / 255.0, 3));
-        }
-        else
-        {
-            shape.SetAttribute("fill", "none");
-        }
-        if (outline)
-        {
-            shape.SetAttribute("stroke", SvgPaint.FromColor(VColor.FromRgb(stroke.R, stroke.G, stroke.B)).ToText());
-            shape.SetAttribute("stroke-width", NumberFormat.Format(Math.Max(Settings.BrushWidth, 1) * document.PixelsToUser(1), 4));
-            if (stroke.A < 255)
-                shape.SetAttribute("stroke-opacity", NumberFormat.Format(stroke.A / 255.0, 3));
-        }
-    }
+    private void ApplyStyle(SvgDocument document, SvgElement shape) =>
+        ShapeStyling.Apply(document, shape, Settings, HasFill);
 
     /// <summary>The box dragged from <paramref name="start"/> to <paramref name="end"/>: a square with Shift, around the start with Alt.</summary>
     protected static VRect DragBox(VPoint start, VPoint end, ToolModifiers modifiers)
@@ -124,6 +100,42 @@ public abstract class ShapeDrawTool(ToolSettings settings, string name, string h
         return modifiers.HasFlag(ToolModifiers.Alt)
             ? new VRect(start.X - Math.Abs(dx), start.Y - Math.Abs(dy), 2 * Math.Abs(dx), 2 * Math.Abs(dy))
             : VRect.FromPoints(start, new VPoint(start.X + dx, start.Y + dy));
+    }
+}
+
+/// <summary>How new shapes are painted: stroke from the primary color and brush width, fill from the secondary color, as the Shape style option says.</summary>
+public static class ShapeStyling
+{
+    public static void Apply(SvgDocument document, SvgElement shape, ToolSettings settings, bool hasFill = true)
+    {
+        var stroke = settings.PrimaryColor;
+        var fill = settings.SecondaryColor;
+        var style = hasFill ? settings.ShapeStyle : ShapeStyle.Outline;
+        var outline = style is ShapeStyle.Outline or ShapeStyle.OutlineAndFill;
+        var filled = style is ShapeStyle.Fill or ShapeStyle.OutlineAndFill;
+
+        if (filled)
+        {
+            shape.SetAttribute("fill", SvgPaint.FromColor(VColor.FromRgb(fill.R, fill.G, fill.B)).ToText());
+            shape.SetAttribute("fill-opacity", fill.A < 255 ? NumberFormat.Format(fill.A / 255.0, 3) : null);
+        }
+        else
+        {
+            shape.SetAttribute("fill", "none");
+            shape.SetAttribute("fill-opacity", null);
+        }
+        if (outline)
+        {
+            shape.SetAttribute("stroke", SvgPaint.FromColor(VColor.FromRgb(stroke.R, stroke.G, stroke.B)).ToText());
+            shape.SetAttribute("stroke-width", NumberFormat.Format(Math.Max(settings.BrushWidth, 1) * document.PixelsToUser(1), 4));
+            shape.SetAttribute("stroke-opacity", stroke.A < 255 ? NumberFormat.Format(stroke.A / 255.0, 3) : null);
+        }
+        else
+        {
+            shape.SetAttribute("stroke", null);
+            shape.SetAttribute("stroke-width", null);
+            shape.SetAttribute("stroke-opacity", null);
+        }
     }
 }
 
