@@ -11,7 +11,7 @@ namespace CinnabarSharp.Core.Vector.Tools;
 /// object again switches the handles to rotate (corners) and skew (edge middles), with a movable rotation center.
 /// Arrow keys move by 1 unit, with Shift by 10; Delete removes; Escape deselects. Each gesture is one history step.
 /// </summary>
-public sealed class SelectTool(ToolSettings settings) : IVectorKeyboardTool
+public sealed class VectorSelectTool(ToolSettings settings) : IVectorKeyboardTool
 {
     private enum Mode { None, Pending, Move, Band, Resize, Rotate, Skew, MoveCenter }
 

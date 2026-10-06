@@ -6,7 +6,7 @@ using CinnabarSharp.Vector;
 
 namespace CinnabarSharp.Core.Tests.Vector;
 
-public sealed class SelectToolTests : VectorToolTestBase
+public sealed class VectorSelectToolTests : VectorToolTestBase
 {
     private const string Shapes =
         "<rect id='a' x='10' y='10' width='40' height='30' fill='#f00'/>" +
@@ -15,10 +15,10 @@ public sealed class SelectToolTests : VectorToolTestBase
         "<line id='l' x1='120' y1='120' x2='180' y2='180' stroke='#000' stroke-width='4'/>" +
         "<rect id='nofill' x='150' y='10' width='40' height='40' fill='none' stroke='#000' stroke-width='2'/>";
 
-    private (SvgDocument Doc, SelectTool Tool) Setup()
+    private (SvgDocument Doc, VectorSelectTool Tool) Setup()
     {
         var doc = Open(Shapes);
-        return (doc, new SelectTool(Settings));
+        return (doc, new VectorSelectTool(Settings));
     }
 
     [Fact]
