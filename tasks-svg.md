@@ -109,13 +109,13 @@ All tasks go in `CinnabarSharp.Vector` with tests in `CinnabarSharp.Vector.Tests
 
 ## Phase S4 — Open, save, export
 
-- [ ] `SvgFormat` (vector, `DocumentKind.Svg`): `.svg` and `.svgz` open as an `SvgDocument`; save writes SVG (gzip for `.svgz`); `MatchesContent` sniffs `<svg` after an optional XML declaration/comments. It replaces the read-only `SvgFormat` raster registration added before this roadmap for File › Open. Layers › Import From File on a raster document keeps rasterizing the SVG as a layer (`Utility.OpenVector`, unchanged).
-- [ ] "Open as Image…" (File menu) opens an SVG rasterized as an `ImageDocument`, with the existing path, so users can still paint on a rasterized SVG.
-- [ ] Export of an `SvgDocument` to PNG/JPEG/WebP/BMP/TIFF/ORA (single layer): rasterized with `VectorRasterizer` at a chosen scale (dialog: scale or width/height with ratio lock, background transparent/white). Save As lists SVG first, then the raster formats as exports (the document stays an SVG document, keeps its SVG file, and `IsDirty` is unchanged after an export).
-- [ ] File › New offers **Image** or **SVG drawing** (width, height, units px/mm/in; creates root with viewBox and an empty layer group `<g id="layer1">` like Inkscape).
-- [ ] Closing an SVG document with changes prompts like raster documents; recent files and welcome screen thumbnails work for SVGs (render via `VectorRasterizer`).
-- [ ] Image › Rasterize (on an SVG document): opens a **new** raster `ImageDocument` from the render at the chosen scale; the SVG document stays open.
-- [ ] Tests: open/save round-trip through `IFormatManager` (extension and content sniffing), `.svgz`, dirty state after save and after export, Save As format list per kind, recent files entry. UI test: open `shapes.svg`, the canvas shows the shapes (pixel checks with per-channel distinct colors), the tab title, Save writes the file.
+- [x] `SvgFormat` (vector, `DocumentKind.Svg`): `.svg` and `.svgz` open as an `SvgDocument`; save writes SVG (gzip for `.svgz`); `MatchesContent` sniffs `<svg` after an optional XML declaration/comments. It replaces the read-only `SvgFormat` raster registration added before this roadmap for File › Open. Layers › Import From File on a raster document keeps rasterizing the SVG as a layer (`Utility.OpenVector`, unchanged).
+- [x] "Open as Image…" (File menu) opens an SVG rasterized as an `ImageDocument`, with the existing path, so users can still paint on a rasterized SVG.
+- [x] Export of an `SvgDocument` to PNG/JPEG/WebP/BMP/TIFF/ORA (single layer): rasterized with `VectorRasterizer` at a chosen scale (dialog: scale or width/height with ratio lock, background transparent/white). Save As lists SVG first, then the raster formats as exports (the document stays an SVG document, keeps its SVG file, and `IsDirty` is unchanged after an export).
+- [x] File › New offers **Image** or **SVG drawing** (width, height, units px/mm/in; creates root with viewBox and an empty layer group `<g id="layer1">` like Inkscape).
+- [x] Closing an SVG document with changes prompts like raster documents; recent files and welcome screen thumbnails work for SVGs (render via `VectorRasterizer`).
+- [x] Image › Rasterize (on an SVG document): opens a **new** raster `ImageDocument` from the render at the chosen scale; the SVG document stays open.
+- [x] Tests: open/save round-trip through `IFormatManager` (extension and content sniffing), `.svgz`, dirty state after save and after export, Save As format list per kind, recent files entry. UI test: open `shapes.svg`, the canvas shows the shapes (pixel checks with per-channel distinct colors), the tab title, Save writes the file.
 
 **Validation**
 - [ ] Open, save, reopen the real-world SVGs on each OS; the files still open in a browser; `.svgz` works.

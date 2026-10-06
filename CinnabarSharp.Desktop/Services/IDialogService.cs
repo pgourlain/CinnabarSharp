@@ -57,6 +57,9 @@ public interface IDialogService
 
     Task ShowMessageAsync(string title, string message);
 
+    /// <summary>Scale or size and background for turning a drawing into a picture; null when cancelled.</summary>
+    Task<CinnabarSharp.Core.Vector.SvgExportOptions?> ShowSvgExportAsync(SvgExportViewModel options);
+
     Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 

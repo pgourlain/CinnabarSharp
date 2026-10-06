@@ -24,6 +24,17 @@ public class FakeDialogService : IDialogService
 
     public Task ShowAboutAsync() => Task.CompletedTask;
 
+    /// <summary>What the export/rasterize dialog answers (null cancels); the options it was asked with are kept.</summary>
+    public Func<SvgExportViewModel, CinnabarSharp.Core.Vector.SvgExportOptions?> SvgExportAnswer { get; set; } = vm => vm.ToOptions();
+
+    public List<string> SvgExportsAsked { get; } = [];
+
+    public Task<CinnabarSharp.Core.Vector.SvgExportOptions?> ShowSvgExportAsync(SvgExportViewModel options)
+    {
+        SvgExportsAsked.Add(options.Title);
+        return Task.FromResult(SvgExportAnswer(options));
+    }
+
     public Task<IReadOnlyList<string>> PickFilesToOpenAsync(IReadOnlyList<ImageFormat> formats) =>
         Task.FromResult(FilesToOpen.TryDequeue(out var files) ? files : (IReadOnlyList<string>)[]);
 

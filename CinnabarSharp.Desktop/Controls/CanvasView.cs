@@ -8,8 +8,13 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Tools;
+using CinnabarSharp.Core.Vector;
+using CinnabarSharp.Vector;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Avalonia.LogicalTree;
 using PointD = CinnabarSharp.Core.Models.PointD;
+using RenderOptions = Avalonia.Media.RenderOptions;
 
 namespace CinnabarSharp.Desktop.Controls;
 
@@ -20,6 +25,10 @@ public class CanvasView : Control
 {
     public static readonly StyledProperty<ImageDocument?> DocumentProperty =
         AvaloniaProperty.Register<CanvasView, ImageDocument?>(nameof(Document));
+
+    /// <summary>The vector drawing shown instead of an image (at most one of <see cref="Document"/> and this is set).</summary>
+    public static readonly StyledProperty<SvgDocument?> SvgDocumentProperty =
+        AvaloniaProperty.Register<CanvasView, SvgDocument?>(nameof(SvgDocument));
 
     public static readonly StyledProperty<int> RenderVersionProperty =
         AvaloniaProperty.Register<CanvasView, int>(nameof(RenderVersion));
@@ -59,7 +68,7 @@ public class CanvasView : Control
 
     static CanvasView()
     {
-        AffectsMeasure<CanvasView>(DocumentProperty, RenderVersionProperty, ViewVersionProperty);
+        AffectsMeasure<CanvasView>(DocumentProperty, SvgDocumentProperty, RenderVersionProperty, ViewVersionProperty);
         AffectsRender<CanvasView>(ViewVersionProperty);
         AffectsRender<CanvasView>(SelectionVersionProperty, OverlayProperty, BrushSizeProperty);
     }
@@ -118,6 +127,15 @@ public class CanvasView : Control
         set => SetValue(DocumentProperty, value);
     }
 
+    public SvgDocument? SvgDocument
+    {
+        get => GetValue(SvgDocumentProperty);
+        set => SetValue(SvgDocumentProperty, value);
+    }
+
+    /// <summary>The document shown, of either kind.</summary>
+    private IDocument? Shown => (IDocument?)Document ?? SvgDocument;
+
     public int RenderVersion
     {
         get => GetValue(RenderVersionProperty);
@@ -137,8 +155,14 @@ public class CanvasView : Control
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == DocumentProperty || change.Property == RenderVersionProperty)
+        if (change.Property == DocumentProperty || change.Property == RenderVersionProperty || change.Property == SvgDocumentProperty)
         {
+            RebuildBitmap();
+            InvalidateVisual();
+        }
+        else if (change.Property == ViewVersionProperty && SvgDocument is not null)
+        {
+            // A new zoom: the drawing is rendered again at that size so its edges stay sharp.
             RebuildBitmap();
             InvalidateVisual();
         }
@@ -146,6 +170,8 @@ public class CanvasView : Control
 
     protected override Size MeasureOverride(Size availableSize)
     {
+        if (SvgDocument is { } svg)
+            return new Size(svg.Workspace.ViewSize.Width, svg.Workspace.ViewSize.Height);
         if (Document is not { } doc || doc.Layers.Count() == 0)
             return default;
         var view = doc.Workspace.ViewSize;
@@ -154,6 +180,11 @@ public class CanvasView : Control
 
     public override void Render(DrawingContext context)
     {
+        if (SvgDocument is { } drawing)
+        {
+            RenderDrawing(context, drawing);
+            return;
+        }
         if (_bitmap is null || Document is not { } doc)
             return;
 
@@ -198,7 +229,7 @@ public class CanvasView : Control
         Point P(Core.Models.PointD p) => new(p.X * scale, p.Y * scale);
         Rect R(Core.Models.RectangleD r) => new(r.X * scale, r.Y * scale, r.Width * scale, r.Height * scale);
 
-        if (overlay.Shade is { } keep && Document is { } doc)
+        if (overlay.Shade is { } keep && Shown is { } doc)
         {
             var view = doc.Workspace.ViewSize;
             // The kept area can extend beyond the image (Prepare for TV): shade only the image around it.
@@ -325,7 +356,7 @@ public class CanvasView : Control
     private ToolPointer ToToolPointer(PointerEventArgs e, ToolButton button)
     {
         var pos = e.GetPosition(this);
-        var scale = Document?.Workspace.Scale ?? 1;
+        var scale = Shown?.Workspace.Scale ?? 1;
         var mods = ToolModifiers.None;
         if ((e.KeyModifiers & (KeyModifiers.Meta | KeyModifiers.Control)) != 0)
             mods |= ToolModifiers.Command;
@@ -342,7 +373,7 @@ public class CanvasView : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        if (e.Handled || Document is null || _pointerPressed)
+        if (e.Handled || Shown is null || _pointerPressed)
             return;
         var props = e.GetCurrentPoint(this).Properties;
         var button = props.IsRightButtonPressed ? ToolButton.Right : ToolButton.Left;
@@ -381,7 +412,7 @@ public class CanvasView : Control
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        if (Document is not { } doc)
+        if (Shown is not { } doc)
             return;
         var pos = e.GetPosition(this);
         var scale = doc.Workspace.Scale;
@@ -408,6 +439,11 @@ public class CanvasView : Control
     /// <summary>Re-composites and redraws only <paramref name="region"/> (image coordinates).</summary>
     public void UpdateRegion(RectangleI region)
     {
+        if (SvgDocument is { } drawing)
+        {
+            UpdateDrawingRegion(drawing, region);
+            return;
+        }
         if (Document is not { } doc || _bitmap is null
             || _bitmap.PixelSize.Width != doc.ImageSize.Width || _bitmap.PixelSize.Height != doc.ImageSize.Height)
         {
@@ -430,7 +466,14 @@ public class CanvasView : Control
     {
         _bitmap?.Dispose();
         _bitmap = null;
+        _drawingBitmap?.Dispose();
+        _drawingBitmap = null;
 
+        if (SvgDocument is not null)
+        {
+            RenderVisibleDrawing();
+            return;
+        }
         if (Document is not { } doc || doc.Layers.Count() == 0)
             return;
 
@@ -447,6 +490,146 @@ public class CanvasView : Control
                 Marshal.Copy(pixels, y * rowBytes, fb.Address + y * fb.RowBytes, rowBytes);
         }
         _bitmap = bitmap;
+    }
+
+    // ---- SVG drawings: rendered at the current zoom, only the part in view ----
+
+    /// <summary>Pixels of the drawing for the part of the view that is (nearly) visible, and where they go (device pixels of the zoomed picture).</summary>
+    private WriteableBitmap? _drawingBitmap;
+    private VRectI _drawingRegion;
+    private double _drawingDeviceScale;
+    private ScrollViewer? _scroller;
+
+    private const int MaxFullRenderSide = 4096;
+    private const int VisibleMargin = 96;
+
+    protected override void OnAttachedToLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToLogicalTree(e);
+        _scroller = this.FindLogicalAncestorOfType<ScrollViewer>();
+        if (_scroller is not null)
+            _scroller.ScrollChanged += OnScrolled;
+    }
+
+    protected override void OnDetachedFromLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
+    {
+        if (_scroller is not null)
+            _scroller.ScrollChanged -= OnScrolled;
+        _scroller = null;
+        base.OnDetachedFromLogicalTree(e);
+    }
+
+    private void OnScrolled(object? sender, ScrollChangedEventArgs e)
+    {
+        if (SvgDocument is null || _drawingBitmap is null)
+            return;
+        // Scrolled past what was rendered: render the part now in view.
+        var visible = VisibleDeviceRegion(SvgDocument);
+        if (visible.Intersect(_drawingRegion) != visible)
+        {
+            RenderVisibleDrawing();
+            InvalidateVisual();
+        }
+    }
+
+    private double RenderScaling => TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+
+    /// <summary>The part of the zoomed picture to render, in device pixels: what the scroll viewer shows plus a margin.</summary>
+    private VRectI VisibleDeviceRegion(SvgDocument drawing)
+    {
+        var scaling = RenderScaling;
+        var view = drawing.Workspace.ViewSize;
+        var full = new Rect(0, 0, view.Width, view.Height);
+        var visible = full;
+        if (_scroller is { Viewport: { Width: > 0, Height: > 0 } viewport } scroller
+            && scroller.TranslatePoint(default, this) is { } topLeft)
+        {
+            visible = new Rect(topLeft, viewport).Inflate(VisibleMargin).Intersect(full);
+        }
+        else
+        {
+            // Not laid out yet (or no scroll viewer): the whole picture, but never more than a bounded area.
+            visible = new Rect(0, 0, Math.Min(view.Width, MaxFullRenderSide), Math.Min(view.Height, MaxFullRenderSide));
+        }
+        var left = (int)Math.Floor(visible.Left * scaling);
+        var top = (int)Math.Floor(visible.Top * scaling);
+        var right = (int)Math.Ceiling(visible.Right * scaling);
+        var bottom = (int)Math.Ceiling(visible.Bottom * scaling);
+        return new VRectI(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
+    }
+
+    private void RenderVisibleDrawing()
+    {
+        _drawingBitmap?.Dispose();
+        _drawingBitmap = null;
+        if (SvgDocument is not { } drawing)
+            return;
+        var region = VisibleDeviceRegion(drawing);
+        if (region.IsEmpty)
+            return;
+        var deviceScale = drawing.Workspace.Scale * RenderScaling;
+        var pixels = VectorRasterizer.Render(drawing.Root, region, deviceScale, drawing.RenderOptions);
+        _drawingBitmap = ToBitmap(pixels, region.Width, region.Height);
+        _drawingRegion = region;
+        _drawingDeviceScale = deviceScale;
+    }
+
+    private void RenderDrawing(DrawingContext context, SvgDocument drawing)
+    {
+        var view = drawing.Workspace.ViewSize;
+        context.FillRectangle(CheckerBrush, new Rect(0, 0, view.Width, view.Height));
+        if (_drawingBitmap is { } bitmap)
+        {
+            var scaling = RenderScaling;
+            var dest = new Rect(_drawingRegion.X / scaling, _drawingRegion.Y / scaling, _drawingRegion.Width / scaling, _drawingRegion.Height / scaling);
+            using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.None }))
+                context.DrawImage(bitmap, new Rect(bitmap.Size), dest);
+        }
+        if (Overlay is { } overlay)
+            DrawOverlay(context, overlay, drawing.Workspace.Scale);
+    }
+
+    /// <summary>Re-renders only <paramref name="imageRegion"/> (picture pixels at 100 %) into the bitmap already there.</summary>
+    private void UpdateDrawingRegion(SvgDocument drawing, RectangleI imageRegion)
+    {
+        if (_drawingBitmap is null || imageRegion.Width <= 0 || imageRegion.Height <= 0)
+        {
+            RenderVisibleDrawing();
+            InvalidateVisual();
+            return;
+        }
+        var deviceScale = drawing.Workspace.Scale * RenderScaling;
+        if (Math.Abs(deviceScale - _drawingDeviceScale) > 1e-9)
+        {
+            RenderVisibleDrawing();
+            InvalidateVisual();
+            return;
+        }
+        var scale = deviceScale;
+        var device = new VRectI((int)Math.Floor(imageRegion.X * scale) - 1, (int)Math.Floor(imageRegion.Y * scale) - 1,
+            (int)Math.Ceiling(imageRegion.Width * scale) + 3, (int)Math.Ceiling(imageRegion.Height * scale) + 3).Intersect(_drawingRegion);
+        if (device.IsEmpty)
+            return;
+        var pixels = VectorRasterizer.Render(drawing.Root, device, deviceScale, drawing.RenderOptions);
+        using (var fb = _drawingBitmap.Lock())
+        {
+            var rowBytes = device.Width * 4;
+            for (var y = 0; y < device.Height; y++)
+                Marshal.Copy(pixels, y * rowBytes,
+                    fb.Address + (device.Y - _drawingRegion.Y + y) * fb.RowBytes + (device.X - _drawingRegion.X) * 4, rowBytes);
+        }
+        InvalidateVisual();
+    }
+
+    private static WriteableBitmap ToBitmap(byte[] pixels, int width, int height)
+    {
+        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Avalonia.Vector(96, 96),
+            PixelFormat.Bgra8888, AlphaFormat.Unpremul);
+        using var fb = bitmap.Lock();
+        var rowBytes = width * 4;
+        for (var y = 0; y < height; y++)
+            Marshal.Copy(pixels, y * rowBytes, fb.Address + y * fb.RowBytes, rowBytes);
+        return bitmap;
     }
 
     private (OverlayPicture Picture, WriteableBitmap Bitmap)? _picture;

@@ -81,7 +81,7 @@ public sealed class TestHarness : IDisposable
     public Point WindowToImage(Point p)
     {
         var local = Window.TranslatePoint(p, Canvas)!.Value;
-        var scale = Vm.ActiveDocument!.Image.Workspace.Scale;
+        var scale = Vm.ActiveDocument!.Document.Workspace.Scale;
         return new Point(local.X / scale, local.Y / scale);
     }
 

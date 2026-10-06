@@ -3,7 +3,7 @@
         xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
         x:Class="CinnabarSharp.Desktop.Views.NewImageWindow"
         x:DataType="vm:NewImageViewModel"
-        Title="New Image"
+        Title="{Binding Title}"
         SizeToContent="WidthAndHeight"
         CanResize="False"
         ShowInTaskbar="False"
@@ -19,21 +19,29 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="20,16,20,20" Spacing="12" MinWidth="280">
             <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
-            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <RadioButton GroupName="Kind" Content="Image" IsChecked="True" AutomationProperties.Name="Raster image" />
+                <RadioButton GroupName="Kind" Content="SVG drawing" IsChecked="{Binding IsSvg}" AutomationProperties.Name="SVG drawing" />
+            </StackPanel>
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="8">
                 <TextBlock Grid.Row="0" Text="Width:" VerticalAlignment="Center" />
                 <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="WidthInput"
-                               Value="{Binding Width}" Minimum="1" Maximum="{Binding Max}"
-                               Increment="1" FormatString="0" />
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+                               Value="{Binding Width}" Minimum="0.1" Maximum="{Binding Max}"
+                               Increment="1" FormatString="0.##" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding UnitText}" VerticalAlignment="Center" MinWidth="44" />
 
                 <TextBlock Grid.Row="1" Text="Height:" VerticalAlignment="Center" />
                 <NumericUpDown Grid.Row="1" Grid.Column="1"
-                               Value="{Binding Height}" Minimum="1" Maximum="{Binding Max}"
-                               Increment="1" FormatString="0" />
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+                               Value="{Binding Height}" Minimum="0.1" Maximum="{Binding Max}"
+                               Increment="1" FormatString="0.##" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding UnitText}" VerticalAlignment="Center" />
+
+                <TextBlock Grid.Row="2" Text="Unit:" VerticalAlignment="Center" IsVisible="{Binding IsSvg}" />
+                <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:NewImageViewModel.Units}" SelectedItem="{Binding Unit}"
+                          IsVisible="{Binding IsSvg}" HorizontalAlignment="Stretch" AutomationProperties.Name="Unit" />
             </Grid>
 
-            <StackPanel Spacing="4">
+            <StackPanel Spacing="4" IsVisible="{Binding IsImage}">
                 <TextBlock Text="Background" FontWeight="SemiBold" />
                 <RadioButton GroupName="Background" Content="White" IsChecked="True" />
                 <RadioButton GroupName="Background" Content="Transparent" IsChecked="{Binding TransparentBackground}" />

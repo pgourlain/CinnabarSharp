@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CinnabarSharp.Desktop.ViewModels"
+        x:Class="CinnabarSharp.Desktop.Views.SvgExportWindow"
+        x:DataType="vm:SvgExportViewModel"
+        Title="{Binding Title}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="{Binding OkText}" IsDefault="True" Click="OnOk" MinWidth="80" HorizontalContentAlignment="Center" />
+                <Button Content="Cancel" IsCancel="True" Click="OnCancel" MinWidth="80" HorizontalContentAlignment="Center" />
+            </StackPanel>
+        </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="20,16,20,20" Spacing="12" Width="340">
+            <TextBlock Classes="dialogTitle" Text="{Binding $parent[Window].Title}" />
+            <TextBlock Text="{Binding CurrentSizeText, StringFormat=Drawing size: {0}}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+            <RadioButton GroupName="Mode" Content="By percentage" IsChecked="{Binding ByPercentage}" />
+            <NumericUpDown Value="{Binding Percentage}" Minimum="1" Maximum="10000" Increment="10" FormatString="0"
+                           IsEnabled="{Binding ByPercentage}" Margin="24,0,0,0" AutomationProperties.Name="Scale in percent" />
+            <RadioButton GroupName="Mode" Content="By size in pixels" IsChecked="{Binding ByAbsoluteSize}" />
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="8"
+                  Margin="24,0,0,0" IsEnabled="{Binding ByAbsoluteSize}">
+                <CheckBox Grid.ColumnSpan="3" Content="Maintain aspect ratio" IsChecked="{Binding MaintainAspectRatio}" />
+                <TextBlock Grid.Row="1" Text="Width:" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="WidthInput" Value="{Binding Width}" Minimum="1"
+                               Maximum="32768" Increment="1" FormatString="0" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="2" Text="Height:" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Height}" Minimum="1"
+                               Maximum="32768" Increment="1" FormatString="0" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="pixels" VerticalAlignment="Center" />
+            </Grid>
+            <StackPanel Spacing="4">
+                <TextBlock Text="Background" FontWeight="SemiBold" />
+                <RadioButton GroupName="Background" Content="Transparent" IsChecked="{Binding TransparentBackground}" />
+                <RadioButton GroupName="Background" Content="White" IsChecked="{Binding WhiteBackground}" />
+            </StackPanel>
+        </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

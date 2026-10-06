@@ -112,6 +112,9 @@ public class DialogService(Window owner) : IDialogService
     public Task ShowMessageAsync(string title, string message) =>
         new MessageWindow("CinnabarSharp", title, message, ["OK"], defaultIndex: 0, cancelIndex: 0).ShowDialog(owner);
 
+    public Task<CinnabarSharp.Core.Vector.SvgExportOptions?> ShowSvgExportAsync(SvgExportViewModel options) =>
+        new SvgExportWindow { DataContext = options }.ShowDialog<CinnabarSharp.Core.Vector.SvgExportOptions?>(owner);
+
     public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
         new ResizeImageWindow { DataContext = new ResizeImageViewModel(current) }.ShowDialog<ResizeImageOptions?>(owner);
 

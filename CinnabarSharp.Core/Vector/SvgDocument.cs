@@ -33,8 +33,10 @@ public sealed class SvgDocument : IDocument
     private string _displayName = string.Empty;
     private ImageFile? _file;
 
-    public SvgDocument(IDocumentEventsService events, ILogger<SvgDocument> logger, IHistoryStorage? historyStorage = null)
+    public SvgDocument(IDocumentEventsService events, ILogger<SvgDocument> logger, IHistoryStorage? historyStorage = null,
+        IGlyphOutlineProvider? glyphProvider = null)
     {
+        GlyphProvider = glyphProvider;
         _events = events;
         _root = new SvgRoot();
         Selection = new SvgSelection(this);

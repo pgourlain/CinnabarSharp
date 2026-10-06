@@ -6,7 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using CinnabarSharp.Core.Extensions;
+using CinnabarSharp.Vector;
 using ImageMagick;
+using RenderOptions = CinnabarSharp.Vector.RenderOptions;
 
 namespace CinnabarSharp.Desktop.Services;
 
@@ -51,6 +53,8 @@ public static class RecentThumbnails
 
     private static (byte[] Bgra, int Width, int Height)? Read(string path)
     {
+        if (path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".svgz", StringComparison.OrdinalIgnoreCase))
+            return ReadSvg(path);
         try
         {
             using var image = path.EndsWith(".ora", StringComparison.OrdinalIgnoreCase) ? ReadOra(path) : ReadPhoto(path);
@@ -67,6 +71,30 @@ public static class RecentThumbnails
             return null;
         }
         catch (Exception e) when (e is IOException or InvalidDataException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>A drawing is rendered by the vector rasterizer, filling the tile like a photo (the middle part when the shape differs).</summary>
+    private static (byte[] Bgra, int Width, int Height)? ReadSvg(string path)
+    {
+        try
+        {
+            var root = SvgParser.ParseFile(path).Root;
+            var (w, h) = root.PixelSize;
+            var scale = Math.Max(Width / w, Height / h);
+            var left = (int)Math.Round((w * scale - Width) / 2);
+            var top = (int)Math.Round((h * scale - Height) / 2);
+            var options = new RenderOptions
+            {
+                ImageDecoder = new CinnabarSharp.Core.Vector.MagickImageDecoder(),
+                BaseFolder = Path.GetDirectoryName(Path.GetFullPath(path)),
+            };
+            var pixels = VectorRasterizer.Render(root, new VRectI(left, top, Width, Height), scale, options);
+            return (pixels, Width, Height);
+        }
+        catch (Exception e) when (e is SvgParseException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
             return null;
         }

@@ -161,3 +161,30 @@ public partial class PasteBesideViewModel(ImageSize current, ImageSize pasted) :
 
     public PasteBesideOptions ToOptions() => new(Side, Alignment);
 }
+
+/// <summary>
+/// Export of an SVG drawing as a picture (also Image › Rasterize): by percentage of its size or by pixels with the
+/// ratio locked or not, on a transparent or a white background.
+/// </summary>
+public partial class SvgExportViewModel(ImageSize current, string title, string okText) : SizeDialogViewModel(current)
+{
+    public string Title { get; } = title;
+
+    public string OkText { get; } = okText;
+
+    [ObservableProperty]
+    public partial bool TransparentBackground { get; set; } = true;
+
+    public bool WhiteBackground
+    {
+        get => !TransparentBackground;
+        set => TransparentBackground = !value;
+    }
+
+    partial void OnTransparentBackgroundChanged(bool value) => OnPropertyChanged(nameof(WhiteBackground));
+
+    public CinnabarSharp.Core.Vector.SvgExportOptions? ToOptions() => NewSize is { } size
+        ? new CinnabarSharp.Core.Vector.SvgExportOptions(Width: size.Width, Height: size.Height,
+            Background: TransparentBackground ? null : CinnabarSharp.Vector.VColor.White)
+        : null;
+}

@@ -403,6 +403,7 @@ public partial class MainWindow : Window, IViewportService
         {
             new("_New…", vm.NewImageCommand, G(Key.N)),
             new("_Open…", vm.OpenCommand, G(Key.O)),
+            new("Open as _Image…", vm.OpenAsImageCommand),
             new("Open _Recent", Children: []),
             MenuSpec.Separator,
             new("_Save", vm.SaveCommand, G(Key.S)),
@@ -459,6 +460,8 @@ public partial class MainWindow : Window, IViewportService
                 new("Rotate 180°", vm.Rotate180Command, G(Key.J)),
                 MenuSpec.Separator,
                 new("_Flatten", vm.FlattenCommand, G(Key.F, KeyModifiers.Shift)),
+                MenuSpec.Separator,
+                new("Ras_terize…", vm.RasterizeCommand),
             ]),
             new("_Layers", Children:
             [

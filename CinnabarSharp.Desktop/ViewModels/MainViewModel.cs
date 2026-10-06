@@ -17,6 +17,7 @@ using CinnabarSharp.Core.Effects;
 using Effect = CinnabarSharp.Core.Effects.Effect;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Core.Photo;
+using CinnabarSharp.Core.Vector;
 using CinnabarSharp.Desktop.Services;
 
 namespace CinnabarSharp.Desktop.ViewModels;
@@ -282,6 +283,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>True when the active tab is a raster image: the CanExecute of every pixel-only command.</summary>
     public bool HasImage => ActiveImageTab is not null;
 
+    private DocumentViewModel? ActiveSvgTab => ActiveDocument is { IsSvg: true } tab ? tab : null;
+
+    /// <summary>True when the active tab is an SVG drawing: the CanExecute of the vector-only commands.</summary>
+    public bool HasSvg => ActiveSvgTab is not null;
+
     public string ImageSizeText => ActiveDocument is { } d
         ? $"{d.Document.ImageSize.Width} × {d.Document.ImageSize.Height}"
         : "";
@@ -305,7 +311,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public void CreateImage(NewImageOptions options)
     {
-        var doc = _workspace.NewDocument(options.Size, options.Background);
+        IDocument doc = options.Svg is { } svg
+            ? _workspace.NewSvgDocument(svg.Width, svg.Height, svg.Unit)
+            : _workspace.NewDocument(options.Size, options.Background);
         FitIfLargerThanViewport(doc);
     }
 
@@ -316,6 +324,36 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             return;
         foreach (var path in await Dialogs.PickFilesToOpenAsync(_formats.Formats))
             await OpenFileAsync(path);
+    }
+
+    /// <summary>File › Open as Image: an SVG file is rasterized into a raster image (to paint on); other files open as usual.</summary>
+    [RelayCommand]
+    private async Task OpenAsImage()
+    {
+        if (Dialogs is null)
+            return;
+        foreach (var path in await Dialogs.PickFilesToOpenAsync(_formats.Formats))
+            await OpenFileAsImageAsync(path);
+    }
+
+    public async Task<bool> OpenFileAsImageAsync(string path)
+    {
+        var extension = Path.GetExtension(path);
+        if (!extension.Equals(".svg", StringComparison.OrdinalIgnoreCase) && !extension.Equals(".svgz", StringComparison.OrdinalIgnoreCase))
+            return await OpenFileAsync(path);
+        var file = new FileInfo(path);
+        try
+        {
+            // Created where the events are raised (the UI thread); rasterizing an SVG is quick.
+            var image = await RunBusyAsync($"Opening {file.Name}", _ => Task.FromResult(_formats.OpenAsImage(file)));
+            FitIfLargerThanViewport(image);
+            return true;
+        }
+        catch (Exception e) when (e is NotSupportedException or MagickException or IOException or UnauthorizedAccessException)
+        {
+            await (Dialogs?.ShowErrorAsync($"Could not open \"{file.Name}\"", Describe(e)) ?? Task.CompletedTask);
+            return false;
+        }
     }
 
     [RelayCommand]
@@ -368,12 +406,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Returns false if the user cancelled or the save failed.</summary>
     public async Task<bool> SaveDocumentAsync(DocumentViewModel d, bool saveAs)
     {
+        if (d.Document is SvgDocument drawing)
+            return await SaveDrawingAsync(drawing, saveAs);
         if (d.Document is not ImageDocument doc)
-        {
-            if (Dialogs is not null)
-                await Dialogs.ShowErrorAsync("Could not save", "Saving SVG documents is not available yet.");
             return false;
-        }
         var file = saveAs ? null : doc.File;
         var format = file is null ? null : _formats.GetFormatByExtension(file.Extension);
         if (format is { SupportsSaving: false })
@@ -429,6 +465,91 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             await (Dialogs?.ShowErrorAsync($"Could not save \"{file.Name}\"", Describe(e)) ?? Task.CompletedTask);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Saves an SVG drawing as SVG, or, when the user picks a raster format in Save As, exports it as a picture: the drawing
+    /// then stays an SVG document with its own file and unsaved state, so this returns false (not saved) while it is dirty.
+    /// </summary>
+    private async Task<bool> SaveDrawingAsync(SvgDocument drawing, bool saveAs)
+    {
+        var svgFormat = _formats.GetSaveFormats(DocumentKind.Svg)[0];
+        var file = saveAs ? null : drawing.File;
+        var format = file is null ? null : _formats.GetFormatByExtension(file.Extension);
+        if (format is not { DocumentKind: DocumentKind.Svg })
+            (file, format) = (null, null);
+
+        if (file is null)
+        {
+            if (Dialogs is null)
+                return false;
+            var path = await Dialogs.PickFileToSaveAsync(drawing.DisplayName, svgFormat, _formats.GetSaveFormats(DocumentKind.Svg));
+            if (path is null)
+                return false;
+            format = _formats.GetFormatByExtension(Path.GetExtension(path));
+            if (format is not { SupportsSaving: true })
+            {
+                path += "." + svgFormat.SupportedExtensions[0];
+                format = svgFormat;
+            }
+            file = new FileInfo(path);
+        }
+
+        try
+        {
+            if (format!.DocumentKind != DocumentKind.Svg)
+                return await ExportDrawingAsync(drawing, file, format);
+            await RunBusyAsync($"Saving {file.Name}", async _ =>
+            {
+                await _formats.SaveAsync(drawing, file, format);
+                return true;
+            });
+            RecentFiles.Add(file.FullName);
+            return true;
+        }
+        catch (Exception e) when (e is MagickException or IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            await (Dialogs?.ShowErrorAsync($"Could not save \"{file.Name}\"", Describe(e)) ?? Task.CompletedTask);
+            return false;
+        }
+    }
+
+    private async Task<bool> ExportDrawingAsync(SvgDocument drawing, FileInfo file, ImageFormat format)
+    {
+        if (Dialogs is null)
+            return false;
+        var options = await Dialogs.ShowSvgExportAsync(new SvgExportViewModel(drawing.ImageSize, $"Export as {format.DisplayName}", "Export"));
+        if (options is null)
+            return false;
+        if (format is JpegFormat jpeg)
+        {
+            if (await Dialogs.AskJpegQualityAsync(JpegQuality) is not { } quality)
+                return false;
+            JpegQuality = quality;
+            jpeg.Quality = quality;
+        }
+        await RunBusyAsync($"Exporting {file.Name}", async _ =>
+        {
+            await _formats.ExportAsync(drawing, file, options, format);
+            return true;
+        });
+        return !drawing.IsDirty;
+    }
+
+    /// <summary>Image › Rasterize: a new raster image from the drawing at the chosen size; the drawing stays open.</summary>
+    [RelayCommand(CanExecute = nameof(HasSvg))]
+    private async Task Rasterize()
+    {
+        if (ActiveSvgTab is not { } tab || Dialogs is null || IsBusy)
+            return;
+        var drawing = tab.Svg;
+        var options = await Dialogs.ShowSvgExportAsync(new SvgExportViewModel(drawing.ImageSize, "Rasterize", "Rasterize"));
+        if (options is null)
+            return;
+        var (pixels, width, height) = await RunBusyAsync("Rasterizing", _ => Task.Run(() => options.Render(drawing)));
+        var image = _workspace.NewDocumentFromImage(new ClipboardImage(pixels, width, height));
+        image.DisplayName = Path.GetFileNameWithoutExtension(drawing.DisplayName) + " (raster)";
+        FitIfLargerThanViewport(image);
     }
 
     [RelayCommand(CanExecute = nameof(HasDocument))]
@@ -1004,7 +1125,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             _toolBeforeTv = null;
             ExitTv();
         }
-        FinishEditing(oldValue?.Tool, ActiveDocument?.Image);
+        FinishEditing(oldValue?.Tool, ActiveDocument?.ImageOrNull);
     }
 
     partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue)
@@ -1013,7 +1134,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (IsComicMode && newValue?.Document != (IDocument?)_comicDocument)
             ExitComic(closeDocument: false);
         ExitTv();
-        FinishEditing(SelectedTool?.Tool, oldValue?.Image);
+        FinishEditing(SelectedTool?.Tool, oldValue?.ImageOrNull);
     }
 
     partial void OnSelectedToolChanged(ToolViewModel value)
@@ -1580,7 +1701,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         crop.ForcedRatio = 16 / 9.0;
         crop.CanDrawNewFrame = false;
 
-        var tv = new PrepareForTvViewModel(TvOptions, doc.ImageSize, null, Documents.Where(o => o != d).ToList());
+        var tv = new PrepareForTvViewModel(TvOptions, doc.ImageSize, null, Documents.Where(o => o != d && o.IsImage).ToList());
         tv.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(PrepareForTvViewModel.Resolution))
@@ -1850,6 +1971,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             command.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasDocument));
         OnPropertyChanged(nameof(HasImage));
+        OnPropertyChanged(nameof(HasSvg));
+        RasterizeCommand.NotifyCanExecuteChanged();
         RefreshWelcome();
     }
 
@@ -1948,6 +2071,32 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                     RegionInvalidated?.Invoke(region.Rect);
                 else
                     RefreshViewState();
+                break;
+
+            case DocumentEventEnum.VectorTreeChanged:
+                if (e.Document == ActiveDocument?.Document)
+                {
+                    RenderVersion++;
+                    ActiveDocument?.RefreshThumbnail();
+                }
+                break;
+
+            case DocumentEventEnum.VectorNodeChanged:
+                if (e.Document == ActiveDocument?.Document && e is VectorNodeEventItem node)
+                {
+                    if (node.DirtyBounds is { } dirty && node.Document is SvgDocument drawing)
+                        RegionInvalidated?.Invoke(drawing.UserToImage.TransformBounds(dirty).ToOuterPixels());
+                    else
+                        RenderVersion++;
+                }
+                break;
+
+            case DocumentEventEnum.VectorSelectionChanged:
+                if (e.Document == ActiveDocument?.Document)
+                {
+                    SelectionVersion++;
+                    UpdateOverlay();
+                }
                 break;
 
             case DocumentEventEnum.ViewSizeChanged:

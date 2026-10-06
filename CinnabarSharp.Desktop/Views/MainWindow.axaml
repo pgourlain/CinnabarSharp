@@ -468,6 +468,7 @@
                         <c:CanvasView x:Name="Canvas" AutomationProperties.Name="Image canvas"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
                                       Document="{Binding ActiveDocument.ImageOrNull, FallbackValue={x:Null}}"
+                                      SvgDocument="{Binding ActiveDocument.SvgOrNull, FallbackValue={x:Null}}"
                                       RenderVersion="{Binding RenderVersion}"
                                       ViewVersion="{Binding ViewVersion}"
                                       SelectionVersion="{Binding SelectionVersion}"
