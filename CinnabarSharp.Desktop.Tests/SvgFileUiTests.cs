@@ -143,11 +143,12 @@ public sealed class SvgFileUiTests : IDisposable
         Assert.True(Vm.RasterizeCommand.CanExecute(null));
         Assert.False(Vm.AddNewLayerCommand.CanExecute(null));
         Assert.False(Vm.ResizeImageCommand.CanExecute(null));
-        Assert.False(Vm.CopyCommand.CanExecute(null));
+        Assert.True(Vm.CopyCommand.CanExecute(null));            // copy, cut, paste, select all and delete work on objects
+        Assert.True(Vm.SelectAllCommand.CanExecute(null));
         Assert.False(Vm.SepiaCommand.CanExecute(null));
         Assert.False(Vm.PrepareForTvCommand.CanExecute(null));
         Assert.False(Vm.FlattenCommand.CanExecute(null));
-        Assert.False(Vm.SelectAllCommand.CanExecute(null));
+        Assert.False(Vm.InvertSelectionCommand.CanExecute(null));
         Assert.Empty(Vm.Layers);
 
         Vm.CreateImage(new NewImageOptions(new ImageSize(10, 10), ColorBgra.White));

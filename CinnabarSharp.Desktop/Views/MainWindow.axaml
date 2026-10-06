@@ -100,6 +100,11 @@
         <Style Selector="ListBox#LayersList ListBoxItem">
             <Setter Property="Padding" Value="8,4" />
         </Style>
+        <Style Selector="TabControl#SvgTabs TabItem">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
         <Style Selector="ListBox.history ListBoxItem">
             <Setter Property="Padding" Value="8,4" />
         </Style>
@@ -401,7 +406,7 @@
             </Grid>
         </Border>
 
-        <Grid ColumnDefinitions="Auto,*,4,240" IsEnabled="{Binding IsIdle}">
+        <Grid ColumnDefinitions="Auto,*,4,280" IsEnabled="{Binding IsIdle}">
             <!-- Tools -->
             <Border Grid.Column="0" BorderThickness="0,0,1,0" Padding="4"
                     BorderBrush="{DynamicResource CinnabarBorderBrush}">
@@ -579,7 +584,7 @@
                     <RowDefinition Height="*" MinHeight="90" MaxHeight="200" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <Border Grid.Row="0" Classes="panel" BorderThickness="0">
+                <Border Grid.Row="0" Classes="panel" BorderThickness="0" IsVisible="{Binding IsNotSvg}">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Classes="panelTitle" Text="Layers" />
                         <WrapPanel DockPanel.Dock="Bottom" Classes="layerButtons" Orientation="Horizontal"
@@ -642,6 +647,153 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </DockPanel>
+                </Border>
+                <!-- SVG drawings: Objects and Properties instead of Layers. -->
+                <Border Grid.Row="0" Classes="panel" BorderThickness="0" IsVisible="{Binding HasSvg}">
+                    <TabControl x:Name="SvgTabs" Padding="0">
+                        <TabItem Header="Objects" AutomationProperties.Name="Objects tab">
+                            <DockPanel Margin="0,8,0,0">
+                                <WrapPanel DockPanel.Dock="Bottom" Classes="layerButtons" Orientation="Horizontal"
+                                           ItemSpacing="4" LineSpacing="4" Margin="0,8,0,0">
+                                    <Button Command="{Binding DuplicateObjectsCommand}" ToolTip.Tip="Duplicate (Ctrl+D)" AutomationProperties.Name="Duplicate objects" Content="Dup" />
+                                    <Button Command="{Binding DeleteObjectsCommand}" ToolTip.Tip="Delete" AutomationProperties.Name="Delete objects" Content="Del" />
+                                    <Button Command="{Binding GroupObjectsCommand}" ToolTip.Tip="Group (Ctrl+G)" AutomationProperties.Name="Group objects" Content="Group" />
+                                    <Button Command="{Binding UngroupObjectsCommand}" ToolTip.Tip="Ungroup (Ctrl+Shift+G)" AutomationProperties.Name="Ungroup objects" Content="Ungroup" />
+                                    <Button Command="{Binding RaiseObjectsCommand}" ToolTip.Tip="Raise" AutomationProperties.Name="Raise objects" Content="Up" />
+                                    <Button Command="{Binding LowerObjectsCommand}" ToolTip.Tip="Lower" AutomationProperties.Name="Lower objects" Content="Down" />
+                                </WrapPanel>
+                                <ListBox x:Name="ObjectsList" Classes="objects" AutomationProperties.Name="Objects" ItemsSource="{Binding Objects}"
+                                         SelectionMode="Multiple,Toggle" DragDrop.AllowDrop="True">
+                                    <ListBox.Styles>
+                                        <Style Selector="ListBox.objects ListBoxItem" x:DataType="vm:ObjectViewModel">
+                                            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                                            <Setter Property="Padding" Value="4,2" />
+                                        </Style>
+                                    </ListBox.Styles>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ObjectViewModel">
+                                            <DockPanel Margin="{Binding Indent}" DoubleTapped="OnObjectDoubleTapped">
+                                                <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsVisible}" MinWidth="0" Padding="0"
+                                                          AutomationProperties.Name="{Binding Name, StringFormat=Show {0}}" ToolTip.Tip="Visible" />
+                                                <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsLocked}" MinWidth="0" Padding="0"
+                                                          AutomationProperties.Name="{Binding Name, StringFormat=Lock {0}}" ToolTip.Tip="Locked" Content="L" FontSize="9" />
+                                                <ToggleButton DockPanel.Dock="Left" IsChecked="{Binding IsExpanded}" Width="16" Height="16" Padding="0"
+                                                              Background="Transparent" BorderThickness="0" IsVisible="{Binding HasChildren}"
+                                                              AutomationProperties.Name="{Binding Name, StringFormat=Expand {0}}" Content="▸" FontSize="10" />
+                                                <Panel DockPanel.Dock="Left" Width="16" IsVisible="{Binding !HasChildren}" />
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" IsVisible="{Binding !IsEditing}" />
+                                                    <TextBox Text="{Binding EditText}" IsVisible="{Binding IsEditing}" MinHeight="0" Padding="4,2"
+                                                             AutomationProperties.Name="Object name" KeyDown="OnObjectNameKeyDown" LostFocus="OnObjectNameLostFocus" />
+                                                    <TextBlock Text="{Binding Kind}" FontSize="10" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </TabItem>
+                        <TabItem Header="Properties" AutomationProperties.Name="Properties tab">
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="0,8,8,8" Spacing="12" DataContext="{Binding Properties}" x:DataType="vm:SvgPropertiesViewModel">
+                                    <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                    <StackPanel Spacing="6" IsEnabled="{Binding HasSelection}">
+                                        <TextBlock Classes="sectionTitle" Text="Fill" />
+                                        <ComboBox ItemsSource="{x:Static vm:PaintEditor.Modes}" SelectedItem="{Binding Fill.Mode}" HorizontalAlignment="Stretch"
+                                                  AutomationProperties.Name="Fill type" />
+                                        <Button Command="{Binding Fill.PickColorCommand}" IsVisible="{Binding Fill.IsFlat}" Background="{Binding Fill.Brush}"
+                                                Height="26" HorizontalAlignment="Stretch" AutomationProperties.Name="Fill color" ToolTip.Tip="Fill color" />
+                                        <StackPanel IsVisible="{Binding Fill.IsGradient}" Spacing="4" x:Name="FillGradient">
+                                            <ListBox ItemsSource="{Binding Fill.Stops}" SelectedItem="{Binding Fill.SelectedStop}" AutomationProperties.Name="Fill gradient stops" MaxHeight="120">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:GradientStopViewModel">
+                                                        <DockPanel>
+                                                            <Button DockPanel.Dock="Right" Command="{Binding PickColorCommand}" Background="{Binding Brush}" Width="32" Height="22"
+                                                                    AutomationProperties.Name="Stop color" />
+                                                            <Slider Minimum="0" Maximum="1" Value="{Binding Offset}" AutomationProperties.Name="Stop position" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <Button Content="Add stop" Command="{Binding Fill.AddStopCommand}" />
+                                                <Button Content="Remove stop" Command="{Binding Fill.RemoveStopCommand}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel IsVisible="{Binding Fill.HasPaint}">
+                                            <TextBlock Text="{Binding Fill.Opacity, StringFormat=Opacity {0:0}%}" FontSize="11" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                            <Slider Minimum="0" Maximum="100" Value="{Binding Fill.Opacity}" AutomationProperties.Name="Fill opacity" PointerCaptureLost="OnSliderGestureEnd" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Spacing="6" IsEnabled="{Binding HasSelection}">
+                                        <TextBlock Classes="sectionTitle" Text="Stroke" />
+                                        <ComboBox ItemsSource="{x:Static vm:PaintEditor.Modes}" SelectedItem="{Binding Stroke.Mode}" HorizontalAlignment="Stretch"
+                                                  AutomationProperties.Name="Stroke type" />
+                                        <Button Command="{Binding Stroke.PickColorCommand}" IsVisible="{Binding Stroke.IsFlat}" Background="{Binding Stroke.Brush}"
+                                                Height="26" HorizontalAlignment="Stretch" AutomationProperties.Name="Stroke color" ToolTip.Tip="Stroke color" />
+                                        <StackPanel IsVisible="{Binding Stroke.IsGradient}" Spacing="4">
+                                            <ListBox ItemsSource="{Binding Stroke.Stops}" SelectedItem="{Binding Stroke.SelectedStop}" AutomationProperties.Name="Stroke gradient stops" MaxHeight="120">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:GradientStopViewModel">
+                                                        <DockPanel>
+                                                            <Button DockPanel.Dock="Right" Command="{Binding PickColorCommand}" Background="{Binding Brush}" Width="32" Height="22"
+                                                                    AutomationProperties.Name="Stop color" />
+                                                            <Slider Minimum="0" Maximum="1" Value="{Binding Offset}" AutomationProperties.Name="Stop position" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <Button Content="Add stop" Command="{Binding Stroke.AddStopCommand}" />
+                                                <Button Content="Remove stop" Command="{Binding Stroke.RemoveStopCommand}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel IsVisible="{Binding Stroke.HasPaint}" Spacing="6">
+                                            <TextBlock Text="{Binding Stroke.Opacity, StringFormat=Opacity {0:0}%}" FontSize="11" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                            <Slider Minimum="0" Maximum="100" Value="{Binding Stroke.Opacity}" AutomationProperties.Name="Stroke opacity" PointerCaptureLost="OnSliderGestureEnd" />
+                                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+                                                <TextBlock Text="Width" VerticalAlignment="Center" />
+                                                <NumericUpDown Grid.Column="1" Value="{Binding StrokeWidth}" Minimum="0" Maximum="1000" Increment="0.5" FormatString="0.##"
+                                                               AutomationProperties.Name="Stroke width" />
+                                                <TextBlock Grid.Row="1" Text="Cap" VerticalAlignment="Center" />
+                                                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{x:Static vm:SvgPropertiesViewModel.Caps}" SelectedItem="{Binding Cap}"
+                                                          HorizontalAlignment="Stretch" AutomationProperties.Name="Line cap" />
+                                                <TextBlock Grid.Row="2" Text="Join" VerticalAlignment="Center" />
+                                                <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{x:Static vm:SvgPropertiesViewModel.Joins}" SelectedItem="{Binding Join}"
+                                                          HorizontalAlignment="Stretch" AutomationProperties.Name="Line join" />
+                                                <TextBlock Grid.Row="3" Text="Dashes" VerticalAlignment="Center" />
+                                                <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:SvgPropertiesViewModel.DashPresets}" SelectedItem="{Binding SelectedDash}"
+                                                          HorizontalAlignment="Stretch" AutomationProperties.Name="Dashes">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:SvgPropertiesViewModel+DashPreset">
+                                                            <TextBlock Text="{Binding Name}" />
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Spacing="4" IsEnabled="{Binding HasSelection}">
+                                        <TextBlock Classes="sectionTitle" Text="Object" />
+                                        <TextBlock Text="{Binding ObjectOpacity, StringFormat=Opacity {0:0}%}" FontSize="11" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
+                                        <Slider Minimum="0" Maximum="100" Value="{Binding ObjectOpacity}" AutomationProperties.Name="Object opacity" PointerCaptureLost="OnSliderGestureEnd" />
+                                        <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+                                            <TextBlock Text="X" VerticalAlignment="Center" />
+                                            <NumericUpDown Grid.Column="1" Value="{Binding X}" Increment="1" FormatString="0.###" AutomationProperties.Name="X" />
+                                            <TextBlock Grid.Column="2" Text="Y" VerticalAlignment="Center" />
+                                            <NumericUpDown Grid.Column="3" Value="{Binding Y}" Increment="1" FormatString="0.###" AutomationProperties.Name="Y" />
+                                            <TextBlock Grid.Row="1" Text="W" VerticalAlignment="Center" />
+                                            <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Width}" Minimum="0.001" Increment="1" FormatString="0.###" AutomationProperties.Name="Width" />
+                                            <TextBlock Grid.Row="1" Grid.Column="2" Text="H" VerticalAlignment="Center" />
+                                            <NumericUpDown Grid.Row="1" Grid.Column="3" Value="{Binding Height}" Minimum="0.001" Increment="1" FormatString="0.###" AutomationProperties.Name="Height" />
+                                            <TextBlock Grid.Row="2" Text="Rotation" VerticalAlignment="Center" Grid.ColumnSpan="2" />
+                                            <NumericUpDown Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="60,0,0,0" Value="{Binding Rotation}" Increment="5" FormatString="0.##" AutomationProperties.Name="Rotation" />
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+                    </TabControl>
                 </Border>
                 <Border Grid.Row="1" Classes="panel" BorderThickness="0,1,0,0">
                     <DockPanel>

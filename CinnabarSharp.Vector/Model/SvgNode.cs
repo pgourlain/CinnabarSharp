@@ -98,7 +98,7 @@ public abstract class SvgElement : SvgNode
 {
     private readonly List<SvgAttribute> _attributes = [];
     private SvgStyle? _style;
-    private string? _transformText;
+    private bool _transformValid;
     private Matrix2D _transform = Matrix2D.Identity;
 
     public static readonly XNamespace Ns = "http://www.w3.org/2000/svg";
@@ -181,14 +181,14 @@ public abstract class SvgElement : SvgNode
     {
         _attributes.Clear();
         _attributes.AddRange(attributes);
-        _transformText = null;
+        _transformValid = false;
         _style?.Invalidate();
     }
 
     protected virtual void OnAttributeChanged(XName name)
     {
         if (name == "transform")
-            _transformText = null;
+            _transformValid = false;
         else if (name == "style")
             _style?.Invalidate();
     }
@@ -214,11 +214,10 @@ public abstract class SvgElement : SvgNode
     {
         get
         {
-            var text = GetAttribute("transform");
-            if (!ReferenceEquals(text, _transformText) && text != _transformText)
+            if (!_transformValid)
             {
-                _transformText = text;
-                _transform = TransformParser.Parse(text);
+                _transform = TransformParser.Parse(GetAttribute("transform"));
+                _transformValid = true;
             }
             return _transform;
         }

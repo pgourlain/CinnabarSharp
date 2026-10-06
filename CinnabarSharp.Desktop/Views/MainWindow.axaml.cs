@@ -182,6 +182,38 @@ public partial class MainWindow : Window, IViewportService
         }
     }
 
+    // ---- Objects panel ----
+
+    private void OnObjectDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is ViewModels.ObjectViewModel row && !row.IsEditing)
+            row.BeginEdit();
+    }
+
+    private void OnObjectNameKeyDown(object? sender, KeyEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not ViewModels.ObjectViewModel row)
+            return;
+        if (e.Key == Key.Enter)
+        {
+            row.CommitEdit();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            row.CancelEdit();
+            e.Handled = true;
+        }
+    }
+
+    private void OnObjectNameLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is ViewModels.ObjectViewModel row)
+            row.CommitEdit();
+    }
+
+    private void OnSliderGestureEnd(object? sender, PointerCaptureLostEventArgs e) => Vm?.Properties.EndGesture();
+
     // ---- Zoom ----
 
     public void ZoomTo(double scale, Point? anchor = null)
@@ -445,6 +477,21 @@ public partial class MainWindow : Window, IViewportService
                 new("Zoom _Out", vm.ZoomOutCommand, G(Key.OemMinus)),
                 new("_Best Fit", vm.BestFitCommand, G(Key.B)),
                 new("_Actual Size", vm.ActualSizeCommand, G(Key.D0)),
+            ]),
+            new("_Object", Children:
+            [
+                new("_Duplicate", vm.DuplicateObjectsCommand, G(Key.D)),
+                new("_Delete", vm.DeleteObjectsCommand),
+                MenuSpec.Separator,
+                new("_Group", vm.GroupObjectsCommand, G(Key.G)),
+                new("_Ungroup", vm.UngroupObjectsCommand, G(Key.G, KeyModifiers.Shift)),
+                MenuSpec.Separator,
+                new("Raise to _Top", vm.RaiseToTopCommand, new KeyGesture(Key.Home)),
+                new("_Raise", vm.RaiseObjectsCommand, new KeyGesture(Key.PageUp)),
+                new("_Lower", vm.LowerObjectsCommand, new KeyGesture(Key.PageDown)),
+                new("Lower to _Bottom", vm.LowerToBottomCommand, new KeyGesture(Key.End)),
+                MenuSpec.Separator,
+                new("D_eselect Objects", vm.DeselectObjectsCommand, G(Key.A, KeyModifiers.Shift)),
             ]),
             new("_Image", Children:
             [

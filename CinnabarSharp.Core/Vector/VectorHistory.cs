@@ -113,7 +113,29 @@ public sealed record NodeChange(long Id, NodeSnapshot Before, NodeSnapshot After
 /// <summary>Attributes of one or more elements changed (move, style, transform, rename, text…). Found again by internal id, not by XML id.</summary>
 public sealed class VectorNodeChangeItem(SvgDocument document, string text, IReadOnlyList<NodeChange> changes) : VectorStepItem(document, text)
 {
-    public IReadOnlyList<NodeChange> Changes { get; } = changes;
+    public IReadOnlyList<NodeChange> Changes { get; private set; } = changes;
+
+    /// <summary>Identifies a continuing gesture (a slider drag): a new change with the same key within a moment updates this entry.</summary>
+    internal string? CoalesceKey { get; set; }
+
+    internal DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Takes over the newer "after" state of the same elements, keeping the "before" of the first change: one entry for the
+    /// whole drag. False when the elements differ.
+    /// </summary>
+    internal bool TryMerge(IReadOnlyList<NodeChange> newer)
+    {
+        if (newer.Count != Changes.Count || !newer.Select(c => c.Id).OrderBy(i => i).SequenceEqual(Changes.Select(c => c.Id).OrderBy(i => i)))
+            return false;
+        Changes = Changes.Select(old =>
+        {
+            var latest = newer.First(c => c.Id == old.Id);
+            return old with { After = latest.After, BoundsAfter = latest.BoundsAfter };
+        }).ToList();
+        CreatedAt = DateTime.UtcNow;
+        return true;
+    }
 
     internal override void UndoStep() => Apply(c => c.Before);
 

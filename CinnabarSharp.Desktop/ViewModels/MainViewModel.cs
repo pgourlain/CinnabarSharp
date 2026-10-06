@@ -43,6 +43,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _formats = formats;
         RecentFiles = recentFiles;
         Tools = ToolViewModel.CreatePaintDotNetTools(ToolSettings, textRasterizer);
+        Properties = new SvgPropertiesViewModel(this);
         ToolSettings.ColorsChanged += OnColorsChanged;
         ToolSettings.BubbleNumberChanged += () => OnPropertyChanged(nameof(BubbleNextNumber));
         SelectedTool = Tools.First(t => t.Name == "Rectangle Select");
@@ -62,6 +63,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ToolSettings ToolSettings { get; } = new();
 
     public ToolViewModel[] Tools { get; }
+
+    /// <summary>The Properties panel of drawings: fill, stroke, opacity and geometry of the selected objects.</summary>
+    public SvgPropertiesViewModel Properties { get; }
 
     public IClipboardService? Clipboard { get; set; }
 
@@ -242,14 +246,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private async Task PickPrimaryColor()
     {
         if (Dialogs is not null && await Dialogs.PickColorAsync("Primary Color", PrimaryColor) is { } c)
+        {
             PrimaryColor = c;
+            ApplyPaletteColor(stroke: true);
+        }
     }
 
     [RelayCommand]
     private async Task PickSecondaryColor()
     {
         if (Dialogs is not null && await Dialogs.PickColorAsync("Secondary Color", SecondaryColor) is { } c)
+        {
             SecondaryColor = c;
+            ApplyPaletteColor(stroke: false);
+        }
     }
 
     [RelayCommand]
@@ -1044,6 +1054,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public bool ToolKeyDown(ToolKey key, ToolModifiers modifiers)
     {
+        if (ActiveSvg is { } drawing && !IsBusy)
+        {
+            // Escape deselects objects (a vector tool that uses Escape handles it first).
+            if (key == ToolKey.Escape && modifiers == ToolModifiers.None && !drawing.Selection.IsEmpty)
+            {
+                drawing.Selection.Clear();
+                return true;
+            }
+            return false;
+        }
         if (ActiveImageTab is not { } d || IsBusy)
             return false;
         if (IsComicMode && modifiers == ToolModifiers.None && key is ToolKey.Enter or ToolKey.Escape)
@@ -1089,6 +1109,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void UpdateOverlay()
     {
+        if (ActiveSvg is { } drawing)
+        {
+            Overlay = SvgOverlay(drawing);
+            return;
+        }
         Overlay = ActiveImageTab is not { } d ? null
             : Comic?.Tool is { } comic ? comic.GetOverlay(d.Image)
             : Tv is { ShowsFrame: false } tvOptions ? TvOverlay(tvOptions, d.Image)
@@ -1176,9 +1201,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ? $"Selection {s.Bounds.Width} × {s.Bounds.Height}"
         : "";
 
-    [RelayCommand(CanExecute = nameof(HasImage))]
+    [RelayCommand(CanExecute = nameof(HasContent))]
     private void SelectAll()
     {
+        if (ActiveSvg is { } drawing)
+        {
+            drawing.Selection.Set(SvgDocumentFactory.DefaultParent(drawing.Root).Elements.Where(IsObject));
+            return;
+        }
         if (EditingText is { } text)
         {
             text.Tool.SelectAll(text.Document);
@@ -1187,6 +1217,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         ActiveImageTab?.Image.Actions.SelectAll();
     }
+
+    /// <summary>Something is selected: pixels of an image, or objects of a drawing.</summary>
+    public bool HasAnySelection => HasSelection || HasObjectSelection;
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DeselectAll() => ActiveImageTab?.Image.Actions.DeselectAll();
@@ -1198,9 +1231,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void CropToSelection() => ActiveImageTab?.Image.Actions.CropToSelection();
 
     // Delete and Backspace are also these menu items' shortcuts: while typing text they edit the text instead.
-    [RelayCommand(CanExecute = nameof(HasImage))]
+    [RelayCommand(CanExecute = nameof(HasContent))]
     private void EraseSelection()
     {
+        if (ActiveSvg is { } drawing)
+        {
+            if (!IsTyping || !ToolKeyDown(ToolKey.Delete, ToolModifiers.None))
+                drawing.Actions.DeleteSelection();
+            return;
+        }
         if (!IsTyping || !ToolKeyDown(ToolKey.Delete, ToolModifiers.None))
             EditLayers(a => a.EraseSelection());
     }
@@ -1212,14 +1251,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             EditLayers(a => a.FillSelection(ColorBgra.FromBgra(PrimaryColor.B, PrimaryColor.G, PrimaryColor.R, PrimaryColor.A)));
     }
 
-    [RelayCommand(CanExecute = nameof(HasImage))]
+    [RelayCommand(CanExecute = nameof(HasContent))]
     private Task Copy() => CopyAsync(merged: false);
 
-    [RelayCommand(CanExecute = nameof(HasImage))]
+    [RelayCommand(CanExecute = nameof(HasContent))]
     private Task CopyMerged() => CopyAsync(merged: true);
 
     private async Task CopyAsync(bool merged)
     {
+        if (ActiveSvg is { } drawing)
+        {
+            await CopyObjectsAsync(drawing, cut: false);
+            return;
+        }
         if (EditingText is { } text && Clipboard is not null)
         {
             await text.Tool.Copy(Clipboard);
@@ -1229,9 +1273,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             await Clipboard.SetImageAsync(d.Image.Actions.Copy(merged));
     }
 
-    [RelayCommand(CanExecute = nameof(HasImage))]
+    [RelayCommand(CanExecute = nameof(HasContent))]
     private async Task Cut()
     {
+        if (ActiveSvg is { } drawing)
+        {
+            await CopyObjectsAsync(drawing, cut: true);
+            return;
+        }
         if (ActiveImageTab is not { } d || Clipboard is null)
             return;
         if (EditingText is { } text)
@@ -1249,6 +1298,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private async Task Paste()
     {
+        if (ActiveSvg is { } drawing)
+        {
+            await PasteIntoDrawingAsync(drawing);
+            return;
+        }
         if (EditingText is { } text && Clipboard is not null)
         {
             await text.Tool.Paste(text.Document, Clipboard);
@@ -1972,7 +2026,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasDocument));
         OnPropertyChanged(nameof(HasImage));
         OnPropertyChanged(nameof(HasSvg));
+        OnPropertyChanged(nameof(HasContent));
+        OnPropertyChanged(nameof(IsNotSvg));
+        OnPropertyChanged(nameof(HasAnySelection));
         RasterizeCommand.NotifyCanExecuteChanged();
+        RefreshObjects();
+        Properties.Refresh();
         RefreshWelcome();
     }
 
@@ -2078,6 +2137,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 {
                     RenderVersion++;
                     ActiveDocument?.RefreshThumbnail();
+                    RefreshObjects();
+                    Properties.Refresh();
                 }
                 break;
 
@@ -2088,6 +2149,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                         RegionInvalidated?.Invoke(drawing.UserToImage.TransformBounds(dirty).ToOuterPixels());
                     else
                         RenderVersion++;
+                    // A name, visibility or lock may have changed.
+                    Objects.FirstOrDefault(o => o.Node == node.Node)?.Refresh();
+                    UpdateOverlay();
+                    if (node.Document is SvgDocument changed && changed.Selection.Nodes.Contains(node.Node))
+                        Properties.Refresh();
                 }
                 break;
 
@@ -2095,6 +2161,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 if (e.Document == ActiveDocument?.Document)
                 {
                     SelectionVersion++;
+                    SyncObjectSelection();
+                    Properties.Refresh();
+                    OnPropertyChanged(nameof(HasAnySelection));
                     UpdateOverlay();
                 }
                 break;

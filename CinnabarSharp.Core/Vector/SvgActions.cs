@@ -23,7 +23,7 @@ public sealed partial class SvgActions
 
     // ---- Transaction: performs primitive edits and records a step for each ----
 
-    private sealed class Transaction(SvgDocument document, string name)
+    private sealed class Transaction(SvgDocument document, string name, string? coalesceKey = null)
     {
         private readonly List<VectorStepItem> _steps = [];
         private readonly List<long> _selectionBefore = document.Selection.Nodes.Select(n => n.InternalId).ToList();
@@ -89,7 +89,18 @@ public sealed partial class SvgActions
             if (select is not null)
                 document.Selection.Set(select);
             document.Selection.Prune();
+            // A continuing gesture (a slider drag) updates its entry instead of adding one per movement.
+            if (coalesceKey is not null && _steps is [VectorNodeChangeItem single]
+                && document.Workspace.History is { Pointer: var pointer, Items: var items } && pointer == items.Count - 1 && pointer > 0
+                && items[pointer] is VectorNodeChangeItem previous && previous.CoalesceKey == coalesceKey
+                && DateTime.UtcNow - previous.CreatedAt < CoalesceWindow && previous.TryMerge(single.Changes))
+            {
+                document.Workspace.Invalidate();
+                return true;
+            }
             VectorStepItem item = _steps.Count == 1 ? _steps[0] : new VectorCompositeItem(document, name, _steps);
+            if (coalesceKey is not null && item is VectorNodeChangeItem changeItem)
+                changeItem.CoalesceKey = coalesceKey;
             item.SelectionBefore = _selectionBefore;
             item.SelectionAfter = document.Selection.Nodes.Select(n => n.InternalId).ToList();
             document.Workspace.History.PushNewItem(item);
@@ -99,7 +110,10 @@ public sealed partial class SvgActions
         }
     }
 
-    private Transaction Begin(string name) => new(_document, name);
+    private Transaction Begin(string name, string? coalesceKey = null) => new(_document, name, coalesceKey);
+
+    /// <summary>How long after its last update an entry can still take over a new change with the same coalescing key.</summary>
+    public static TimeSpan CoalesceWindow { get; set; } = TimeSpan.FromSeconds(1.5);
 
     // ---- Helpers ----
 
@@ -265,16 +279,20 @@ public sealed partial class SvgActions
 
     // ---- Style and attributes ----
 
-    public void SetStyle(IEnumerable<SvgElement>? nodes, string property, string? value, string? name = null) =>
-        SetStyle(nodes, new Dictionary<string, string?> { [property] = value }, name ?? $"Set {property}");
+    public void SetStyle(IEnumerable<SvgElement>? nodes, string property, string? value, string? name = null, bool coalesce = false) =>
+        SetStyle(nodes, new Dictionary<string, string?> { [property] = value }, name ?? $"Set {property}", coalesce);
 
-    /// <summary>Sets (or with a null value removes) several properties on every element as one step.</summary>
-    public void SetStyle(IEnumerable<SvgElement>? nodes, IReadOnlyDictionary<string, string?> properties, string name)
+    /// <summary>
+    /// Sets (or with a null value removes) several properties on every element as one step. With <paramref name="coalesce"/>
+    /// (a slider being dragged) repeated calls on the same elements and properties update one history entry.
+    /// </summary>
+    public void SetStyle(IEnumerable<SvgElement>? nodes, IReadOnlyDictionary<string, string?> properties, string name, bool coalesce = false)
     {
         var targets = Targets(nodes);
         if (targets.Count == 0)
             return;
-        var tx = Begin(name);
+        var key = coalesce ? $"style:{string.Join(',', properties.Keys.Order())}:{string.Join(',', targets.Select(t => t.InternalId).Order())}" : null;
+        var tx = Begin(name, key);
         tx.Edit(targets, () =>
         {
             foreach (var node in targets)
@@ -287,6 +305,14 @@ public sealed partial class SvgActions
     public void SetFill(IEnumerable<SvgElement>? nodes, SvgPaint? paint) => SetStyle(nodes, "fill", paint?.ToText(), "Set Fill");
 
     public void SetStroke(IEnumerable<SvgElement>? nodes, SvgPaint? paint) => SetStyle(nodes, "stroke", paint?.ToText(), "Set Stroke");
+
+    /// <summary>Ends a gesture: the next change starts a new history entry even with the same coalescing key.</summary>
+    public void EndCoalescing()
+    {
+        if (_document.Workspace.History is { Pointer: var pointer, Items: var items } && pointer >= 0 && pointer < items.Count
+            && items[pointer] is VectorNodeChangeItem item)
+            item.CoalesceKey = null;
+    }
 
     public void SetAttribute(SvgElement node, XName name, string? value, string actionName = "Set Attribute")
     {

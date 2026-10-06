@@ -207,7 +207,7 @@ public class MainWindowTests
         var menuHost = window.FindControl<ContentControl>("MenuHost")!;
         var nativeMenu = NativeMenu.GetMenu(window);
 
-        string[] expected = ["File", "Edit", "View", "Image", "Layers", "Adjustments", "Effects", "Photo"];
+        string[] expected = ["File", "Edit", "View", "Object", "Image", "Layers", "Adjustments", "Effects", "Photo"];
         if (OperatingSystem.IsMacOS())
         {
             Assert.Null(menuHost.Content);
