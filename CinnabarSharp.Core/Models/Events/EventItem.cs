@@ -4,13 +4,13 @@ namespace CinnabarSharp.Core.Models
 {
     public record EventItem<T>
     {
-        public EventItem(ImageDocument document, T state)
+        public EventItem(IDocument document, T state)
         {
             this.Document = document;
             this.State = state;
 
         }
-        public ImageDocument Document { get; }
+        public IDocument Document { get; }
         public T State { get; }
     }
 

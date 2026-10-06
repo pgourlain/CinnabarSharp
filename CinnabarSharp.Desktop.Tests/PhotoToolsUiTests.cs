@@ -19,7 +19,7 @@ public sealed class PhotoToolsUiTests : IDisposable
     public void Dispose() => _h.Dispose();
 
     private MainViewModel Vm => _h.Vm;
-    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+    private ImageDocument Doc => Vm.ActiveDocument!.Image;
 
     private byte[] Pixel(int x = 10, int y = 10) => Doc.Layers[0].Surface.ReadRegion(new RectangleI(x, y, 1, 1));
 

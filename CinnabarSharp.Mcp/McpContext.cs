@@ -39,7 +39,7 @@ public sealed class SerialDispatcher : IMcpDispatcher
 public sealed class McpContext(IWorkspaceService workspace, IFormatManager formats, FileAccessPolicy files,
     IMcpDispatcher dispatcher, bool attached = false, ITextRasterizer? textRasterizer = null)
 {
-    private readonly ConditionalWeakTable<ImageDocument, object> _ids = new();
+    private readonly ConditionalWeakTable<IDocument, object> _ids = new();
     private int _nextId = 1;
 
     public IWorkspaceService Workspace { get; } = workspace;
@@ -53,7 +53,7 @@ public sealed class McpContext(IWorkspaceService workspace, IFormatManager forma
     public ITextRasterizer? TextRasterizer { get; } = textRasterizer;
 
     /// <summary>Stable id of a document for the whole session ("1", "2"…), even when other documents are closed.</summary>
-    public string IdOf(ImageDocument document) =>
+    public string IdOf(IDocument document) =>
         ((StrongBox<int>)_ids.GetValue(document, _ => new StrongBox<int>(_nextId++))).Value.ToString();
 
     /// <summary>
@@ -73,15 +73,22 @@ public sealed class McpContext(IWorkspaceService workspace, IFormatManager forma
         }
     });
 
-    /// <summary>The document with this id or display name, or the active document when <paramref name="id"/> is empty.</summary>
-    public ImageDocument Document(string? id)
+    /// <summary>The document of any kind with this id or display name, or the active document when <paramref name="id"/> is empty.</summary>
+    public IDocument AnyDocument(string? id)
     {
         if (!Workspace.HasOpenDocuments)
-            throw new McpException("No image is open. Use open_image or new_image first.");
+            throw new McpException("No document is open. Use open_image or new_image first.");
         if (string.IsNullOrWhiteSpace(id))
             return Workspace.ActiveDocument;
         return Workspace.OpenDocuments.FirstOrDefault(d => IdOf(d) == id)
             ?? Workspace.OpenDocuments.FirstOrDefault(d => string.Equals(d.DisplayName, id, StringComparison.OrdinalIgnoreCase))
-            ?? throw new McpException($"No open image has the id or name '{id}'. Use list_documents to see them.");
+            ?? throw new McpException($"No open document has the id or name '{id}'. Use list_documents to see them.");
     }
+
+    /// <summary>Like <see cref="AnyDocument"/>, for tools that work on pixels: refuses other kinds with a clear message.</summary>
+    public ImageDocument Document(string? id) => RequireImage(AnyDocument(id));
+
+    public ImageDocument RequireImage(IDocument document) =>
+        document as ImageDocument
+        ?? throw new McpException($"Document {IdOf(document)} is an SVG document; this tool works on images.");
 }

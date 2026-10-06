@@ -467,7 +467,7 @@
                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <c:CanvasView x:Name="Canvas" AutomationProperties.Name="Image canvas"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
-                                      Document="{Binding ActiveDocument.Document, FallbackValue={x:Null}}"
+                                      Document="{Binding ActiveDocument.ImageOrNull, FallbackValue={x:Null}}"
                                       RenderVersion="{Binding RenderVersion}"
                                       ViewVersion="{Binding ViewVersion}"
                                       SelectionVersion="{Binding SelectionVersion}"

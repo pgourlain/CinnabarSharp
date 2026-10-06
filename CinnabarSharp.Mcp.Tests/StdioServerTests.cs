@@ -61,6 +61,7 @@ public class StdioServerTests
         Assert.Equal(2, docs.GetArrayLength());
         Assert.False(docs[1].Get("hasUnsavedChanges").GetBoolean());
         Assert.True(docs[0].Get("hasUnsavedChanges").GetBoolean());
+        Assert.All(docs.EnumerateArray(), d => Assert.Equal("image", d.Get("kind").GetString()));
     }
 
     [Fact]

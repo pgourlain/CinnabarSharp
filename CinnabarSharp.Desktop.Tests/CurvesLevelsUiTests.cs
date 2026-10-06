@@ -21,7 +21,7 @@ public sealed class CurvesLevelsUiTests : IDisposable
     public void Dispose() => _h.Dispose();
 
     private MainViewModel Vm => _h.Vm;
-    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+    private ImageDocument Doc => Vm.ActiveDocument!.Image;
 
     // B, G, R, A
     private void NewImage() =>

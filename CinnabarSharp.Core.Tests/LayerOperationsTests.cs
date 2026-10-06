@@ -251,7 +251,7 @@ public sealed class LayerOperationsTests : BaseTests, IDisposable
 
         formats.Save(doc, file);
         _workspace.CloseDocument(doc);
-        var reopened = formats.Open(new FileInfo(file.FullName));
+        var reopened = formats.Open(new FileInfo(file.FullName)).AsImage();
 
         Assert.Equal(new ImageSize(4, 3), reopened.ImageSize);
         Assert.Equal(["Background", "Red", "Blue"], Names(reopened));

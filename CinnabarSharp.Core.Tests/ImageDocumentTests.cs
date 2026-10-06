@@ -51,17 +51,17 @@ public class ImageDocumentTests : BaseTests
         var workspace = sp.GetRequiredService<IWorkspaceService>();
 
         var sampleDir = SampleFilesDirectory();
-        var original = workspace.ActiveDocument.Layers[0].Surface;
+        var original = workspace.ActiveImageDocument!.Layers[0].Surface;
         var oh = original.Height;
         var ow = original.Width;
-        using var flatten = workspace.ActiveDocument.GetFlattenedImage();
+        using var flatten = workspace.ActiveImageDocument!.GetFlattenedImage();
         
         flatten.Crop(100,100);
         // flatten.Format = MagickFormat.Png;
         // flatten.Density = new Density(300);
         Assert.Equal(100u, flatten.Height);
         Assert.Equal(100u, flatten.Width);
-        original = workspace.ActiveDocument.Layers[0].Surface;
+        original = workspace.ActiveImageDocument!.Layers[0].Surface;
         
         Assert.Equal(oh, original.Height);
         Assert.Equal(ow, original.Width);

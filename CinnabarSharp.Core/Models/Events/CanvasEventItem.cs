@@ -3,7 +3,7 @@ namespace CinnabarSharp.Core.Models
 {
     public record CanvasEventItem : EventItem<DocumentEventEnum>
     {
-        public CanvasEventItem(ImageDocument document, DocumentEventEnum state, ImageDocumentWorkspace workspace, RectangleI winRect)
+        public CanvasEventItem(IDocument document, DocumentEventEnum state, ImageDocumentWorkspace workspace, RectangleI winRect)
             : base(document, state)
         {
             Workspace = workspace;

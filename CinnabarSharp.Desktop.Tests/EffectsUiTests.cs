@@ -22,7 +22,7 @@ public sealed class EffectsUiTests : IDisposable
 
     private void NewImage() => Vm.CreateImage(new NewImageOptions(new ImageSize(300, 200), ColorBgra.White));
 
-    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+    private ImageDocument Doc => Vm.ActiveDocument!.Image;
 
     /// <summary>A white image with a colored rectangle, so effects like Zoom Blur have something to distort.</summary>
     private void NewPatternedImage()

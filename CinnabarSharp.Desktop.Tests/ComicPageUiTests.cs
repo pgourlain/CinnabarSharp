@@ -19,7 +19,7 @@ public sealed class ComicPageUiTests : IDisposable
     public void Dispose() => _h.Dispose();
 
     private MainViewModel Vm => _h.Vm;
-    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+    private ImageDocument Doc => Vm.ActiveDocument!.Image;
 
     private static readonly ColorBgra Blue = ColorBgra.FromBgra(255, 0, 0, 255);
 

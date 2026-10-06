@@ -28,7 +28,7 @@ public sealed class FileWorkflowTests : IDisposable
         Assert.False(doc.Document.IsDirty);
         Assert.Equal([Path.GetFullPath(TestHarness.SampleImage)], Vm.RecentFiles.Files);
         // The real pixel, not just "something drawn": the checkerboard of an empty layer used to pass.
-        var image = doc.Document.Layers.GetFlattenedBgra();
+        var image = doc.Image.Layers.GetFlattenedBgra();
         var scale = doc.Document.Workspace.Scale;
         var (x, y) = (doc.Document.ImageSize.Width / 2, doc.Document.ImageSize.Height / 2);
         var i = (y * doc.Document.ImageSize.Width + x) * 4;
@@ -46,7 +46,7 @@ public sealed class FileWorkflowTests : IDisposable
         Assert.Equal("Opening sample1.png…", Vm.BusyText);
         Assert.True(await opening);
         Assert.False(Vm.IsBusy);
-        Assert.Equal("sample1.png", Vm.ActiveDocument!.Document.DisplayName);
+        Assert.Equal("sample1.png", Vm.ActiveDocument!.Image.DisplayName);
     }
 
     [AvaloniaFact]
@@ -58,7 +58,7 @@ public sealed class FileWorkflowTests : IDisposable
         await Vm.OpenFileAsync(TestHarness.SampleImage);
 
         Assert.Equal(2, Vm.Documents.Count);
-        Assert.Equal("sample1.png", Vm.ActiveDocument!.Document.DisplayName);
+        Assert.Equal("sample1.png", Vm.ActiveDocument!.Image.DisplayName);
     }
 
     [AvaloniaFact]
@@ -107,7 +107,7 @@ public sealed class FileWorkflowTests : IDisposable
         Assert.Null(_h.Dialogs.LastSuggestedSaveName);
         Assert.Equal(["Flatten image?"], _h.Dialogs.Confirmations);
         Assert.True(File.GetLastWriteTimeUtc(path) > before);
-        Assert.False(Vm.ActiveDocument!.Document.IsDirty);
+        Assert.False(Vm.ActiveDocument!.Image.IsDirty);
     }
 
     [AvaloniaFact]
@@ -137,7 +137,7 @@ public sealed class FileWorkflowTests : IDisposable
         await Vm.SaveCommand.ExecuteAsync(null);
 
         Assert.False(File.Exists(path));
-        Assert.True(Vm.ActiveDocument!.Document.IsDirty);
+        Assert.True(Vm.ActiveDocument!.Image.IsDirty);
     }
 
     [AvaloniaFact]

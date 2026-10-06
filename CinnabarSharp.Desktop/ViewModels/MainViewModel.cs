@@ -276,6 +276,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool HasDocument => ActiveDocument is not null;
 
+    /// <summary>The active tab when it holds a raster image; null for other kinds (raster-only commands then do nothing).</summary>
+    private DocumentViewModel? ActiveImageTab => ActiveDocument is { IsImage: true } tab ? tab : null;
+
+    /// <summary>True when the active tab is a raster image: the CanExecute of every pixel-only command.</summary>
+    public bool HasImage => ActiveImageTab is not null;
+
     public string ImageSizeText => ActiveDocument is { } d
         ? $"{d.Document.ImageSize.Width} × {d.Document.ImageSize.Height}"
         : "";
@@ -362,7 +368,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Returns false if the user cancelled or the save failed.</summary>
     public async Task<bool> SaveDocumentAsync(DocumentViewModel d, bool saveAs)
     {
-        var doc = d.Document;
+        if (d.Document is not ImageDocument doc)
+        {
+            if (Dialogs is not null)
+                await Dialogs.ShowErrorAsync("Could not save", "Saving SVG documents is not available yet.");
+            return false;
+        }
         var file = saveAs ? null : doc.File;
         var format = file is null ? null : _formats.GetFormatByExtension(file.Extension);
         if (format is { SupportsSaving: false })
@@ -503,7 +514,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // ---- Layers ----
 
-    private ImageDocumentLayers? CurrentLayers => ActiveDocument?.Document.Layers;
+    private ImageDocumentLayers? CurrentLayers => ActiveImageTab?.Image.Layers;
 
     public bool CanDeleteLayer => CurrentLayers?.Count() > 1;
     public bool CanMergeLayerDown => CurrentLayers?.CurrentUserLayerIndex > 0;
@@ -513,20 +524,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void EditLayers(Action<DocumentActions> edit)
     {
-        if (ActiveDocument is not { } d)
+        if (ActiveImageTab is not { } d)
             return;
-        edit(d.Document.Actions);
+        edit(d.Image.Actions);
         RefreshLayers();
         RefreshThumbnails();
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void AddNewLayer() => EditLayers(a => a.AddNewLayer());
 
     [RelayCommand(CanExecute = nameof(CanDeleteLayer))]
     private void DeleteLayer() => EditLayers(a => a.DeleteCurrentLayer());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void DuplicateLayer() => EditLayers(a => a.DuplicateCurrentLayer());
 
     [RelayCommand(CanExecute = nameof(CanMergeLayerDown))]
@@ -538,16 +549,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanMoveLayerDown))]
     private void MoveLayerDown() => EditLayers(a => a.MoveCurrentLayerDown());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void FlipLayerHorizontal() => EditLayers(a => a.FlipCurrentLayerHorizontal());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void FlipLayerVertical() => EditLayers(a => a.FlipCurrentLayerVertical());
 
     [RelayCommand(CanExecute = nameof(CanFlatten))]
     private void Flatten() => EditLayers(a => a.Flatten());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task ImportFromFile()
     {
         if (Dialogs is null || ActiveDocument is null)
@@ -565,16 +576,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task LayerProperties()
     {
-        if (Dialogs is null || ActiveDocument is not { } d)
+        if (Dialogs is null || ActiveImageTab is not { } d)
             return;
-        var layer = d.Document.Layers.CurrentUserLayer;
+        var layer = d.Image.Layers.CurrentUserLayer;
         var before = Core.Models.LayerProperties.From(layer);
         var properties = new LayerPropertiesViewModel(layer);
         if (await Dialogs.ShowLayerPropertiesAsync(properties))
-            d.Document.Actions.CommitLayerProperties(layer, before);
+            d.Image.Actions.CommitLayerProperties(layer, before);
         else
             properties.Revert();
     }
@@ -895,8 +906,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void WithTool(Func<ITool, Action<ImageDocument, ToolPointer>> handler, ToolPointer pointer)
     {
-        if (ActiveDocument is { } d && ActiveTool is { } tool)
-            handler(tool)(d.Document, pointer);
+        if (ActiveImageTab is { } d && ActiveTool is { } tool)
+            handler(tool)(d.Image, pointer);
         UpdateOverlay();
     }
 
@@ -904,7 +915,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private ITool? ActiveTool => Comic?.Tool ?? SelectedTool?.Tool;
 
     /// <summary>True while keys typed belong to the selected tool (the Text tool is editing).</summary>
-    public bool IsTyping => ActiveDocument is { } d && SelectedTool.Tool is IKeyboardTool k && k.IsTyping(d.Document);
+    public bool IsTyping => ActiveImageTab is { } d && SelectedTool.Tool is IKeyboardTool k && k.IsTyping(d.Image);
 
     /// <summary>
     /// Sends a key to the selected tool; returns true if it was used. Escape that no tool uses (to cancel a crop
@@ -912,7 +923,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public bool ToolKeyDown(ToolKey key, ToolModifiers modifiers)
     {
-        if (ActiveDocument is not { } d || IsBusy)
+        if (ActiveImageTab is not { } d || IsBusy)
             return false;
         if (IsComicMode && modifiers == ToolModifiers.None && key is ToolKey.Enter or ToolKey.Escape)
         {
@@ -930,10 +941,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 ExitTv();
             return true;
         }
-        var handled = SelectedTool.Tool is IKeyboardTool tool && tool.OnKeyDown(d.Document, key, modifiers);
-        if (!handled && key == ToolKey.Escape && modifiers == ToolModifiers.None && d.Document.HasSelection)
+        var handled = SelectedTool.Tool is IKeyboardTool tool && tool.OnKeyDown(d.Image, key, modifiers);
+        if (!handled && key == ToolKey.Escape && modifiers == ToolModifiers.None && d.Image.HasSelection)
         {
-            d.Document.Actions.DeselectAll();
+            d.Image.Actions.DeselectAll();
             handled = true;
         }
         UpdateOverlay();
@@ -942,14 +953,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public void ToolTextInput(string text)
     {
-        if (ActiveDocument is not { } d || SelectedTool.Tool is not IKeyboardTool tool)
+        if (ActiveImageTab is not { } d || SelectedTool.Tool is not IKeyboardTool tool)
             return;
-        tool.OnTextInput(d.Document, text);
+        tool.OnTextInput(d.Image, text);
         UpdateOverlay();
     }
 
     private (ITextEditingTool Tool, ImageDocument Document)? EditingText =>
-        ActiveDocument is { } d && SelectedTool.Tool is ITextEditingTool t && t.IsEditing(d.Document) ? (t, d.Document) : null;
+        ActiveImageTab is { } d && SelectedTool.Tool is ITextEditingTool t && t.IsEditing(d.Image) ? (t, d.Image) : null;
 
     /// <summary>What the selected tool draws over the canvas (curve handles, text caret...).</summary>
     [ObservableProperty]
@@ -957,22 +968,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void UpdateOverlay()
     {
-        Overlay = ActiveDocument is not { } d ? null
-            : Comic?.Tool is { } comic ? comic.GetOverlay(d.Document)
-            : Tv is { ShowsFrame: false } tvOptions ? TvOverlay(tvOptions, d.Document)
-            : SelectedTool?.Tool is IOverlayTool tool ? tool.GetOverlay(d.Document)
+        Overlay = ActiveImageTab is not { } d ? null
+            : Comic?.Tool is { } comic ? comic.GetOverlay(d.Image)
+            : Tv is { ShowsFrame: false } tvOptions ? TvOverlay(tvOptions, d.Image)
+            : SelectedTool?.Tool is IOverlayTool tool ? tool.GetOverlay(d.Image)
             : null;
-        if (Tv is { } tv && ActiveDocument is { } doc)
-            tv.Crop = CropTool?.Frame(doc.Document);
+        if (Tv is { } tv && ActiveImageTab is { } doc)
+            tv.Crop = CropTool?.Frame(doc.Image);
         ApplyCropCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>Redraws the curve or text being edited after a color or option change.</summary>
     private void RefreshEditingTool()
     {
-        if (ActiveDocument is not { } d || SelectedTool?.Tool is not IEditingTool tool || !tool.IsEditing(d.Document))
+        if (ActiveImageTab is not { } d || SelectedTool?.Tool is not IEditingTool tool || !tool.IsEditing(d.Image))
             return;
-        tool.Refresh(d.Document);
+        tool.Refresh(d.Image);
         UpdateOverlay();
     }
 
@@ -993,16 +1004,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             _toolBeforeTv = null;
             ExitTv();
         }
-        FinishEditing(oldValue?.Tool, ActiveDocument?.Document);
+        FinishEditing(oldValue?.Tool, ActiveDocument?.Image);
     }
 
     partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue)
     {
         // Another image (e.g. opened from the menu) ends editing the page, which stays as it is.
-        if (IsComicMode && newValue?.Document != _comicDocument)
+        if (IsComicMode && newValue?.Document != (IDocument?)_comicDocument)
             ExitComic(closeDocument: false);
         ExitTv();
-        FinishEditing(SelectedTool?.Tool, oldValue?.Document);
+        FinishEditing(SelectedTool?.Tool, oldValue?.Image);
     }
 
     partial void OnSelectedToolChanged(ToolViewModel value)
@@ -1038,13 +1049,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial int SelectionVersion { get; set; }
 
-    public bool HasSelection => ActiveDocument?.Document.HasSelection == true;
+    public bool HasSelection => ActiveImageTab?.Image.HasSelection == true;
 
-    public string SelectionSizeText => ActiveDocument?.Document.Selection is { } s
+    public string SelectionSizeText => ActiveImageTab?.Image.Selection is { } s
         ? $"Selection {s.Bounds.Width} × {s.Bounds.Height}"
         : "";
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void SelectAll()
     {
         if (EditingText is { } text)
@@ -1053,37 +1064,37 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             UpdateOverlay();
             return;
         }
-        ActiveDocument?.Document.Actions.SelectAll();
+        ActiveImageTab?.Image.Actions.SelectAll();
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
-    private void DeselectAll() => ActiveDocument?.Document.Actions.DeselectAll();
+    private void DeselectAll() => ActiveImageTab?.Image.Actions.DeselectAll();
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void InvertSelection() => ActiveDocument?.Document.Actions.InvertSelection();
+    [RelayCommand(CanExecute = nameof(HasImage))]
+    private void InvertSelection() => ActiveImageTab?.Image.Actions.InvertSelection();
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
-    private void CropToSelection() => ActiveDocument?.Document.Actions.CropToSelection();
+    private void CropToSelection() => ActiveImageTab?.Image.Actions.CropToSelection();
 
     // Delete and Backspace are also these menu items' shortcuts: while typing text they edit the text instead.
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void EraseSelection()
     {
         if (!IsTyping || !ToolKeyDown(ToolKey.Delete, ToolModifiers.None))
             EditLayers(a => a.EraseSelection());
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void FillSelection()
     {
         if (!IsTyping || !ToolKeyDown(ToolKey.Backspace, ToolModifiers.None))
             EditLayers(a => a.FillSelection(ColorBgra.FromBgra(PrimaryColor.B, PrimaryColor.G, PrimaryColor.R, PrimaryColor.A)));
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task Copy() => CopyAsync(merged: false);
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task CopyMerged() => CopyAsync(merged: true);
 
     private async Task CopyAsync(bool merged)
@@ -1093,14 +1104,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             await text.Tool.Copy(Clipboard);
             return;
         }
-        if (ActiveDocument is { } d && Clipboard is not null)
-            await Clipboard.SetImageAsync(d.Document.Actions.Copy(merged));
+        if (ActiveImageTab is { } d && Clipboard is not null)
+            await Clipboard.SetImageAsync(d.Image.Actions.Copy(merged));
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task Cut()
     {
-        if (ActiveDocument is not { } d || Clipboard is null)
+        if (ActiveImageTab is not { } d || Clipboard is null)
             return;
         if (EditingText is { } text)
         {
@@ -1125,36 +1136,36 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         if (await ClipboardImageAsync() is not { } image)
             return;
-        if (ActiveDocument is not { } d)
+        if (ActiveImageTab is not { } d)
         {
             PasteImage(image);
             return;
         }
-        d.Document.Actions.Paste(image, PasteLocation());
+        d.Image.Actions.Paste(image, PasteLocation());
         SelectedTool = Tools.First(t => t.Tool is MoveSelectedPixelsTool);
         RefreshThumbnails();
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task PasteIntoNewLayer()
     {
-        if (ActiveDocument is not { } d || await ClipboardImageAsync() is not { } image)
+        if (ActiveImageTab is not { } d || await ClipboardImageAsync() is not { } image)
             return;
         EditLayers(a => a.PasteIntoNewLayer(image, PasteLocation()));
         SelectedTool = Tools.First(t => t.Tool is MoveSelectedPixelsTool);
     }
 
     /// <summary>Puts the clipboard image next to the image (side and alignment from a dialog), growing the canvas.</summary>
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task PasteBeside()
     {
-        if (ActiveDocument is not { } d || Dialogs is null || await ClipboardImageAsync() is not { } image)
+        if (ActiveImageTab is not { } d || Dialogs is null || await ClipboardImageAsync() is not { } image)
             return;
-        if (await Dialogs.ShowPasteBesideAsync(d.Document.ImageSize, new ImageSize(image.Width, image.Height)) is not { } options)
+        if (await Dialogs.ShowPasteBesideAsync(d.Image.ImageSize, new ImageSize(image.Width, image.Height)) is not { } options)
             return;
         EditLayers(a => a.PasteBeside(image, options.Side, options.Alignment, ToolSettings.SecondaryColor));
         SelectedTool = Tools.First(t => t.Tool is MoveSelectedPixelsTool);
-        FitIfLargerThanViewport(d.Document);
+        FitIfLargerThanViewport(d.Image);
     }
 
     [RelayCommand]
@@ -1185,31 +1196,31 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // ---- Adjustments ----
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task AutoLevel() => RunAdjustment(new AutoLevel());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task BlackAndWhite() => RunAdjustment(new BlackAndWhite());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task BrightnessContrast() => RunAdjustment(new BrightnessContrast());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task HueSaturation() => RunAdjustment(new HueSaturation());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task InvertColors() => RunAdjustment(new InvertColors());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task Levels() => RunAdjustment(new Levels());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task Curves() => RunAdjustment(new Core.Adjustments.Curves());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task Posterize() => RunAdjustment(new Posterize());
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private Task Sepia() => RunAdjustment(new Sepia());
 
     private Task RunAdjustment(ColorAdjustment adjustment) => RunEffect(adjustment);
@@ -1261,9 +1272,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public async Task RunEffect(Effect effect)
     {
-        if (ActiveDocument is not { } d || IsBusy)
+        if (ActiveImageTab is not { } d || IsBusy)
             return;
-        var session = new EffectSession(d.Document, effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor);
+        var session = new EffectSession(d.Image, effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor);
         if (effect.Parameters.Count == 0 && !effect.HasCustomDialog)
         {
             await ApplyAsync(session, effect.Defaults);
@@ -1302,12 +1313,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanRepeatEffect))]
     private async Task RepeatEffect()
     {
-        if (ActiveDocument is not { } d || _lastEffect is not { } last || IsBusy)
+        if (ActiveImageTab is not { } d || _lastEffect is not { } last || IsBusy)
             return;
-        await ApplyAsync(new EffectSession(d.Document, last.Effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor), last.Values);
+        await ApplyAsync(new EffectSession(d.Image, last.Effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor), last.Values);
     }
 
-    public bool CanRepeatEffect => HasDocument && _lastEffect is not null;
+    public bool CanRepeatEffect => HasImage && _lastEffect is not null;
 
     private void RememberEffect(Effect effect, IReadOnlyList<double> values)
     {
@@ -1318,7 +1329,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private async Task ApplyAsync(EffectSession session, IReadOnlyList<double> values)
     {
-        var history = ActiveDocument!.Document.Workspace.History;
+        var history = ActiveImageTab!.Image.Workspace.History;
         var (pointer, count) = (history.Pointer, history.Items.Count);
         var pixels = await RunBusyAsync(session.Effect.Name, _ => Task.Run(() => session.Compute(values)));
         // The macOS menu stays usable: if something changed the image meanwhile (e.g. Undo), drop the result.
@@ -1364,13 +1375,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private CropTool? CropTool => Tools.Select(t => t.Tool).OfType<CropTool>().FirstOrDefault();
 
-    public bool HasCropFrame => ActiveDocument is { } d && CropTool?.IsEditing(d.Document) == true;
+    public bool HasCropFrame => ActiveImageTab is { } d && CropTool?.IsEditing(d.Image) == true;
 
     [RelayCommand(CanExecute = nameof(HasCropFrame))]
     private void ApplyCrop()
     {
-        if (ActiveDocument is { } d)
-            CropTool?.Apply(d.Document);
+        if (ActiveImageTab is { } d)
+            CropTool?.Apply(d.Image);
         UpdateOverlay();
     }
 
@@ -1403,9 +1414,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (Dialogs is null || IsBusy || IsTvMode || IsComicMode)
             return;
         // Open images are flattened only when a panel needs them (a proxy, a thumbnail, Apply), not all at once here.
-        var sources = Documents.Select(d =>
+        var sources = Documents.Where(d => d.IsImage).Select(d =>
         {
-            var document = d.Document;
+            var document = d.Image;
             var (width, height) = (document.ImageSize.Width, document.ImageSize.Height);
             return new ComicSource(document.DisplayName, width, height,
                 () => new BgraImage(document.Layers.GetFlattenedBgra(includeToolLayer: false), width, height));
@@ -1555,12 +1566,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private ToolViewModel? _toolBeforeTv;
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private void PrepareForTv()
     {
-        if (ActiveDocument is not { } d || IsTvMode || IsComicMode || IsBusy || CropTool is not { } crop)
+        if (ActiveImageTab is not { } d || IsTvMode || IsComicMode || IsBusy || CropTool is not { } crop)
             return;
-        var doc = d.Document;
+        var doc = d.Image;
         // The frame is centered on the crop frame, the selection, or the photo.
         var area = crop.Frame(doc) ?? doc.Selection?.Bounds ?? new RectangleI(0, 0, doc.ImageSize.Width, doc.ImageSize.Height);
 
@@ -1594,9 +1605,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     private void ProposeTvFrame(RectangleI around)
     {
-        if (Tv is not { } tv || ActiveDocument is not { } d || CropTool is not { } crop)
+        if (Tv is not { } tv || ActiveImageTab is not { } d || CropTool is not { } crop)
             return;
-        var doc = d.Document;
+        var doc = d.Image;
         var (iw, ih) = (doc.ImageSize.Width, doc.ImageSize.Height);
         var size = TvExport.SizeOf(tv.Resolution);
         var (cx, cy) = (around.X + around.Width / 2.0, around.Y + around.Height / 2.0);
@@ -1657,16 +1668,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private async Task RefreshTvPreviewAsync()
     {
         var version = ++_tvPreviewVersion;
-        if (Tv is not { ShowsFrame: false } tv || ActiveDocument is not { } d)
+        if (Tv is not { ShowsFrame: false } tv || ActiveImageTab is not { } d)
         {
             _tvPreview = null;
             return;
         }
-        var doc = d.Document;
+        var doc = d.Image;
         var screen = TvScreen(doc, tv.Resolution);
         var options = tv.Options;
         var photo = new BgraImage(doc.Layers.GetFlattenedBgra(includeToolLayer: false), doc.ImageSize.Width, doc.ImageSize.Height);
-        var other = tv.SideBySide ? tv.SecondPhoto?.Document : null;
+        var other = tv.SideBySide ? tv.SecondPhoto?.Image : null;
         var second = other is null
             ? null
             : new BgraImage(other.Layers.GetFlattenedBgra(includeToolLayer: false), other.ImageSize.Width, other.ImageSize.Height);
@@ -1686,12 +1697,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(IsTvMode))]
     private async Task ApplyTv()
     {
-        if (Tv is not { } tv || ActiveDocument is not { } d)
+        if (Tv is not { } tv || ActiveImageTab is not { } d)
             return;
-        var doc = d.Document;
+        var doc = d.Image;
         var crop = tv.ShowsFrame ? CropTool?.Frame(doc) : null;
         var tvOptions = tv.Options;
-        var other = tv.SideBySide ? tv.SecondPhoto?.Document : null;
+        var other = tv.SideBySide ? tv.SecondPhoto?.Image : null;
         TvOptions = tvOptions;
         ExitTv();
 
@@ -1725,8 +1736,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             crop.ForcedRatio = null;
             crop.CanDrawNewFrame = true;
-            if (ActiveDocument is { } d)
-                crop.Finish(d.Document);
+            if (ActiveImageTab is { } d)
+                crop.Finish(d.Image);
         }
         if (_toolBeforeTv is { } tool)
             SelectedTool = tool;
@@ -1760,38 +1771,38 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // ---- Image ----
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task ResizeImage()
     {
-        if (Dialogs is null || ActiveDocument is not { } d)
+        if (Dialogs is null || ActiveImageTab is not { } d)
             return;
-        if (await Dialogs.ShowResizeImageAsync(d.Document.ImageSize) is { } options)
-            d.Document.Actions.ResizeImage(options.Size, options.Resampling);
+        if (await Dialogs.ShowResizeImageAsync(d.Image.ImageSize) is { } options)
+            d.Image.Actions.ResizeImage(options.Size, options.Resampling);
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
+    [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task CanvasSize()
     {
-        if (Dialogs is null || ActiveDocument is not { } d)
+        if (Dialogs is null || ActiveImageTab is not { } d)
             return;
-        if (await Dialogs.ShowCanvasSizeAsync(d.Document.ImageSize) is { } options)
-            d.Document.Actions.ResizeCanvas(options.Size, options.Anchor, ToolSettings.SecondaryColor);
+        if (await Dialogs.ShowCanvasSizeAsync(d.Image.ImageSize) is { } options)
+            d.Image.Actions.ResizeCanvas(options.Size, options.Anchor, ToolSettings.SecondaryColor);
     }
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void FlipImageHorizontal() => ActiveDocument?.Document.Actions.FlipImageHorizontal();
+    [RelayCommand(CanExecute = nameof(HasImage))]
+    private void FlipImageHorizontal() => ActiveImageTab?.Image.Actions.FlipImageHorizontal();
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void FlipImageVertical() => ActiveDocument?.Document.Actions.FlipImageVertical();
+    [RelayCommand(CanExecute = nameof(HasImage))]
+    private void FlipImageVertical() => ActiveImageTab?.Image.Actions.FlipImageVertical();
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void RotateClockwise() => ActiveDocument?.Document.Actions.RotateImage90(clockwise: true);
+    [RelayCommand(CanExecute = nameof(HasImage))]
+    private void RotateClockwise() => ActiveImageTab?.Image.Actions.RotateImage90(clockwise: true);
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void RotateCounterClockwise() => ActiveDocument?.Document.Actions.RotateImage90(clockwise: false);
+    [RelayCommand(CanExecute = nameof(HasImage))]
+    private void RotateCounterClockwise() => ActiveImageTab?.Image.Actions.RotateImage90(clockwise: false);
 
-    [RelayCommand(CanExecute = nameof(HasDocument))]
-    private void Rotate180() => ActiveDocument?.Document.Actions.RotateImage180();
+    [RelayCommand(CanExecute = nameof(HasImage))]
+    private void Rotate180() => ActiveImageTab?.Image.Actions.RotateImage180();
 
     // ---- Colors ----
 
@@ -1804,8 +1815,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void UpdateCursorPosition(Core.Models.PointD? canvasPoint)
     {
         CursorPositionText = canvasPoint is { } p ? $"{(int)Math.Floor(p.X)}, {(int)Math.Floor(p.Y)}" : "";
-        HoverCursor = canvasPoint is { } point && ActiveDocument is { } d && ActiveTool is IOverlayTool tool
-            ? tool.CursorAt(d.Document, point)
+        HoverCursor = canvasPoint is { } point && ActiveImageTab is { } d && ActiveTool is IOverlayTool tool
+            ? tool.CursorAt(d.Image, point)
             : ToolCursor.Default;
     }
 
@@ -1838,16 +1849,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                  })
             command.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasDocument));
+        OnPropertyChanged(nameof(HasImage));
         RefreshWelcome();
     }
 
     partial void OnSelectedLayerChanged(LayerViewModel? value)
     {
-        if (value is not null && !_syncingSelection && ActiveDocument is { } d)
-            d.Document.Layers.SetCurrentUserLayer(value.Layer);
+        if (value is not null && !_syncingSelection && ActiveImageTab is { } d)
+            d.Image.Layers.SetCurrentUserLayer(value.Layer);
     }
 
-    private double BestFitPercent(ImageDocument doc)
+    private double BestFitPercent(IDocument doc)
     {
         if (ViewportSize.Width <= 0 || ViewportSize.Height <= 0)
             return 100;
@@ -1855,7 +1867,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         return Math.Min(100, fit * 100);
     }
 
-    private void FitIfLargerThanViewport(ImageDocument doc)
+    private void FitIfLargerThanViewport(IDocument doc)
     {
         var fit = BestFitPercent(doc);
         if (fit < 100)
@@ -1963,7 +1975,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void RefreshLayers()
     {
-        var layers = ActiveDocument?.Document.Layers;
+        var layers = ActiveImageTab?.Image.Layers;
         var current = layers?.UserLayers.Reverse().ToList() ?? [];
 
         _syncingSelection = true;
@@ -1976,7 +1988,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             Layers.Clear();
             foreach (var layer in current)
-                Layers.Add(new LayerViewModel(layer, ActiveDocument!.Document.Actions));
+                Layers.Add(new LayerViewModel(layer, ActiveImageTab!.Image.Actions));
         }
 
         SelectedLayer = layers is { } l && l.CurrentUserLayerIndex >= 0

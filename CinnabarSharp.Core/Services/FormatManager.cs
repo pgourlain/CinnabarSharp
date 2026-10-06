@@ -9,6 +9,9 @@ public interface IFormatManager
     /// <summary>Formats that can be written (for Save As).</summary>
     IReadOnlyList<ImageFormat> SaveFormats { get; }
 
+    /// <summary>Formats a document of this kind can be saved to (Save As lists only these).</summary>
+    IReadOnlyList<ImageFormat> GetSaveFormats(DocumentKind kind);
+
     /// <summary>Extension with or without the leading dot, any case.</summary>
     ImageFormat? GetFormatByExtension(string extension);
 
@@ -16,21 +19,21 @@ public interface IFormatManager
     ImageFormat? GetFormatForFile(ImageFile file);
 
     /// <summary>Opens the file as a new active document, or activates it if it is already open.</summary>
-    ImageDocument Open(ImageFile file);
+    IDocument Open(ImageFile file);
 
     /// <summary>
     /// Same as <see cref="Open"/>, but reads and decodes the file on a background thread (a 12 MP HEIC takes
     /// seconds) and creates the document where it is awaited, so the events it raises come from the caller's thread.
     /// For a UI caller, wrap it in something that disables editing meanwhile (<c>MainViewModel.RunBusyAsync</c>).
     /// </summary>
-    Task<ImageDocument> OpenAsync(ImageFile file, CancellationToken cancellation = default);
+    Task<IDocument> OpenAsync(ImageFile file, CancellationToken cancellation = default);
 
     /// <summary>The image's pixel size without decoding it, via the matching format's <see cref="ImageFormat.PeekSize"/>;
     /// null if the format isn't recognized or can't tell without a full <see cref="Open"/>.</summary>
     ImageSize? PeekSize(ImageFile file);
 
     /// <summary>Writes the document to the file and makes it the document's file. The format defaults to the file extension's.</summary>
-    void Save(ImageDocument document, ImageFile file, ImageFormat? format = null);
+    void Save(IDocument document, ImageFile file, ImageFormat? format = null);
 
     /// <summary>
     /// Same as <see cref="Save"/>, but encodes on a background thread instead of blocking the caller — for a UI
@@ -39,7 +42,7 @@ public interface IFormatManager
     /// encode itself (marking the document clean, etc.) still runs on whatever thread awaits this, which for a
     /// caller with a UI SynchronizationContext is back on the UI thread, same as any other <c>await</c>.
     /// </summary>
-    Task SaveAsync(ImageDocument document, ImageFile file, ImageFormat? format = null, CancellationToken cancellation = default);
+    Task SaveAsync(IDocument document, ImageFile file, ImageFormat? format = null, CancellationToken cancellation = default);
 }
 
 public class FormatManager : IFormatManager
@@ -56,6 +59,9 @@ public class FormatManager : IFormatManager
 
     public IReadOnlyList<ImageFormat> SaveFormats => Formats.Where(f => f.SupportsSaving).ToList();
 
+    public IReadOnlyList<ImageFormat> GetSaveFormats(DocumentKind kind) =>
+        kind == DocumentKind.Image ? SaveFormats : [];
+
     public ImageFormat? GetFormatByExtension(string extension)
     {
         var ext = extension.TrimStart('.').ToLowerInvariant();
@@ -65,7 +71,7 @@ public class FormatManager : IFormatManager
     public ImageFormat? GetFormatForFile(ImageFile file) =>
         GetFormatByExtension(file.Extension) ?? Formats.FirstOrDefault(f => f.MatchesContent(file));
 
-    public ImageDocument Open(ImageFile file)
+    public IDocument Open(ImageFile file)
     {
         var existing = _workspace.OpenDocuments.FirstOrDefault(d =>
             d.File is not null && PathsEqual(d.File.FullName, file.FullName));
@@ -81,7 +87,7 @@ public class FormatManager : IFormatManager
         return _workspace.ActiveDocument;
     }
 
-    public async Task<ImageDocument> OpenAsync(ImageFile file, CancellationToken cancellation = default)
+    public async Task<IDocument> OpenAsync(ImageFile file, CancellationToken cancellation = default)
     {
         var existing = _workspace.OpenDocuments.FirstOrDefault(d =>
             d.File is not null && PathsEqual(d.File.FullName, file.FullName));
@@ -109,18 +115,20 @@ public class FormatManager : IFormatManager
 
     public ImageSize? PeekSize(ImageFile file) => GetFormatForFile(file)?.PeekSize(file);
 
-    public void Save(ImageDocument document, ImageFile file, ImageFormat? format = null)
+    public void Save(IDocument document, ImageFile file, ImageFormat? format = null)
     {
+        var image = RequireImage(document);
         format = ResolveSaveFormat(file, format);
-        format.Export(document, file);
+        format.Export(image, file);
         FinishSave(document, file, format);
     }
 
-    public async Task SaveAsync(ImageDocument document, ImageFile file, ImageFormat? format = null, CancellationToken cancellation = default)
+    public async Task SaveAsync(IDocument document, ImageFile file, ImageFormat? format = null, CancellationToken cancellation = default)
     {
+        var image = RequireImage(document);
         format = ResolveSaveFormat(file, format);
         var resolved = format;
-        await Task.Run(() => resolved.Export(document, file), cancellation);
+        await Task.Run(() => resolved.Export(image, file), cancellation);
         FinishSave(document, file, resolved);
     }
 
@@ -128,7 +136,10 @@ public class FormatManager : IFormatManager
         format ?? GetFormatByExtension(file.Extension)
             ?? throw new NotSupportedException($"No image format matches the extension of '{file.Name}'.");
 
-    private static void FinishSave(ImageDocument document, ImageFile file, ImageFormat format)
+    private static ImageDocument RequireImage(IDocument document) =>
+        document as ImageDocument ?? throw new NotSupportedException($"Saving a {document.Kind} document is not supported here.");
+
+    private static void FinishSave(IDocument document, ImageFile file, ImageFormat format)
     {
         file.Refresh();
         document.File = file;

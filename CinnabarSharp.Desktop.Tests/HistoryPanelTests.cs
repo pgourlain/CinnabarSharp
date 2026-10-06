@@ -91,7 +91,7 @@ public sealed class HistoryPanelTests : IDisposable
 
         Assert.Equal("Background", Vm.Layers[0].Name);
         Assert.True(Vm.Layers[0].IsVisible);
-        Assert.False(Vm.ActiveDocument!.Document.IsDirty);
+        Assert.False(Vm.ActiveDocument!.Image.IsDirty);
     }
 
     [AvaloniaFact]

@@ -12,6 +12,9 @@ public abstract class ImageFormat : IImageImporter, IImageExporter
         SupportedExtensions = extensions;
     }
 
+    /// <summary>The kind of document this format opens and saves (raster formats: <see cref="DocumentKind.Image"/>).</summary>
+    public virtual DocumentKind DocumentKind => DocumentKind.Image;
+
     public string Name { get; }
     public string DisplayName { get; }
 

@@ -74,7 +74,7 @@ public sealed class ImageMenuUiTests : IDisposable
     {
         NewImage(300, 200);
         Vm.SelectedTool = Vm.Tools.First(t => t.Name == "Pencil");
-        var layer = Vm.ActiveDocument!.Document.Layers[0];
+        var layer = Vm.ActiveDocument!.Image.Layers[0];
         layer.Surface.WriteRegion(new RectangleI(0, 0, 1, 1), [0, 0, 255, 255]);
 
         Vm.RotateClockwiseCommand.Execute(null);

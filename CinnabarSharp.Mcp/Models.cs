@@ -20,7 +20,8 @@ public sealed record DocumentInfo(
     RectInfo? Selection,
     IReadOnlyList<LayerInfo> Layers,
     bool CanUndo,
-    bool CanRedo);
+    bool CanRedo,
+    string Kind = "image");
 
 public sealed record HistoryStep(int Index, string Text, bool Current, bool Undone);
 
@@ -37,10 +38,14 @@ public sealed record SuggestedValues(string Effect, IReadOnlyDictionary<string, 
 
 public static class Describe
 {
-    public static DocumentInfo Document(McpContext context, ImageDocument doc)
+    public static DocumentInfo Document(McpContext context, IDocument any)
     {
+        var history = any.Workspace.History;
+        if (any is not ImageDocument doc)
+            return new DocumentInfo(context.IdOf(any), any.DisplayName, any.File?.FullName, any.ImageSize.Width,
+                any.ImageSize.Height, context.Workspace.HasOpenDocuments && context.Workspace.ActiveDocument == any,
+                any.IsDirty, null, [], history.CanUndo, history.CanRedo, "svg");
         var layers = doc.Layers;
-        var history = doc.Workspace.History;
         return new DocumentInfo(
             context.IdOf(doc),
             doc.DisplayName,

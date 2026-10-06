@@ -67,7 +67,7 @@ public sealed class ViewportTests : IDisposable
 
         for (var percent = 1.0; percent < 3200; percent = MainViewModel.NextZoomIn(percent))
         {
-            _h.Vm.ActiveDocument!.Document.Workspace.Scale = percent / 100;
+            _h.Vm.ActiveDocument!.Image.Workspace.Scale = percent / 100;
             Assert.True(MainViewModel.NextZoomIn(_h.Vm.CurrentZoomPercent) > percent, $"stuck at {percent}%");
         }
     }
@@ -88,7 +88,7 @@ public sealed class ViewportTests : IDisposable
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(renderVersion, _h.Vm.RenderVersion);
-        var scale = _h.Vm.ActiveDocument!.Document.Workspace.Scale;
+        var scale = _h.Vm.ActiveDocument!.Image.Workspace.Scale;
         Assert.True(scale > 1);
         Assert.Equal(400 * scale, _h.Canvas.Bounds.Width, 0.5);
         var frame = _h.Capture("12-zoom-without-recompositing");

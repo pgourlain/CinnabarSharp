@@ -140,7 +140,7 @@ public class MainWindowTests
         vm.CreateImage(new NewImageOptions(new ImageSize(4000, 3000), ColorBgra.White));
         Capture(window, "05-large-image-fitted");
 
-        var zoom = vm.ActiveDocument!.Document.Workspace.Scale;
+        var zoom = vm.ActiveDocument!.Image.Workspace.Scale;
         Assert.InRange(zoom, 0.05, 0.99);
         var canvas = window.FindControl<CanvasView>("Canvas")!;
         var scroller = window.FindControl<ScrollViewer>("CanvasScroller")!;

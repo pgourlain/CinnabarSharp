@@ -189,7 +189,7 @@ public sealed class TextAndCurveUiTests : IDisposable
 
         Assert.Equal("abc", _h.Clipboard.Text);
         Assert.Equal("abcabc", ((TextTool)Vm.SelectedTool.Tool!).Engine.ToString());
-        Assert.Null(Vm.ActiveDocument!.Document.Selection); // Select All selected the text, not the image.
+        Assert.Null(Vm.ActiveDocument!.Image.Selection); // Select All selected the text, not the image.
     }
 
     [AvaloniaFact]

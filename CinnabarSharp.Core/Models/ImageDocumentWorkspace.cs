@@ -33,7 +33,7 @@ namespace CinnabarSharp.Core.Models
 {
     public class ImageDocumentWorkspace
     {
-        private readonly ImageDocument document;
+        private readonly IDocument document;
         private readonly IDocumentEventsService _documentEventsService;
         private readonly ILogger<ImageDocument> _logger;
         private ImageSize _viewSize;
@@ -49,7 +49,7 @@ namespace CinnabarSharp.Core.Models
             ZoomManually
         }
 
-        internal ImageDocumentWorkspace(ImageDocument document, IImageDocumentHistory imageDocumentHistory,
+        internal ImageDocumentWorkspace(IDocument document, IImageDocumentHistory imageDocumentHistory,
             IDocumentEventsService documentEventsService,
             ILogger<ImageDocument> logger)
         {

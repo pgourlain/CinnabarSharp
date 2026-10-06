@@ -15,7 +15,7 @@ public class ImageDocumentHistory : IImageDocumentHistory
     /// <summary>Steps this far (or farther) from <see cref="Pointer"/> are spilled to disk when storage is available.</summary>
     public const int DefaultSpillDistance = 10;
 
-    private readonly ImageDocument _document;
+    private readonly IDocument _document;
     private readonly IDocumentEventsService _events;
     private readonly List<IHistoryItem> _items = [];
     private readonly long _byteBudget;
@@ -27,7 +27,7 @@ public class ImageDocumentHistory : IImageDocumentHistory
     // The first step (index 0) is the state the document was created or opened in.
     private int _cleanPointer = 0;
 
-    public ImageDocumentHistory(ImageDocument document, IDocumentEventsService events,
+    public ImageDocumentHistory(IDocument document, IDocumentEventsService events,
         long? byteBudget = null, int maxSteps = DefaultMaxSteps,
         IHistoryStorage? storage = null, int spillDistance = DefaultSpillDistance)
     {
@@ -70,7 +70,8 @@ public class ImageDocumentHistory : IImageDocumentHistory
             _items.RemoveAt(i);
         }
 
-        _document.Floating = null; // a tool that keeps one sets it again after pushing its step
+        if (_document is ImageDocument image)
+            image.Floating = null; // a tool that keeps one sets it again after pushing its step
         _items.Add(newItem);
         Pointer = _items.Count - 1;
         TrimToBudget();

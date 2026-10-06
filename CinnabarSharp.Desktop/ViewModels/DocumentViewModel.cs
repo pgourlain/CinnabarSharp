@@ -1,11 +1,21 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CinnabarSharp.Core.Models;
 
 namespace CinnabarSharp.Desktop.ViewModels;
 
-public partial class DocumentViewModel(ImageDocument document) : ViewModelBase
+public partial class DocumentViewModel(IDocument document) : ViewModelBase
 {
-    public ImageDocument Document { get; } = document;
+    public IDocument Document { get; } = document;
+
+    public bool IsImage => Document is ImageDocument;
+
+    /// <summary>The raster document, for code that needs layers and pixels; only call it for an image tab (<see cref="IsImage"/>).</summary>
+    public ImageDocument Image => Document as ImageDocument
+        ?? throw new InvalidOperationException($"This is an {Document.Kind} document, not an image.");
+
+    /// <summary>The raster document or null (for bindings that cannot throw).</summary>
+    public ImageDocument? ImageOrNull => Document as ImageDocument;
 
     public string Title => Document.IsDirty ? Document.DisplayName + " *" : Document.DisplayName;
 
@@ -23,9 +33,9 @@ public partial class DocumentViewModel(ImageDocument document) : ViewModelBase
 
     public void RefreshThumbnail()
     {
-        if (Document.Layers.Count() == 0)
+        if (Document is ImageDocument { Layers: var layers } && layers.Count() == 0)
             return;
-        var (bgra, width, height) = Document.Layers.GetFlattenedThumbnail(ThumbnailSide);
+        var (bgra, width, height) = Document.GetThumbnail(ThumbnailSide);
         var previous = _thumbnail;
         _thumbnail = Services.BitmapFactory.FromBgra(bgra, width, height);
         OnPropertyChanged(nameof(Thumbnail));

@@ -27,7 +27,7 @@ public sealed class HeicTests : BaseTests, IDisposable
     [Fact]
     public void Opens_heic_photo()
     {
-        var doc = _formats.Open(HeicSample());
+        var doc = _formats.Open(HeicSample()).AsImage();
 
         Assert.Equal(new ImageSize(1024, 576), doc.ImageSize);
         Assert.Equal("heic", doc.FileType);
@@ -63,7 +63,7 @@ public sealed class HeicTests : BaseTests, IDisposable
     [Fact]
     public void Saving_as_heic_is_refused()
     {
-        var doc = _formats.Open(HeicSample());
+        var doc = _formats.Open(HeicSample()).AsImage();
 
         Assert.Throws<NotSupportedException>(() =>
             _formats.Save(doc, new FileInfo(Path.Combine(_dir.FullName, "out.heic"))));
@@ -79,7 +79,7 @@ public sealed class HeicTests : BaseTests, IDisposable
             image.Write(file);
         }
 
-        var doc = _formats.Open(new FileInfo(file));
+        var doc = _formats.Open(new FileInfo(file)).AsImage();
 
         var px = PixelAt(doc, 1, 1);
         Assert.NotEqual(new byte[] { 32, 64, 128, 255 }, px);

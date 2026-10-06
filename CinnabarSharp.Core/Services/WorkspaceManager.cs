@@ -15,7 +15,7 @@ namespace CinnabarSharp.Core.Services
 
         public bool HasOpenDocuments { get { return OpenDocuments.Count > 0; } }
 
-        public ImageDocument ActiveDocument
+        public IDocument ActiveDocument
         {
             get
             {
@@ -37,7 +37,9 @@ namespace CinnabarSharp.Core.Services
             }
         }
 
-        public List<ImageDocument> OpenDocuments { get; }
+        public ImageDocument? ActiveImageDocument => HasOpenDocuments ? OpenDocuments[active_document_index] as ImageDocument : null;
+
+        public List<IDocument> OpenDocuments { get; }
 
         public WorkspaceManager(IServiceProvider serviceProvider,
             IDocumentEventsService documentEventsService)
@@ -85,13 +87,15 @@ namespace CinnabarSharp.Core.Services
                 doc.DisplayName = Translations.GetString("Unsaved Image {0}", new_file_name++);
 
             doc.Workspace.History.PushNewItem(new BaseHistoryItem(file is null ? "New Image" : "Open Image"));
-            OpenDocuments.Add(doc);
-            var ev = new DocumentEventItem(doc, DocumentEventEnum.DocumentCreated);
-            _documentEventsService.PushEvent(ev);
-
-            SetActiveDocument(OpenDocuments.Count-1);
-
+            AddAndActivate(doc);
             return doc;
+        }
+
+        public void AddAndActivate(IDocument document)
+        {
+            OpenDocuments.Add(document);
+            _documentEventsService.PushEvent(new DocumentEventItem(document, DocumentEventEnum.DocumentCreated));
+            SetActiveDocument(OpenDocuments.Count - 1);
         }
 
         public void SetActiveDocument(int index)
@@ -111,7 +115,7 @@ namespace CinnabarSharp.Core.Services
             _documentEventsService.PushEvent(evt);
         }
 
-        public void CloseDocument(ImageDocument document)
+        public void CloseDocument(IDocument document)
         {
             var index = OpenDocuments.IndexOf(document);
             if (index < 0)
@@ -120,7 +124,7 @@ namespace CinnabarSharp.Core.Services
             var wasActive = index == active_document_index;
             OpenDocuments.RemoveAt(index);
             document.Workspace.History.Clear();
-            document.Layers.Close();
+            document.Close();
             _documentEventsService.PushEvent(new DocumentEventItem(document, DocumentEventEnum.DocumentClosed));
 
             if (OpenDocuments.Count == 0)
@@ -131,7 +135,7 @@ namespace CinnabarSharp.Core.Services
                 active_document_index--;
         }
 
-        public void SetActiveDocument(ImageDocument document)
+        public void SetActiveDocument(IDocument document)
         {
             var index = OpenDocuments.IndexOf(document);
             if (index < 0)

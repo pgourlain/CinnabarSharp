@@ -21,7 +21,7 @@ public sealed class TvUiTests : IDisposable
     public void Dispose() => _h.Dispose();
 
     private MainViewModel Vm => _h.Vm;
-    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+    private ImageDocument Doc => Vm.ActiveDocument!.Image;
 
     private async Task OpenSample() => Assert.True(await Vm.OpenFileAsync(TestHarness.SampleImage));
 

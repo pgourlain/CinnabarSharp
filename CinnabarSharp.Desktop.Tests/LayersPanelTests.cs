@@ -21,14 +21,14 @@ public sealed class LayersPanelTests : IDisposable
     /// <summary>Fills the current layer with an opaque color.</summary>
     private void FillCurrentLayer(byte b, byte g, byte r)
     {
-        var layers = Vm.ActiveDocument!.Document.Layers;
+        var layers = Vm.ActiveDocument!.Image.Layers;
         var surface = layers.CurrentUserLayer.Surface;
         var px = new byte[surface.Width * surface.Height * 4];
         for (var i = 0; i < px.Length; i += 4)
             (px[i], px[i + 1], px[i + 2], px[i + 3]) = (b, g, r, 255);
         layers.CurrentUserLayer.Surface = Utility.FromBgra(px, (int)surface.Width, (int)surface.Height);
         surface.Dispose();
-        Vm.ActiveDocument.Document.Workspace.Invalidate();
+        Vm.ActiveDocument.Image.Workspace.Invalidate();
     }
 
     [AvaloniaFact]
@@ -70,7 +70,7 @@ public sealed class LayersPanelTests : IDisposable
         Vm.SelectedLayer = Vm.Layers[0];
         Vm.DeleteLayerCommand.Execute(null);
         Assert.Equal(["Background"], Names());
-        Assert.True(Vm.ActiveDocument!.Document.IsDirty);
+        Assert.True(Vm.ActiveDocument!.Image.IsDirty);
     }
 
     [AvaloniaFact]
@@ -79,7 +79,7 @@ public sealed class LayersPanelTests : IDisposable
         NewImage();
         Vm.AddNewLayerCommand.Execute(null);
         FillCurrentLayer(0, 0, 255);
-        var top = Vm.ActiveDocument!.Document.Layers.CurrentUserLayer;
+        var top = Vm.ActiveDocument!.Image.Layers.CurrentUserLayer;
 
         top.BlendMode = BlendMode.Difference;
         var frame = _h.Capture("20-difference-blend");
@@ -107,13 +107,13 @@ public sealed class LayersPanelTests : IDisposable
 
         await Vm.LayerPropertiesCommand.ExecuteAsync(null);
 
-        var layer = Vm.ActiveDocument!.Document.Layers.CurrentUserLayer;
+        var layer = Vm.ActiveDocument!.Image.Layers.CurrentUserLayer;
         Assert.Equal("Shadow", layer.Name);
         Assert.Equal(0.4, layer.Opacity, 3);
         Assert.Equal(BlendMode.Multiply, layer.BlendMode);
         Assert.Equal("Shadow", Vm.Layers[0].Name);
         Assert.Equal("Multiply · 40%", Vm.Layers[0].Details);
-        Assert.True(Vm.ActiveDocument.Document.IsDirty);
+        Assert.True(Vm.ActiveDocument.Image.IsDirty);
     }
 
     [AvaloniaFact]
@@ -130,11 +130,11 @@ public sealed class LayersPanelTests : IDisposable
 
         await Vm.LayerPropertiesCommand.ExecuteAsync(null);
 
-        var layer = Vm.ActiveDocument!.Document.Layers.CurrentUserLayer;
+        var layer = Vm.ActiveDocument!.Image.Layers.CurrentUserLayer;
         Assert.Equal("Background", layer.Name);
         Assert.False(layer.Hidden);
         Assert.Equal(1, layer.Opacity);
-        Assert.False(Vm.ActiveDocument.Document.IsDirty);
+        Assert.False(Vm.ActiveDocument.Image.IsDirty);
     }
 
     [AvaloniaFact]

@@ -96,7 +96,7 @@ public sealed class ImageTools(McpContext context)
         [Description("Must be true to close an image with unsaved changes (they are lost).")] bool discardChanges = false) =>
         context.Run(() =>
         {
-            var doc = context.Document(document);
+            var doc = context.AnyDocument(document);
             if (doc.IsDirty && !discardChanges)
                 throw new McpException($"'{doc.DisplayName}' has unsaved changes. Save it, or pass discardChanges=true to lose them.");
             context.Workspace.CloseDocument(doc);
@@ -607,7 +607,7 @@ public sealed class ImageTools(McpContext context)
         {
             var docs = documents is { Length: > 0 }
                 ? documents.Select(context.Document).ToList()
-                : context.Workspace.OpenDocuments.ToList();
+                : context.Workspace.OpenDocuments.OfType<ImageDocument>().ToList();
             if (docs.Count == 0)
                 throw new McpException("No image is open. Use open_image first.");
             var panels = Math.Min(docs.Count, 9);

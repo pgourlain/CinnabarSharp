@@ -16,7 +16,7 @@ public sealed class AdjustmentsUiTests : IDisposable
     public void Dispose() => _h.Dispose();
 
     private MainViewModel Vm => _h.Vm;
-    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+    private ImageDocument Doc => Vm.ActiveDocument!.Image;
 
     private void NewImage() =>
         Vm.CreateImage(new NewImageOptions(new ImageSize(200, 100), ColorBgra.FromBgra(40, 90, 200, 255)));

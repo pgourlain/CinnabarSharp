@@ -21,7 +21,7 @@ public sealed class SelectionUiTests : IDisposable
     public void Dispose() => _h.Dispose();
 
     private MainViewModel Vm => _h.Vm;
-    private ImageDocument Doc => Vm.ActiveDocument!.Document;
+    private ImageDocument Doc => Vm.ActiveDocument!.Image;
 
     private void NewImage(int w = 300, int h = 200) =>
         Vm.CreateImage(new NewImageOptions(new ImageSize(w, h), ColorBgra.White));
@@ -182,7 +182,7 @@ public sealed class SelectionUiTests : IDisposable
         Assert.Equal(2, Vm.Layers.Count);
         Assert.Equal("Move Selected Pixels", Vm.SelectedTool.Name);
         Assert.Equal("Paste Beside", Vm.History[^1].Text);
-        var doc = Vm.ActiveDocument!.Document;
+        var doc = Vm.ActiveDocument!.Image;
         Assert.Equal(new RectangleI(0, 0, 120, 260), doc.Selection!.Bounds);
         _h.Capture("42-paste-beside");
 

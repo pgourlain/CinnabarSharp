@@ -39,7 +39,7 @@ public sealed class WelcomeTests : IDisposable
 
         await _h.Vm.OpenRecentItemCommand.ExecuteAsync(Assert.Single(_h.Vm.RecentItems));
 
-        Assert.Equal("sample1.png", _h.Vm.ActiveDocument!.Document.DisplayName);
+        Assert.Equal("sample1.png", _h.Vm.ActiveDocument!.Image.DisplayName);
     }
 
     [AvaloniaFact]
@@ -71,7 +71,7 @@ public sealed class WelcomeTests : IDisposable
         Assert.NotNull(first);
         Assert.Equal((44, 29), (first.PixelSize.Width, first.PixelSize.Height));
 
-        tab.Document.Actions.AddNewLayer();
+        tab.Image.Actions.AddNewLayer();
         Dispatcher.UIThread.RunJobs();
 
         Assert.NotSame(first, tab.Thumbnail);

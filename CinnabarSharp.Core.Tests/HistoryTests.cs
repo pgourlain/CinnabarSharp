@@ -66,7 +66,7 @@ public sealed class HistoryTests : BaseTests, IDisposable
     [Fact]
     public void Opened_document_starts_with_open_image_step()
     {
-        var doc = _sp.GetRequiredService<IFormatManager>().Open(ImageSample1());
+        var doc = _sp.GetRequiredService<IFormatManager>().Open(ImageSample1()).AsImage();
 
         Assert.Equal(["Open Image"], History(doc).Items.Select(i => i.Text));
         Assert.False(doc.IsDirty);

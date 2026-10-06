@@ -51,13 +51,13 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
         Assert.Equal(before, _workspace.OpenDocuments.Count);
         (decoded as IDisposable)?.Dispose();
 
-        var opened = await _formats.OpenAsync(new FileInfo(file.FullName));
+        var opened = (await _formats.OpenAsync(new FileInfo(file.FullName))).AsImage();
 
         Assert.Equal(before + 1, _workspace.OpenDocuments.Count);
         Assert.Same(opened, _workspace.ActiveDocument);
         Assert.Equal(new ImageSize(6, 4), opened.ImageSize);
         Assert.Equal(file.FullName, opened.File!.FullName);
-        Assert.Equal(PixelOf(_formats.Open(new FileInfo(file.FullName)), 2, 2).ToHexString(), PixelOf(opened, 2, 2).ToHexString());
+        Assert.Equal(PixelOf(_formats.Open(new FileInfo(file.FullName)).AsImage(), 2, 2).ToHexString(), PixelOf(opened, 2, 2).ToHexString());
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
         var file = TempFile("image." + extension);
         _formats.Save(NewRedDocument(), file);
 
-        var reopened = _formats.Open(new FileInfo(file.FullName));
+        var reopened = _formats.Open(new FileInfo(file.FullName)).AsImage();
 
         Assert.Equal(new ImageSize(6, 4), reopened.ImageSize);
         var pixel = PixelOf(reopened, 2, 2);
@@ -116,7 +116,7 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
         var file = TempFile("t." + extension);
         _formats.Save(NewRedDocument(alpha: 0), file);
 
-        var reopened = _formats.Open(new FileInfo(file.FullName));
+        var reopened = _formats.Open(new FileInfo(file.FullName)).AsImage();
 
         Assert.Equal(0, PixelOf(reopened, 1, 1).A);
     }
@@ -128,7 +128,7 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
         var file = TempFile("t.jpg");
         _formats.Save(doc, file);
 
-        var reopened = _formats.Open(new FileInfo(file.FullName));
+        var reopened = _formats.Open(new FileInfo(file.FullName)).AsImage();
 
         var pixel = PixelOf(reopened, 1, 1);
         Assert.InRange(pixel.R, 250, 255);
@@ -158,7 +158,7 @@ public sealed class FormatManagerTests : BaseTests, IDisposable
 
         await _formats.SaveAsync(NewRedDocument(), file);
 
-        var reopened = _formats.Open(new FileInfo(file.FullName));
+        var reopened = _formats.Open(new FileInfo(file.FullName)).AsImage();
         Assert.Equal(new ImageSize(6, 4), reopened.ImageSize);
         var pixel = PixelOf(reopened, 2, 2);
         Assert.InRange(pixel.R, 240, 255);

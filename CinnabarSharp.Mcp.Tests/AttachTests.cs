@@ -55,7 +55,7 @@ public class AttachTests
                 await Task.Delay(10, Ct);
             Assert.Equal(0, listener.ClientCount);
 
-            var doc = Assert.Single(workspace.OpenDocuments);
+            var doc = Assert.IsType<ImageDocument>(Assert.Single(workspace.OpenDocuments));
             Assert.Equal((20, 10), (doc.ImageSize.Width, doc.ImageSize.Height));
         }
         Assert.False(File.Exists(socket));
@@ -103,7 +103,7 @@ public class AttachTests
             Assert.NotEqual(true, result.IsError);
         }
 
-        var doc = Assert.Single(workspace.OpenDocuments);
+        var doc = Assert.IsType<ImageDocument>(Assert.Single(workspace.OpenDocuments));
         Assert.Equal(["New Image", "Add New Layer", "Speech Bubble", "Speech Bubble"],
             doc.Workspace.History.Items.Select(i => i.Text));
         Assert.Equal(SpeechBubbleTool.LayerName, doc.Layers.CurrentUserLayer.Name);

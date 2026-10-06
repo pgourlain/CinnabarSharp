@@ -7,12 +7,12 @@ using CinnabarSharp.Core.Services;
 namespace CinnabarSharp.Core.Models
 {
 
-    public class ImageDocument
+    public class ImageDocument : IDocument
 	{
         private bool is_dirty;
         private readonly IDocumentEventsService _documentEventsService;
         private readonly ILogger<ImageDocument> logger;
-        private ImageFile file = null;
+        private ImageFile? file;
         private string display_name = string.Empty;
 
         public ImageDocument(IDocumentEventsService documentEventsService, ILogger<ImageDocument> logger,
@@ -26,6 +26,10 @@ namespace CinnabarSharp.Core.Models
                 _documentEventsService, logger);
             Actions = new DocumentActions(this);
         }
+
+        public Guid Id { get; } = Guid.NewGuid();
+
+        public DocumentKind Kind => DocumentKind.Image;
 
         public ImageSize ImageSize { get; set; }
         public ImageDocumentLayers Layers { get; }
@@ -60,7 +64,7 @@ namespace CinnabarSharp.Core.Models
         /// <summary>User-level edits that are recorded in the undo history.</summary>
         public DocumentActions Actions { get; }
 
-        public ImageFile File
+        public ImageFile? File
         {
             get => file;
             set
@@ -112,6 +116,10 @@ namespace CinnabarSharp.Core.Models
             var evt = new DocumentEventItem(this, DocumentEventEnum.DocumentRenamed);
             _documentEventsService.PushEvent(evt);
         }
+
+        public void Close() => Layers.Close();
+
+        public (byte[] Bgra, int Width, int Height) GetThumbnail(int maxSide) => Layers.GetFlattenedThumbnail(maxSide);
 
         public IImageBuf GetFlattenedImage(bool clip_to_selection = false) => Layers.GetFlattenedImage(clip_to_selection);
         

@@ -16,7 +16,10 @@
         DocumentCreated,
         DocumentClosed,
         HistoryChanged,
-        HistoryTrimmed
+        HistoryTrimmed,
+        VectorTreeChanged,
+        VectorSelectionChanged,
+        VectorNodeChanged
     }
 
 }
