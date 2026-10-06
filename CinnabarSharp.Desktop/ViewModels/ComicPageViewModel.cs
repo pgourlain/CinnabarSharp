@@ -58,7 +58,7 @@ public partial class ComicSourceViewModel(ComicSource source, bool included) : V
     private static Bitmap ToBitmap(BgraImage photo)
     {
         var (pixels, width, height) = CinnabarSharp.Core.Effects.PhotoMath.Downscale(photo.Pixels, photo.Width, photo.Height, ThumbnailSize);
-        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
+        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Avalonia.Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using var fb = bitmap.Lock();
         for (var y = 0; y < height; y++)
             Marshal.Copy(pixels, y * width * 4, fb.Address + y * fb.RowBytes, width * 4);

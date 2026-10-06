@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <rect id="r1" x="10" y="10" width="60" height="40" rx="8" fill="#e03020"/>
+  <circle id="c1" cx="110" cy="30" r="20" fill="#2060e0"/>
+  <ellipse id="e1" cx="160" cy="30" rx="25" ry="15" fill="#20a040"/>
+  <line id="l1" x1="10" y1="70" x2="70" y2="110" stroke="#804000" stroke-width="4"/>
+  <polyline id="pl1" points="90,110 110,70 130,110 150,70" fill="none" stroke="#a020a0" stroke-width="3"/>
+  <polygon id="pg1" points="160,70 190,70 175,110" fill="#e0c020"/>
+</svg>

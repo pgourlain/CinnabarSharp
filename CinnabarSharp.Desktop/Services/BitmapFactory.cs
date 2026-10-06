@@ -10,7 +10,7 @@ public static class BitmapFactory
     /// <summary>A bitmap from straight-alpha BGRA pixels.</summary>
     public static WriteableBitmap FromBgra(byte[] pixels, int width, int height)
     {
-        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96),
+        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Avalonia.Vector(96, 96),
             PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using var fb = bitmap.Lock();
         for (var y = 0; y < height; y++)

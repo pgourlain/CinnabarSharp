@@ -17,7 +17,7 @@ public class AvaloniaClipboardService(TopLevel topLevel) : IClipboardService
     {
         if (topLevel.Clipboard is not { } clipboard)
             return;
-        var bitmap = new WriteableBitmap(new PixelSize(image.Width, image.Height), new Vector(96, 96),
+        var bitmap = new WriteableBitmap(new PixelSize(image.Width, image.Height), new Avalonia.Vector(96, 96),
             PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using (var fb = bitmap.Lock())
         {
@@ -47,7 +47,7 @@ public class AvaloniaClipboardService(TopLevel topLevel) : IClipboardService
     public static ClipboardImage ToClipboardImage(Bitmap bitmap)
     {
         var size = bitmap.PixelSize;
-        using var target = new WriteableBitmap(size, new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
+        using var target = new WriteableBitmap(size, new Avalonia.Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using (var fb = target.Lock())
             bitmap.CopyPixels(fb);
 

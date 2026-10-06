@@ -63,7 +63,7 @@ public class LayerViewModel(UserLayer layer, DocumentActions actions) : ViewMode
         var height = (int)small.Height;
         var pixels = small.ToBgra();
 
-        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96),
+        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Avalonia.Vector(96, 96),
             PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using var fb = bitmap.Lock();
         for (var y = 0; y < height; y++)

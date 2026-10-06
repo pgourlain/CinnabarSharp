@@ -33,7 +33,7 @@ public partial class MainWindow : Window, IViewportService
     private double _wheelZoomAccumulator;
     private bool _spaceHeld;
     private Point? _panStart;
-    private Vector _panStartOffset;
+    private Avalonia.Vector _panStartOffset;
     private bool _closeConfirmed;
     private NativeMenu? _nativeRecentMenu;
     private MenuItem? _recentMenuItem;
@@ -205,7 +205,7 @@ public partial class MainWindow : Window, IViewportService
         var newOrigin = (Canvas.TranslatePoint(default, CanvasScroller) ?? default) + offset;
         var desired = newOrigin + imagePoint * doc.Workspace.Scale - a;
         var extent = CanvasScroller.Extent;
-        CanvasScroller.Offset = new Vector(
+        CanvasScroller.Offset = new Avalonia.Vector(
             Math.Clamp(desired.X, 0, Math.Max(0, extent.Width - viewport.Width)),
             Math.Clamp(desired.Y, 0, Math.Max(0, extent.Height - viewport.Height)));
         CanvasScroller.UpdateLayout();

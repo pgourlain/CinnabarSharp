@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Native AOT like the other libraries (performance-tasks.md P6). The SVG engine only references the BCL. -->
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+</Project>

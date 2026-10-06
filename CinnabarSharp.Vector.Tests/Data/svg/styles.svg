@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <style>
+    .red { fill: #d03030; stroke: #300; stroke-width: 2 }
+    #special { fill: #30d030 }
+    rect.blue, circle.blue { fill: #3030d0 }
+    g .inner { fill-opacity: 0.5 }
+  </style>
+  <rect id="attr" x="5" y="5" width="40" height="30" fill="#ff8000" stroke="#000" stroke-width="2"/>
+  <rect id="inline" x="55" y="5" width="40" height="30" style="fill:#0080ff;stroke:#fff;stroke-width:3"/>
+  <rect id="cls" class="red" x="105" y="5" width="40" height="30"/>
+  <rect id="special" class="red" x="155" y="5" width="40" height="30"/>
+  <g color="#c0c000">
+    <rect id="cc" x="5" y="45" width="40" height="30" fill="currentColor"/>
+  </g>
+  <rect id="none" x="55" y="45" width="40" height="30" fill="none" stroke="#000"/>
+  <circle id="blue" class="blue" cx="125" cy="60" r="15" opacity="0.5"/>
+  <g>
+    <rect id="inner" class="inner" x="155" y="45" width="40" height="30" fill="#800080" stroke="#000" stroke-opacity="0.4"/>
+  </g>
+  <path id="eo" d="M10 85 h30 v30 h-30 z M17 92 h16 v16 h-16 z" fill="#008080" fill-rule="evenodd"/>
+  <path id="nz" d="M60 85 h30 v30 h-30 z M67 92 h16 v16 h-16 z" fill="#008080" fill-rule="nonzero"/>
+</svg>

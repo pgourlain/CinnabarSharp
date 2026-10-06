@@ -239,7 +239,7 @@ public sealed class SelectionUiTests : IDisposable
     [AvaloniaFact]
     public void Clipboard_bitmaps_in_other_formats_become_straight_bgra()
     {
-        using var bitmap = new WriteableBitmap(new PixelSize(1, 1), new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
+        using var bitmap = new WriteableBitmap(new PixelSize(1, 1), new Avalonia.Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
         using (var fb = bitmap.Lock())
             Marshal.Copy(new byte[] { 100, 50, 0, 128 }, 0, fb.Address, 4); // premultiplied RGBA
 

@@ -27,7 +27,7 @@ public sealed class AvaloniaTextRasterizer : ITextRasterizer
         var width = (int)Math.Ceiling(formatted.WidthIncludingTrailingWhitespace) + 2 * margin;
         var height = (int)Math.Ceiling(formatted.Height) + 2 * margin;
 
-        using var target = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+        using var target = new RenderTargetBitmap(new PixelSize(width, height), new Avalonia.Vector(96, 96));
         using (var context = target.CreateDrawingContext())
         using (context.PushTextOptions(new TextOptions
                {

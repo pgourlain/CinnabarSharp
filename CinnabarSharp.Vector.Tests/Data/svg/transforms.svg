@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <g id="g1" transform="translate(20 20)">
+    <rect id="a" width="30" height="20" fill="#d33"/>
+    <g id="g2" transform="scale(2 1.5) rotate(15)">
+      <rect id="b" x="10" y="10" width="20" height="20" fill="#3d3"/>
+      <g id="g3" transform="skewX(20) skewY(10)">
+        <rect id="c" x="30" y="10" width="20" height="20" fill="#33d"/>
+      </g>
+    </g>
+    <rect id="d" x="0" y="100" width="40" height="20" fill="#dd3" transform="matrix(1 0.2 -0.2 1 10 5)"/>
+    <rect id="e" x="60" y="100" width="40" height="20" fill="#3dd" transform="rotate(45 80 110)"/>
+  </g>
+</svg>

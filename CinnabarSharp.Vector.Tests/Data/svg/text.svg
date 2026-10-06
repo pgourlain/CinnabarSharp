@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120" viewBox="0 0 240 120">
+  <text id="t1" x="10" y="30" font-family="sans-serif" font-size="20" fill="#202020">Hello <tspan font-weight="bold" fill="#c02020">bold</tspan> world</text>
+  <text id="t2" x="120" y="70" font-size="16" text-anchor="middle" fill="#2020c0">Centered</text>
+  <text id="t3" x="230" y="100" font-size="14" text-anchor="end" font-style="italic">End<tspan dx="4" dy="-3">raised</tspan></text>
+</svg>

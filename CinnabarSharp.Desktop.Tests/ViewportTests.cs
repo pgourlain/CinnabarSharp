@@ -33,7 +33,7 @@ public sealed class ViewportTests : IDisposable
         var before = _h.WindowToImage(mouse);
 
         for (var i = 0; i < 3; i++)
-            _h.Window.MouseWheel(mouse, new Vector(0, 1), RawInputModifiers.Control);
+            _h.Window.MouseWheel(mouse, new Avalonia.Vector(0, 1), RawInputModifiers.Control);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal("200%", _h.Vm.ZoomText);
@@ -61,7 +61,7 @@ public sealed class ViewportTests : IDisposable
         Dispatcher.UIThread.RunJobs();
         Assert.Equal("30%", _h.Vm.ZoomText);
 
-        _h.Window.MouseWheel(ViewportCenter(), new Vector(0, 1), RawInputModifiers.Control);
+        _h.Window.MouseWheel(ViewportCenter(), new Avalonia.Vector(0, 1), RawInputModifiers.Control);
         Dispatcher.UIThread.RunJobs();
         Assert.Equal("40%", _h.Vm.ZoomText);
 
@@ -84,7 +84,7 @@ public sealed class ViewportTests : IDisposable
         var renderVersion = _h.Vm.RenderVersion;
 
         _h.Vm.ZoomInCommand.Execute(null);
-        _h.Window.MouseWheel(ViewportCenter(), new Vector(0, 1), RawInputModifiers.Control);
+        _h.Window.MouseWheel(ViewportCenter(), new Avalonia.Vector(0, 1), RawInputModifiers.Control);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(renderVersion, _h.Vm.RenderVersion);
@@ -121,7 +121,7 @@ public sealed class ViewportTests : IDisposable
         _h.Vm.ActualSizeCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
 
-        _h.Window.MouseWheel(_h.CanvasToWindow(10, 10), new Vector(0, -1), RawInputModifiers.None);
+        _h.Window.MouseWheel(_h.CanvasToWindow(10, 10), new Avalonia.Vector(0, -1), RawInputModifiers.None);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal("100%", _h.Vm.ZoomText);
@@ -158,7 +158,7 @@ public sealed class ViewportTests : IDisposable
         _h.Window.MouseMove(p - new Point(100, 50), RawInputModifiers.MiddleMouseButton);
         _h.Window.MouseUp(p - new Point(100, 50), MouseButton.Middle);
 
-        Assert.Equal(start + new Vector(100, 50), _h.Scroller.Offset);
+        Assert.Equal(start + new Avalonia.Vector(100, 50), _h.Scroller.Offset);
     }
 
     [AvaloniaFact]
@@ -195,6 +195,6 @@ public sealed class ViewportTests : IDisposable
         _h.Window.MouseMove(p - new Point(40, 30), RawInputModifiers.LeftMouseButton);
         _h.Window.MouseUp(p - new Point(40, 30), MouseButton.Left);
 
-        Assert.Equal(start + new Vector(40, 30), _h.Scroller.Offset);
+        Assert.Equal(start + new Avalonia.Vector(40, 30), _h.Scroller.Offset);
     }
 }

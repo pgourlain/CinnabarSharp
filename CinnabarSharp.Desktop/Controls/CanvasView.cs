@@ -438,7 +438,7 @@ public class CanvasView : Control
         var height = doc.ImageSize.Height;
         var pixels = doc.Layers.GetFlattenedBgra();
 
-        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96),
+        var bitmap = new WriteableBitmap(new PixelSize(width, height), new Avalonia.Vector(96, 96),
             PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using (var fb = bitmap.Lock())
         {
@@ -457,7 +457,7 @@ public class CanvasView : Control
         if (_picture is { } cached && ReferenceEquals(cached.Picture, picture))
             return cached.Bitmap;
         // Not disposed: the renderer may still draw the previous one.
-        var bitmap = new WriteableBitmap(new PixelSize(picture.Width, picture.Height), new Vector(96, 96),
+        var bitmap = new WriteableBitmap(new PixelSize(picture.Width, picture.Height), new Avalonia.Vector(96, 96),
             PixelFormat.Bgra8888, AlphaFormat.Unpremul);
         using (var fb = bitmap.Lock())
         {
@@ -472,7 +472,7 @@ public class CanvasView : Control
     private static IBrush CreateCheckerBrush()
     {
         var size = CheckerSize * 2;
-        var bitmap = new WriteableBitmap(new PixelSize(size, size), new Vector(96, 96),
+        var bitmap = new WriteableBitmap(new PixelSize(size, size), new Avalonia.Vector(96, 96),
             PixelFormat.Bgra8888, AlphaFormat.Opaque);
         using (var fb = bitmap.Lock())
         {
