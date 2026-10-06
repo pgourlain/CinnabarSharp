@@ -4,6 +4,9 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- SVG files (`.svg`, `.svgz`) open as images (rasterized, read-only), and Layers › Import From File places an SVG, e.g. a logo, as a new layer: rendered sharp at its natural size, or smaller to fit the canvas.
+
 ## [0.8.1] - 2026-10-04
 
 Accessibility, 200 % screens, faster opening and thumbnails, on top of the 0.8.0 redesign (0.8.0 itself was never released: this is the first release with the redesign).

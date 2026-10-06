@@ -29,6 +29,8 @@ namespace CinnabarSharp.Core.Extensions
 				[MagickFormat.WebP]);
 			AddFormat(services, "HeicFormat", "HEIC", ["heic", "heif"],
 				[MagickFormat.Heic, MagickFormat.Heif], canSave: false);
+			AddFormat(services, "SvgFormat", "SVG", ["svg", "svgz"],
+				[MagickFormat.Svg, MagickFormat.Svgz, MagickFormat.Msvg], canSave: false);
 			services.AddSingleton<IImageImporter, OraFormat>();
 
 			services.AddTransient<ImageDocument>();

@@ -200,6 +200,35 @@ public sealed class LayerOperationsTests : BaseTests, IDisposable
         Assert.Equal(3u, layer.Surface.Height);
     }
 
+    private static byte[] Px(byte[] bgra, int width, int x, int y) => bgra.AsSpan(((y * width) + x) * 4, 4).ToArray();
+
+    private static FileInfo LogoSvg() => new(Path.Combine(AppContext.BaseDirectory, "Data", "SampleFiles", "logo.svg"));
+
+    [Fact]
+    public void Import_svg_keeps_natural_size_when_it_fits_the_canvas()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(800, 600), ColorBgra.White);
+
+        var layer = doc.Layers.ImportFromFile(LogoSvg());
+
+        var bgra = layer.Surface.ToBgra();
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Px(bgra, 800, 100, 100)); // red square
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, Px(bgra, 800, 300, 100)); // blue circle
+        Assert.Equal(0, Px(bgra, 800, 600, 100)[3]); // outside the logo: transparent
+    }
+
+    [Fact]
+    public void Import_svg_larger_than_canvas_is_scaled_down_to_fit()
+    {
+        var doc = _workspace.NewDocument(new ImageSize(200, 100), ColorBgra.White);
+
+        var layer = doc.Layers.ImportFromFile(LogoSvg());
+
+        var bgra = layer.Surface.ToBgra();
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Px(bgra, 200, 50, 50));
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, Px(bgra, 200, 150, 50));
+    }
+
     [Fact]
     public void Flip_current_layer_mirrors_pixels()
     {

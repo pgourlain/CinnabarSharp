@@ -10,9 +10,11 @@
         <TextBlock Text="CinnabarSharp" FontSize="22" FontWeight="SemiBold" />
         <TextBlock x:Name="VersionText" />
         <TextBlock TextWrapping="Wrap"
-                   Text="A cross-platform image editor inspired by Paint.NET. Portions of the code are ported from Pinta (MIT license). Text is set in IBM Plex (SIL Open Font License)." />
+                   Text="A cross-platform image editor inspired by Paint.NET. Portions of the code are ported from Pinta (MIT license). Text is set in IBM Plex (SIL Open Font License). Built with Avalonia, SkiaSharp and Magick.NET." />
         <TextBlock x:Name="RuntimeText" Foreground="{DynamicResource CinnabarTextSecondaryBrush}" />
-        <Button Content="Close" IsCancel="True" IsDefault="True" HorizontalAlignment="Right"
-                Click="OnClose" Margin="0,8,0,0" />
+        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+            <Button x:Name="NoticesButton" Content="Third-party notices" Click="OnNotices" HorizontalAlignment="Left" />
+            <Button Grid.Column="1" Content="Close" IsCancel="True" IsDefault="True" Click="OnClose" />
+        </Grid>
     </StackPanel>
 </Window>

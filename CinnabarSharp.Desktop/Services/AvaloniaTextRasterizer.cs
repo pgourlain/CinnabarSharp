@@ -29,7 +29,7 @@ public sealed class AvaloniaTextRasterizer : ITextRasterizer
 
         using var target = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
         using (var context = target.CreateDrawingContext())
-        using (context.PushRenderOptions(new RenderOptions
+        using (context.PushTextOptions(new TextOptions
                {
                    TextRenderingMode = style.Antialias ? TextRenderingMode.Antialias : TextRenderingMode.Alias,
                }))

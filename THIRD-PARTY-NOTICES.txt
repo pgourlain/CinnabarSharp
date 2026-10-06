@@ -1,0 +1,109 @@
+CinnabarSharp - third-party notices
+===================================
+
+CinnabarSharp itself is released under the MIT License (see LICENSE).
+It includes or links the software listed below. Each component remains under its own
+license. The full license texts and upstream notices are in the "third-party" folder that
+ships next to this file.
+
+Versions are those of the 0.8.x releases (see the .csproj files for the exact ones).
+
+
+Code ported into CinnabarSharp
+------------------------------
+
+Pinta  - https://github.com/PintaProject/Pinta
+         MIT License. Copyright (c) the Pinta contributors.
+         Parts of Core are ported from Pinta; the original copyright headers are kept in
+         those files.
+
+
+NuGet packages (managed code)
+-----------------------------
+
+Avalonia 12.1.3 and its packages (Avalonia.Desktop, Avalonia.Skia, Avalonia.Native,
+  Avalonia.Win32, Avalonia.X11, Avalonia.FreeDesktop, Avalonia.HarfBuzz,
+  Avalonia.Themes.Fluent, Avalonia.Controls.ColorPicker, Avalonia.Fonts.Inter,
+  Avalonia.Remote.Protocol, Avalonia.BuildServices)
+  MIT License. Copyright 2013-2026 The AvaloniaUI Project.
+  https://avaloniaui.net
+
+CommunityToolkit.Mvvm 8.4.2
+  MIT License. Copyright (c) .NET Foundation and Contributors.
+  Its own third-party notices: third-party/CommunityToolkit.Mvvm-NOTICES.txt
+
+Magick.NET 14.17.1 (Magick.NET-Q8-AnyCPU, Magick.NET.Core)
+  Apache License 2.0. Copyright 2013-2026 Dirk Lemstra.
+  https://github.com/dlemstra/Magick.NET
+  Bundles ImageMagick 7.1.2 (ImageMagick License) and the libraries it is built with
+  (libpng, libjpeg-turbo, libtiff, libwebp, freetype, lcms2 and others).
+  Full text and notices: third-party/Magick.NET-ImageMagick-NOTICES.txt
+
+ModelContextProtocol 2.2.0 (the C# SDK, and ModelContextProtocol.Core)
+  Apache License 2.0. Copyright Model Context Protocol a Series of LF Projects, LLC.
+  https://github.com/modelcontextprotocol/csharp-sdk
+  The text of the Apache License 2.0 is included in
+  third-party/Magick.NET-ImageMagick-NOTICES.txt.
+
+Microsoft.Extensions.* 10.0 (DependencyInjection, Logging, Hosting, Configuration,
+  Options, ...), Microsoft.IO.RecyclableMemoryStream 3.0.1
+  MIT License. Copyright (c) Microsoft Corporation / .NET Foundation.
+
+MicroCom.Runtime 0.11.6
+  MIT License. Copyright 2021 Nikita Tsukanov.
+
+Tmds.DBus.Protocol 0.94.1 (Linux only)
+  MIT License. Copyright Tom Deseyn.
+
+
+Native libraries
+----------------
+
+SkiaSharp 3.119.4 and SkiaSharp.NativeAssets.{macOS,Linux,Win32}
+  MIT License. Copyright (c) 2015-2016 Xamarin, Inc.; (c) 2017-2018 Microsoft Corporation.
+  Text: third-party/SkiaSharp-HarfBuzzSharp-LICENSE.txt
+  The native libraries bundle Skia (BSD 3-Clause, Copyright 2011 Google Inc.) and its
+  dependencies (FreeType, HarfBuzz, libpng, libjpeg-turbo, zlib, Expat, ICU and others).
+  Full text and notices: third-party/SkiaSharp-HarfBuzzSharp-native-NOTICES.txt
+
+HarfBuzzSharp 8.3.1.3 and HarfBuzzSharp.NativeAssets.{macOS,Linux,Win32}
+  MIT License. Copyright (c) 2015-2016 Xamarin, Inc.; (c) 2017-2018 Microsoft Corporation.
+  Text: third-party/SkiaSharp-HarfBuzzSharp-LICENSE.txt
+  The native library bundles HarfBuzz (MIT, Old MIT; Copyright the HarfBuzz authors).
+  Notices: third-party/SkiaSharp-HarfBuzzSharp-native-NOTICES.txt
+
+ANGLE (Avalonia.Angle.Windows.Natives, Windows only)
+  BSD 3-Clause. Copyright 2018 The ANGLE Project Authors.
+  Text: third-party/ANGLE-LICENSE.txt
+
+
+Fonts
+-----
+
+IBM Plex Sans and IBM Plex Mono
+  SIL Open Font License 1.1. Copyright 2017 IBM Corp. with Reserved Font Name "Plex".
+  Text: third-party/IBMPlex-OFL.txt
+
+Inter (through Avalonia.Fonts.Inter)
+  SIL Open Font License 1.1. Copyright The Inter Project Authors.
+  https://github.com/rsms/inter
+
+
+The MIT License (applies to the components above marked "MIT License")
+-----------------------------------------------------------------------
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files (the "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
+to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.

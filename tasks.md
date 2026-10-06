@@ -90,6 +90,7 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [x] OpenRaster (`.ora`) save/load (`OraFormat`): names, visibility, opacity, blend modes (`svg:*` ops, `pdn:*` for Paint.NET-only modes), merged image and thumbnail. Saving to a layered format skips the flatten warning.
 - [x] Fixed ported Pinta bugs: move-up off-by-one, delete selecting the wrong layer, duplicate/merge-down not implemented, flatten ignoring opacity/blend.
 - [ ] Import From File: when the imported image is larger than the canvas, offer to expand the canvas (Paint.NET behavior); today it is cropped. Needs Canvas Size (Phase 7).
+- [ ] Import From File with an SVG: choose the scale (or target width/height, keep ratio) instead of natural size / shrink-to-fit. Re-rasterize at the chosen density so edges stay sharp (`Utility.OpenVector`), preview and placement in the dialog; same option on the MCP `import_layer` tool. See `docs/adr/0001-svg-editing.md` need 1.
 - [ ] Non-separable blend modes (Hue, Saturation, Color, Luminosity) — not in Paint.NET, optional.
 - [ ] Icons for the layer buttons (text labels for now).
 

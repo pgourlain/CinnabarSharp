@@ -239,8 +239,7 @@ namespace CinnabarSharp.Core.Models
         /// </summary>
         public UserLayer ImportFromFile(ImageFile file)
         {
-            using var image = Utility.OpenImage(file);
-            image.AutoOrient();
+            using var image = OpenForImport(file);
             var canvas = Utility.CreateImage(document.ImageSize.Width, document.ImageSize.Height);
             canvas.Composite(image, 0, 0, CompositeOperator.Copy);
 
@@ -251,6 +250,25 @@ namespace CinnabarSharp.Core.Models
             SetCurrentUserLayer(layer);
             document.Workspace.Invalidate();
             return layer;
+        }
+
+        /// <summary>
+        /// Opens a file to be placed on the canvas. A vector file (SVG, e.g. a logo) is rasterized at its natural
+        /// size, or smaller so that it fits the canvas; the rendering density is lowered, not the pixels resampled.
+        /// </summary>
+        private IImageBuf OpenForImport(ImageFile file)
+        {
+            if (Utility.IsSvg(file))
+            {
+                using var probe = Utility.OpenVector(file, 1);
+                var scale = Math.Min(1.0, Math.Min(
+                    (double)document.ImageSize.Width / Math.Max(1, probe.Width),
+                    (double)document.ImageSize.Height / Math.Max(1, probe.Height)));
+                return scale < 1 ? Utility.OpenVector(file, scale) : Utility.OpenVector(file, 1);
+            }
+            var image = Utility.OpenImage(file);
+            image.AutoOrient();
+            return image;
         }
 
         public void FlipCurrentLayerHorizontal()

@@ -32,6 +32,11 @@ else
   echo "Published with ReadyToRun"
 fi
 
+# Licenses of the bundled components: required by their licenses, opened by the About window (next to the executable).
+cp "$root/LICENSE" "$root/THIRD-PARTY-NOTICES.txt" "$publish/"
+rm -rf "$publish/third-party"
+cp -R "$root/third-party" "$publish/third-party"
+
 case "$rid" in
   osx-*)
     app="$root/$out/$name/CinnabarSharp.app"

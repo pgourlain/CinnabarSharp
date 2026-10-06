@@ -68,6 +68,24 @@ namespace CinnabarSharp.Core.Extensions
             return new MagickImageFactory().Create(fi);
         }
 
+        internal static bool IsSvg(FileInfo fi) =>
+            fi.Extension.Equals(".svg", StringComparison.OrdinalIgnoreCase)
+            || fi.Extension.Equals(".svgz", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Rasterizes a vector file (SVG) at the given scale, 1 = its natural size (96 dpi). Rendering at a higher
+        /// density rather than resampling keeps edges sharp. Transparent background.
+        /// </summary>
+        internal static IImageBuf OpenVector(FileInfo fi, double scale)
+        {
+            var settings = new MagickReadSettings
+            {
+                BackgroundColor = MagickColors.Transparent,
+                Density = new Density(96 * scale),
+            };
+            return new MagickImage(fi, settings);
+        }
+
         internal static string GetDisplayName(this ImageFile file) => file.Name;
 
         internal static bool IsNumber(float x)
