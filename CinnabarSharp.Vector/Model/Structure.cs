@@ -290,9 +290,15 @@ public sealed class SvgImage : SvgElement
 /// <summary>A piece of text inside a text or tspan element.</summary>
 public sealed class SvgTextRun : SvgNode
 {
+    private string? _originalText;
+
     public SvgTextRun(string text) => Text = text;
 
     public string Text { get; private set; }
+
+    internal void FreezeOriginal() => _originalText = Text;
+
+    public override bool IsDirty => _originalText is null || Text != _originalText;
 
     public void SetText(string text)
     {

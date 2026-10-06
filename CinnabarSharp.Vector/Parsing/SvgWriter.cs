@@ -60,7 +60,27 @@ public static class SvgWriter
         return document;
     }
 
-    public static XNode ToXNode(SvgNode node)
+    public static XNode ToXNode(SvgNode node) => ToXNode(node, NeedsRebuild(node));
+
+    /// <summary>The nodes of the subtree that must be written from the model: dirty ones and the ancestors of dirty ones. One pass.</summary>
+    private static HashSet<SvgNode> NeedsRebuild(SvgNode node)
+    {
+        var result = new HashSet<SvgNode>();
+        Visit(node);
+        return result;
+
+        bool Visit(SvgNode n)
+        {
+            var needs = n.IsDirty;
+            foreach (var child in n.Children)
+                needs |= Visit(child);
+            if (needs)
+                result.Add(n);
+            return needs;
+        }
+    }
+
+    private static XNode ToXNode(SvgNode node, HashSet<SvgNode> rebuild)
     {
         switch (node)
         {
@@ -71,13 +91,13 @@ public static class SvgWriter
             case SvgTextRun run:
                 return new XText(run.Text);
             case SvgElement element:
-                if (!element.IsDirty && !element.SubtreeDirty && element.SourceNode is XElement source)
+                if (!rebuild.Contains(element) && element.SourceNode is XElement source)
                     return new XElement(source);
                 var xe = new XElement(element.XmlName);
                 foreach (var attribute in element.Attributes)
                     xe.Add(new XAttribute(attribute.Name, attribute.Value));
                 foreach (var child in element.Children)
-                    xe.Add(ToXNode(child));
+                    xe.Add(ToXNode(child, rebuild));
                 return xe;
             default:
                 throw new InvalidOperationException("Unknown node type " + node.GetType().Name);

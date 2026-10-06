@@ -42,6 +42,8 @@ internal static class SvgNodeFactory
         element.SourceNode = xe;
         foreach (var attribute in xe.Attributes())
             element.AddParsedAttribute(attribute.Name, attribute.Value);
+        if (element is not SvgContainer)
+            element.FreezeOriginal();
         return element;
     }
 
@@ -54,11 +56,18 @@ internal static class SvgNodeFactory
             {
                 var element = CreateElement(xe);
                 if (element is SvgContainer container)
+                {
                     BuildChildren(xe, container, element is SvgTextBase);
+                    container.FreezeOriginalWithChildren();
+                }
                 return element;
             }
             case XText text when inText:
-                return new SvgTextRun(text.Value) { SourceNode = text };
+            {
+                var run = new SvgTextRun(text.Value) { SourceNode = text };
+                run.FreezeOriginal();
+                return run;
+            }
             case XText text when text is not XCData && string.IsNullOrWhiteSpace(text.Value):
                 return null;
             default:
@@ -78,20 +87,18 @@ internal static class SvgNodeFactory
         var xml = SvgWriter.ToXNode(original);
         var copy = Build(xml, original is SvgTextRun or SvgTextBase || original.Parent is SvgTextBase)
             ?? throw new InvalidOperationException("The node could not be copied.");
-        CopyState(original, copy, keepIds);
+        if (keepIds)
+            CopyIds(original, copy);
         return copy;
     }
 
-    private static void CopyState(SvgNode original, SvgNode copy, bool keepIds)
+    private static void CopyIds(SvgNode original, SvgNode copy)
     {
-        if (keepIds)
-            copy.InternalId = original.InternalId;
-        copy.IsDirty = original.IsDirty;
-        copy.SubtreeDirty = original.SubtreeDirty;
+        copy.InternalId = original.InternalId;
         var (a, b) = (original.Children, copy.Children);
         if (a.Count != b.Count)
             return;
         for (var i = 0; i < a.Count; i++)
-            CopyState(a[i], b[i], keepIds);
+            CopyIds(a[i], b[i]);
     }
 }

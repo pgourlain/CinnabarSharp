@@ -21,11 +21,14 @@ public abstract class SvgNode
     /// <summary>The XML this node was read from; untouched nodes are written back from it.</summary>
     internal XNode? SourceNode { get; set; }
 
-    /// <summary>True when this node's own XML differs from <see cref="SourceNode"/> (attributes or children changed, or it is new).</summary>
-    public bool IsDirty { get; internal set; }
+    /// <summary>
+    /// True when this node's own XML differs from what was read: attributes or children changed, or the node is new. Computed by
+    /// comparison, so a change that was undone leaves the node clean again, and the writer then writes its original XML.
+    /// </summary>
+    public abstract bool IsDirty { get; }
 
     /// <summary>True when a descendant is dirty.</summary>
-    public bool SubtreeDirty { get; internal set; }
+    public bool SubtreeDirty => Children.Any(c => c.IsDirty || c.SubtreeDirty);
 
     public virtual IReadOnlyList<SvgNode> Children => [];
 
@@ -64,24 +67,8 @@ public abstract class SvgNode
             yield return p;
     }
 
-    /// <summary>Marks this node's XML as changed so the writer rebuilds it, and tells the document.</summary>
-    public void MarkChanged()
-    {
-        IsDirty = true;
-        for (var p = Parent; p is not null; p = p.Parent)
-            p.SubtreeDirty = true;
-        DocumentRoot?.Touch();
-    }
-
-    /// <summary>Clears the dirty flags of the whole subtree after it was written (the writer does not call it: saving must not change the document).</summary>
-    public void MarkClean()
-    {
-        foreach (var n in SelfAndDescendants())
-        {
-            n.IsDirty = false;
-            n.SubtreeDirty = false;
-        }
-    }
+    /// <summary>Tells the document something in the tree changed (caches such as the id index and the stylesheet are rebuilt).</summary>
+    public void MarkChanged() => DocumentRoot?.Touch();
 
     /// <summary>
     /// A deep copy. With <paramref name="keepIds"/> the copy has the same <see cref="InternalId"/>s (history snapshots find
@@ -102,6 +89,8 @@ public sealed class SvgRawContent : SvgNode
     public XNode Content { get; }
 
     public bool IsComment => Content is XComment;
+
+    public override bool IsDirty => false;
 }
 
 /// <summary>An element with attributes: a shape, a group, a gradient, or a raw copy of something unknown.</summary>
@@ -118,7 +107,14 @@ public abstract class SvgElement : SvgNode
     public static readonly XNamespace Inkscape = "http://www.inkscape.org/namespaces/inkscape";
     public static readonly XNamespace Sodipodi = "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd";
 
+    private SvgAttribute[]? _originalAttributes;
+
     protected SvgElement(XName name) => XmlName = name;
+
+    /// <summary>Remembers the attributes as read, so <see cref="IsDirty"/> can tell whether they changed.</summary>
+    internal void FreezeOriginal() => _originalAttributes = [.. _attributes];
+
+    public override bool IsDirty => SourceNode is null || _originalAttributes is null || !_attributes.SequenceEqual(_originalAttributes);
 
     /// <summary>Qualified name of the element (<c>{http://www.w3.org/2000/svg}rect</c>).</summary>
     public XName XmlName { get; }
@@ -164,6 +160,13 @@ public abstract class SvgElement : SvgNode
             _attributes.Add(new SvgAttribute(name, value));
         }
         OnAttributeChanged(name);
+        MarkChanged();
+    }
+
+    /// <summary>Replaces all attributes at once (a history step restoring a snapshot) and tells the document.</summary>
+    public void RestoreAttributes(IEnumerable<SvgAttribute> attributes)
+    {
+        ReplaceAttributes(attributes);
         MarkChanged();
     }
 
@@ -302,16 +305,28 @@ public sealed class SvgRawElement : SvgElement
     }
 
     public XElement Source => (XElement)SourceNode!;
+
+    public override bool IsDirty => false;
 }
 
 /// <summary>An element that holds child nodes.</summary>
 public abstract class SvgContainer : SvgElement
 {
     private readonly List<SvgNode> _children = [];
+    private SvgNode[]? _originalChildren;
 
     protected SvgContainer(XName name) : base(name)
     {
     }
+
+    /// <summary>Remembers the children as read (and the attributes), for <see cref="SvgNode.IsDirty"/>.</summary>
+    internal void FreezeOriginalWithChildren()
+    {
+        FreezeOriginal();
+        _originalChildren = [.. _children];
+    }
+
+    public override bool IsDirty => base.IsDirty || _originalChildren is null || !_children.SequenceEqual(_originalChildren);
 
     public override IReadOnlyList<SvgNode> Children => _children;
 
@@ -329,7 +344,6 @@ public abstract class SvgContainer : SvgElement
         _children.Insert(Math.Clamp(index, 0, _children.Count), child);
         child.Parent = this;
         MarkChanged();
-        child.MarkChanged();
     }
 
     /// <summary>Removes the child and returns the index it had, or -1 when it was not a child.</summary>

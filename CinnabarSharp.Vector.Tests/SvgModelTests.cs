@@ -340,7 +340,55 @@ public class SvgModelTests
         Assert.True(root.SubtreeDirty);
         Assert.False(Find<SvgRect>(root, "a").IsDirty);
         Assert.True(root.Version > version);
-        root.MarkClean();
+    }
+
+    [Fact]
+    public void A_change_that_is_put_back_leaves_the_node_clean_again()
+    {
+        var root = Load("transforms");
+        var rect = Find<SvgRect>(root, "c");
+        var group = Find<SvgGroup>(root, "g3");
+        var attributes = rect.Attributes.ToList();
+
+        rect.X = 99;
+        rect.SetAttribute("data-x", "1");
+        Assert.True(rect.IsDirty);
+        rect.RestoreAttributes(attributes);
         Assert.False(rect.IsDirty);
+        Assert.False(group.SubtreeDirty);
+        Assert.False(root.SubtreeDirty);
+
+        // The same for the children of a container: insert, then remove.
+        var extra = new SvgCircle();
+        group.AddChild(extra);
+        Assert.True(group.IsDirty);
+        Assert.True(extra.IsDirty);
+        group.RemoveChild(extra);
+        Assert.False(group.IsDirty);
+
+        // And a move to another place, then back.
+        var home = Find<SvgGroup>(root, "g2");
+        var other = Find<SvgGroup>(root, "g1");
+        var index = home.RemoveChild(group);
+        other.AddChild(group);
+        Assert.True(home.IsDirty);
+        Assert.True(other.IsDirty);
+        other.RemoveChild(group);
+        home.InsertChild(index, group);
+        Assert.False(home.IsDirty);
+        Assert.False(other.IsDirty);
+        Assert.False(root.SubtreeDirty);
+    }
+
+    [Fact]
+    public void New_and_cloned_nodes_are_dirty_new_until_written_from_their_xml()
+    {
+        var created = new SvgRect();
+        Assert.True(created.IsDirty);
+        var root = Load("shapes");
+        var copy = root.FindById("r1")!.DeepClone();
+        Assert.False(copy.IsDirty);                       // a clone is the XML it was made from
+        ((SvgRect)copy).X = 5;
+        Assert.True(copy.IsDirty);
     }
 }
