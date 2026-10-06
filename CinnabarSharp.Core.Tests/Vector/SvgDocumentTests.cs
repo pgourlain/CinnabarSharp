@@ -167,6 +167,19 @@ public class SvgDocumentTests : BaseTests
     }
 
     [Fact]
+    public void Thumbnail_is_a_small_render_of_the_drawing()
+    {
+        var (_, workspace, _) = Setup();
+        var doc = workspace.OpenSvgDocument(Root("shapes"), null, null);
+        var (bgra, width, height) = doc.GetThumbnail(44);
+        Assert.Equal((44, 27), (width, height));
+        Assert.Equal(width * height * 4, bgra.Length);
+        // The red rounded rectangle at the top left of the sample.
+        var i = (8 * width + 12) * 4;
+        Assert.Equal((0xe0, 0x30, 0x20), (bgra[i + 2], bgra[i + 1], bgra[i]));
+    }
+
+    [Fact]
     public void Node_events_carry_the_node_and_area()
     {
         var (_, workspace, recorder) = Setup();

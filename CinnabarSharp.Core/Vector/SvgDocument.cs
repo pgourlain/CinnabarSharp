@@ -129,10 +129,25 @@ public sealed class SvgDocument : IDocument
         Workspace.History.Clear();
     }
 
+    /// <summary>Options for the rasterizer: the glyph provider and the folder for linked images (set by the desktop app).</summary>
+    public RenderOptions RenderOptions => new()
+    {
+        ImageDecoder = ImageDecoder,
+        GlyphProvider = GlyphProvider,
+        BaseFolder = _file?.DirectoryName,
+    };
+
+    /// <summary>Decodes embedded and linked pictures; Magick.NET by default.</summary>
+    public IImageDecoder ImageDecoder { get; set; } = new MagickImageDecoder();
+
+    /// <summary>Fonts for text; null in headless mode, where text is drawn as boxes.</summary>
+    public IGlyphOutlineProvider? GlyphProvider { get; set; }
+
     public (byte[] Bgra, int Width, int Height) GetThumbnail(int maxSide)
     {
-        // Rendering comes with the rasterizer; a transparent pixel until then.
-        return (new byte[4], 1, 1);
+        var size = ImageSize;
+        var scale = Math.Min(1.0, maxSide / (double)Math.Max(size.Width, size.Height));
+        return VectorRasterizer.RenderAll(_root, scale, RenderOptions);
     }
 
     // ---- Coordinates ----
