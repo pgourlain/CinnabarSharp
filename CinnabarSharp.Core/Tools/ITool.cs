@@ -147,6 +147,26 @@ public class ToolSettings
 
     /// <summary>Magic wand selects matching pixels anywhere, not only connected ones.</summary>
     public bool GlobalFill { get; set; }
+
+    // ---- Vector (SVG) tools ----
+
+    /// <summary>Corner radius of rectangles drawn with the vector Rectangle tool, in user units.</summary>
+    public double VectorCornerRadius { get; set; }
+
+    /// <summary>Number of corners of polygons and stars.</summary>
+    public int PolygonCorners { get; set; } = 5;
+
+    /// <summary>The Polygon tool draws stars: the inner points sit at this fraction of the outer radius (0 = a plain polygon).</summary>
+    public double StarRatio { get; set; }
+
+    /// <summary>Rounds the corners of polygons and stars by this fraction (0 = sharp, 1 = as round as the sides allow).</summary>
+    public double PolygonRounding { get; set; }
+
+    /// <summary>The Select tool snaps moves to the page and to the bounding boxes of other objects.</summary>
+    public bool SnapToObjects { get; set; } = true;
+
+    /// <summary>The Gradient tool works on the stroke instead of the fill.</summary>
+    public bool GradientOnStroke { get; set; }
 }
 
 /// <summary>Font and options for the Text tool.</summary>

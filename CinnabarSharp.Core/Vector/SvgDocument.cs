@@ -167,6 +167,12 @@ public sealed class SvgDocument : IDocument
     /// <summary>The user-space point under a picture pixel (what tools receive pointer positions as).</summary>
     public VPoint ImageToUserPoint(VPoint p) => (UserToImage.Invert() ?? Matrix2D.Identity).Transform(p);
 
+    /// <summary>How many user units one picture pixel at 100 % is (so a 5 pixel handle is <c>PixelsToUser(5 / zoom)</c>).</summary>
+    public double PixelsToUser(double pixels) => pixels / Math.Max(UserToImage.MeanScale, 1e-9);
+
+    /// <summary>User units that are <paramref name="screenPixels"/> long on the screen at the current zoom (hit tolerances, handle sizes).</summary>
+    public double ScreenToUser(double screenPixels) => PixelsToUser(screenPixels / Math.Max(Workspace.Scale, 1e-9));
+
     // ---- Events ----
 
     internal void NotifyTreeChanged() =>

@@ -26,7 +26,10 @@ public sealed partial class SvgActions
     private sealed class Transaction(SvgDocument document, string name, string? coalesceKey = null)
     {
         private readonly List<VectorStepItem> _steps = [];
-        private readonly List<long> _selectionBefore = document.Selection.Nodes.Select(n => n.InternalId).ToList();
+        private List<long> _selectionBefore = document.Selection.Nodes.Select(n => n.InternalId).ToList();
+
+        /// <summary>The selection undo goes back to, when a gesture changed it before the entry was made.</summary>
+        public void SetSelectionBefore(IEnumerable<SvgElement> nodes) => _selectionBefore = nodes.Select(n => n.InternalId).ToList();
 
         public bool HasSteps => _steps.Count > 0;
 
@@ -139,7 +142,7 @@ public sealed partial class SvgActions
     private static Matrix2D WorldOf(SvgContainer? parent) => parent is null ? Matrix2D.Identity : SvgBounds.ToDocument(parent);
 
     /// <summary>The same document-space change written in the coordinates of the node's parent.</summary>
-    private static Matrix2D ToParentSpace(SvgElement node, Matrix2D documentMatrix)
+    internal static Matrix2D ToParentSpace(SvgElement node, Matrix2D documentMatrix)
     {
         var world = WorldOf(node.Parent);
         return world.Invert() is { } inverse ? inverse * documentMatrix * world : Matrix2D.Identity;
@@ -211,12 +214,15 @@ public sealed partial class SvgActions
         Transform(nodes, Matrix2D.Translate(dx, dy), "Move");
 
     /// <summary>Applies a transformation given in the document's user space to each element, in the most natural form.</summary>
-    public void Transform(IEnumerable<SvgElement>? nodes, Matrix2D documentMatrix, string name = "Transform")
+    public void Transform(IEnumerable<SvgElement>? nodes, Matrix2D documentMatrix, string name = "Transform",
+        IEnumerable<SvgElement>? selectionBefore = null)
     {
         var targets = TopLevel(nodes);
         if (targets.Count == 0 || documentMatrix.IsIdentity)
             return;
         var tx = Begin(name);
+        if (selectionBefore is not null)
+            tx.SetSelectionBefore(selectionBefore);
         tx.Edit(targets, () =>
         {
             foreach (var node in targets)
