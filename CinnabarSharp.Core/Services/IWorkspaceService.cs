@@ -17,6 +17,9 @@ namespace CinnabarSharp.Core.Services
 
         /// <summary>New single-layer document holding the image (Paste Into New Image).</summary>
         ImageDocument NewDocumentFromImage(ClipboardImage image);
+        /// <summary>Opens a vector drawing as a new tab: the document is built from DI, gets the root and the file, starts its history and becomes active.</summary>
+        CinnabarSharp.Core.Vector.SvgDocument OpenSvgDocument(CinnabarSharp.Vector.SvgRoot root, ImageFile? file, string? fileType);
+
         void SetActiveDocument(IDocument document);
 
         /// <summary>Closes the document without saving; the next document (or the previous one, if it was last) becomes active.</summary>

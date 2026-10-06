@@ -91,6 +91,25 @@ namespace CinnabarSharp.Core.Services
             return doc;
         }
 
+        private int new_svg_name = 1;
+
+        public CinnabarSharp.Core.Vector.SvgDocument OpenSvgDocument(CinnabarSharp.Vector.SvgRoot root, ImageFile? file, string? fileType)
+        {
+            var doc = serviceProvider.GetService<CinnabarSharp.Core.Vector.SvgDocument>()!;
+            doc.Attach(root);
+            if (file is not null)
+            {
+                doc.File = file;
+                doc.FileType = fileType ?? file.Extension.TrimStart('.').ToLowerInvariant();
+            }
+            else
+                doc.DisplayName = Translations.GetString("Unsaved Drawing {0}", new_svg_name++);
+            doc.Workspace.ViewSize = doc.ImageSize;
+            doc.Workspace.History.PushNewItem(new BaseHistoryItem(file is null ? "New Drawing" : "Open Drawing"));
+            AddAndActivate(doc);
+            return doc;
+        }
+
         public void AddAndActivate(IDocument document)
         {
             OpenDocuments.Add(document);

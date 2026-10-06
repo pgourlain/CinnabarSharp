@@ -35,6 +35,8 @@ namespace CinnabarSharp.Core.Models
         public ImageDocumentLayers Layers { get; }
         public ImageDocumentWorkspace Workspace { get; }
 
+        public IImageDocumentHistory History => Workspace.History;
+
         /// <summary>Selected pixels, or null when nothing is selected (tools then act on the whole layer).</summary>
         public SelectionMask? Selection { get; private set; }
 

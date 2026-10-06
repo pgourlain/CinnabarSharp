@@ -1,0 +1,159 @@
+using CinnabarSharp.Core.Models;
+using CinnabarSharp.Core.Services;
+using CinnabarSharp.Vector;
+using Microsoft.Extensions.Logging;
+
+namespace CinnabarSharp.Core.Vector;
+
+/// <summary>Event for a change to one node: <see cref="DocumentEventEnum.VectorNodeChanged"/>.</summary>
+public record VectorNodeEventItem : EventItem<DocumentEventEnum>
+{
+    public VectorNodeEventItem(SvgDocument document, DocumentEventEnum state, SvgNode node, VRect? dirtyBounds)
+        : base(document, state)
+    {
+        Node = node;
+        DirtyBounds = dirtyBounds;
+    }
+
+    public SvgNode Node { get; }
+
+    /// <summary>Area of the user space that needs redrawing (node bounds before and after the change), or null for "unknown".</summary>
+    public VRect? DirtyBounds { get; }
+}
+
+/// <summary>
+/// A vector drawing: the <see cref="SvgRoot"/> tree plus what a tab needs (file, dirty state, zoom, history, selection).
+/// Edits go through <see cref="Actions"/>; the user space is the root's viewBox, shown at 96 dpi times zoom.
+/// </summary>
+public sealed class SvgDocument : IDocument
+{
+    private readonly IDocumentEventsService _events;
+    private SvgRoot _root;
+    private bool _isDirty;
+    private string _displayName = string.Empty;
+    private ImageFile? _file;
+
+    public SvgDocument(IDocumentEventsService events, ILogger<SvgDocument> logger, IHistoryStorage? historyStorage = null)
+    {
+        _events = events;
+        _root = new SvgRoot();
+        Selection = new SvgSelection(this);
+        Workspace = new ImageDocumentWorkspace(this, new ImageDocumentHistory(this, events, storage: historyStorage), events, logger);
+    }
+
+    public Guid Id { get; } = Guid.NewGuid();
+
+    public DocumentKind Kind => DocumentKind.Svg;
+
+    public SvgRoot Root => _root;
+
+    /// <summary>The selected objects.</summary>
+    public SvgSelection Selection { get; }
+
+    public ImageDocumentWorkspace Workspace { get; }
+
+    public IImageDocumentHistory History => Workspace.History;
+
+    /// <summary>Replaces the drawing (opening a file); the size and the tree events follow.</summary>
+    public void Attach(SvgRoot root)
+    {
+        _root = root;
+        Selection.Clear();
+        Workspace.UpdateViewSize();
+        NotifyTreeChanged();
+    }
+
+    // ---- IDocument ----
+
+    public string DisplayName
+    {
+        get => _displayName;
+        set
+        {
+            _displayName = value;
+            _events.PushEvent(new DocumentEventItem(this, DocumentEventEnum.DocumentRenamed));
+        }
+    }
+
+    public ImageFile? File
+    {
+        get => _file;
+        set
+        {
+            _file = value;
+            DisplayName = value?.Name ?? string.Empty;
+        }
+    }
+
+    public string? FileType { get; set; }
+
+    public bool IsDirty
+    {
+        get => _isDirty;
+        set
+        {
+            if (_isDirty == value)
+                return;
+            _isDirty = value;
+            _events.PushEvent(new DocumentEventItem(this, DocumentEventEnum.DirtyChanged));
+        }
+    }
+
+    /// <summary>Pixel size of the picture at 100 % zoom (96 dpi): the root's width and height, rounded up.</summary>
+    public ImageSize ImageSize
+    {
+        get
+        {
+            var (w, h) = _root.PixelSize;
+            return new ImageSize(Math.Max(1, (int)Math.Ceiling(w - 1e-9)), Math.Max(1, (int)Math.Ceiling(h - 1e-9)));
+        }
+        set
+        {
+            // Changing the size keeps the drawing: the viewBox is set first so the content scales with the page.
+            if (_root.ViewBox is null)
+            {
+                var (w, h) = _root.UserSize;
+                _root.ViewBox = new VRect(0, 0, w, h);
+            }
+            _root.Width = SvgLength.Px(value.Width);
+            _root.Height = SvgLength.Px(value.Height);
+            Workspace.UpdateViewSize();
+            Workspace.Invalidate();
+            NotifyTreeChanged();
+        }
+    }
+
+    public void Close()
+    {
+        Selection.Clear();
+        Workspace.History.Clear();
+    }
+
+    public (byte[] Bgra, int Width, int Height) GetThumbnail(int maxSide)
+    {
+        // Rendering comes with the rasterizer; a transparent pixel until then.
+        return (new byte[4], 1, 1);
+    }
+
+    // ---- Coordinates ----
+
+    /// <summary>Maps user-space coordinates (the viewBox) to picture pixels at 100 %.</summary>
+    public Matrix2D UserToImage => _root.UserToPixel;
+
+    /// <summary>The picture pixel (image coordinates) under a point of the user space.</summary>
+    public VPoint UserToImagePoint(VPoint p) => UserToImage.Transform(p);
+
+    /// <summary>The user-space point under a picture pixel (what tools receive pointer positions as).</summary>
+    public VPoint ImageToUserPoint(VPoint p) => (UserToImage.Invert() ?? Matrix2D.Identity).Transform(p);
+
+    // ---- Events ----
+
+    internal void NotifyTreeChanged() =>
+        _events.PushEvent(new DocumentEventItem(this, DocumentEventEnum.VectorTreeChanged));
+
+    internal void NotifySelectionChanged() =>
+        _events.PushEvent(new DocumentEventItem(this, DocumentEventEnum.VectorSelectionChanged));
+
+    internal void NotifyNodeChanged(SvgNode node, VRect? dirtyBounds) =>
+        _events.PushEvent(new VectorNodeEventItem(this, DocumentEventEnum.VectorNodeChanged, node, dirtyBounds));
+}

@@ -35,7 +35,7 @@ namespace CinnabarSharp.Core.Models
     {
         private readonly IDocument document;
         private readonly IDocumentEventsService _documentEventsService;
-        private readonly ILogger<ImageDocument> _logger;
+        private readonly ILogger _logger;
         private ImageSize _viewSize;
 
         // The zoom as requested. Deriving it from ViewSize (whole pixels) loses precision: at 25 % a 1023-pixel-wide
@@ -51,7 +51,7 @@ namespace CinnabarSharp.Core.Models
 
         internal ImageDocumentWorkspace(IDocument document, IImageDocumentHistory imageDocumentHistory,
             IDocumentEventsService documentEventsService,
-            ILogger<ImageDocument> logger)
+            ILogger logger)
         {
 
             this.document = document;

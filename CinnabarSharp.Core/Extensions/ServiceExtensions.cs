@@ -34,6 +34,7 @@ namespace CinnabarSharp.Core.Extensions
 			services.AddSingleton<IImageImporter, OraFormat>();
 
 			services.AddTransient<ImageDocument>();
+			services.AddTransient<CinnabarSharp.Core.Vector.SvgDocument>();
 
 			return services;
 		}
