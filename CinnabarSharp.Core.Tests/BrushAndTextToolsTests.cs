@@ -37,8 +37,26 @@ public sealed class BlockTextRasterizer : ITextRasterizer
 public sealed class FakeClipboard : IClipboardService
 {
     public string? Text { get; set; }
-    public Task SetImageAsync(ClipboardImage image) => Task.CompletedTask;
-    public Task<ClipboardImage?> GetImageAsync() => Task.FromResult<ClipboardImage?>(null);
+    public string? Svg { get; set; }
+    public ClipboardImage? Image { get; set; }
+    public Task SetImageAsync(ClipboardImage image)
+    {
+        Image = image;
+        return Task.CompletedTask;
+    }
+
+    public Task<ClipboardImage?> GetImageAsync() => Task.FromResult(Image);
+
+    public Task SetSvgAsync(string svg, ClipboardImage? picture)
+    {
+        Svg = svg;
+        Text = svg;
+        Image = picture;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetSvgAsync() =>
+        Task.FromResult(Svg ?? (CinnabarSharp.Core.Vector.SvgClipboard.LooksLikeSvg(Text) ? Text : null));
 
     public Task SetTextAsync(string text)
     {

@@ -265,6 +265,9 @@ public abstract class SvgElement : SvgNode
         return [.. result];
     }
 
+    /// <summary>Sets a list attribute (<c>x="1 2 3"</c>).</summary>
+    public void SetAttributeNumbers(XName name, IEnumerable<double>? values) => SetNumberList(name, values);
+
     protected void SetNumberList(XName name, IEnumerable<double>? values) =>
         SetAttribute(name, values is null ? null : string.Join(' ', values.Select(v => NumberFormat.Format(v, 6))));
 
@@ -333,6 +336,8 @@ public abstract class SvgContainer : SvgElement
     /// <summary>The modeled children (no comments or other raw content), in order.</summary>
     public IEnumerable<SvgElement> Elements => _children.OfType<SvgElement>();
 
+    public int IndexOf(SvgNode child) => _children.IndexOf(child);
+
     public void AddChild(SvgNode child) => InsertChild(_children.Count, child);
 
     public void InsertChild(int index, SvgNode child)
@@ -373,6 +378,15 @@ public abstract class SvgContainer : SvgElement
     {
         _children.Add(child);
         child.Parent = this;
+    }
+
+    /// <summary>Replaces all children (restoring the content of a text element); the old children lose their parent.</summary>
+    public void ReplaceChildren(IEnumerable<SvgNode> children)
+    {
+        ClearChildren();
+        foreach (var child in children)
+            AddParsedChild(child);
+        MarkChanged();
     }
 
     internal void ClearChildren()

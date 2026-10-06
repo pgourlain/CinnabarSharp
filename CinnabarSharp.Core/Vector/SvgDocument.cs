@@ -40,6 +40,7 @@ public sealed class SvgDocument : IDocument
         _events = events;
         _root = new SvgRoot();
         Selection = new SvgSelection(this);
+        Actions = new SvgActions(this);
         Workspace = new ImageDocumentWorkspace(this, new ImageDocumentHistory(this, events, storage: historyStorage), events, logger);
     }
 
@@ -48,6 +49,9 @@ public sealed class SvgDocument : IDocument
     public DocumentKind Kind => DocumentKind.Svg;
 
     public SvgRoot Root => _root;
+
+    /// <summary>User-level edits that are recorded in the undo history: the only way to change the drawing.</summary>
+    public SvgActions Actions { get; }
 
     /// <summary>The selected objects.</summary>
     public SvgSelection Selection { get; }

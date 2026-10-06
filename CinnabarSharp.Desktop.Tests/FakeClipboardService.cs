@@ -23,4 +23,17 @@ public class FakeClipboardService : IClipboardService
     }
 
     public Task<string?> GetTextAsync() => Task.FromResult(Text);
+
+    public string? Svg { get; set; }
+
+    public Task SetSvgAsync(string svg, ClipboardImage? picture)
+    {
+        Svg = svg;
+        Text = svg;
+        Image = picture;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetSvgAsync() =>
+        Task.FromResult(Svg ?? (CinnabarSharp.Core.Vector.SvgClipboard.LooksLikeSvg(Text) ? Text : null));
 }

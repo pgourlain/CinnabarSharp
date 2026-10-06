@@ -58,4 +58,22 @@ public sealed class SvgSelection
         if (alive.Count != _nodes.Count)
             Set(alive);
     }
+
+    private bool _pruned;
+
+    /// <summary>Drops the nodes that left the document without raising an event yet (see <see cref="NotifyIfPruned"/>).</summary>
+    internal void PruneQuietly()
+    {
+        var root = _document.Root;
+        if (_nodes.RemoveAll(n => n.DocumentRoot != root) > 0)
+            _pruned = true;
+    }
+
+    internal void NotifyIfPruned()
+    {
+        if (!_pruned)
+            return;
+        _pruned = false;
+        _document.NotifySelectionChanged();
+    }
 }

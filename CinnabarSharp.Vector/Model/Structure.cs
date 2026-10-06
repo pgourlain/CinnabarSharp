@@ -7,6 +7,8 @@ public sealed class SvgRoot : SvgContainer
 {
     private Dictionary<string, SvgElement>? _index;
     private int _indexVersion = -1;
+    private Dictionary<long, SvgNode>? _internalIndex;
+    private int _internalIndexVersion = -1;
     private Stylesheet _stylesheet = Stylesheet.Empty;
     private int _stylesheetVersion = -1;
 
@@ -142,6 +144,19 @@ public sealed class SvgRoot : SvgContainer
             _indexVersion = Version;
         }
         return _index.GetValueOrDefault(id);
+    }
+
+    /// <summary>The node with this <see cref="SvgNode.InternalId"/> (the stable identity history steps use), or null when it is not in the tree.</summary>
+    public SvgNode? FindByInternalId(long id)
+    {
+        if (_internalIndex is null || _internalIndexVersion != Version)
+        {
+            _internalIndex = [];
+            foreach (var node in SelfAndDescendants())
+                _internalIndex[node.InternalId] = node;
+            _internalIndexVersion = Version;
+        }
+        return _internalIndex.GetValueOrDefault(id);
     }
 
     /// <summary>True when an element of the document already uses this id.</summary>

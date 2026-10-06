@@ -274,6 +274,16 @@ public sealed class VectorPath
         return result;
     }
 
+    /// <summary>The path moved by (<paramref name="dx"/>, <paramref name="dy"/>); unlike <see cref="Transformed"/> it keeps arcs.</summary>
+    public VectorPath Translated(double dx, double dy)
+    {
+        var result = new VectorPath();
+        VPoint Move(VPoint p) => new(p.X + dx, p.Y + dy);
+        foreach (var segment in _segments)
+            result.Add(segment with { End = Move(segment.End), C1 = Move(segment.C1), C2 = Move(segment.C2) });
+        return result;
+    }
+
     // ---- Shapes ----
 
     public static VectorPath FromRect(double x, double y, double width, double height, double rx = 0, double ry = 0)

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -42,6 +43,48 @@ public class AvaloniaClipboardService(TopLevel topLevel) : IClipboardService
 
     public async Task<string?> GetTextAsync() =>
         topLevel.Clipboard is { } clipboard ? await clipboard.TryGetTextAsync() : null;
+
+    private static readonly DataFormat<string> SvgText = DataFormat.CreateStringPlatformFormat("image/svg+xml");
+    private static readonly DataFormat<byte[]> SvgBytes = DataFormat.CreateBytesPlatformFormat("image/svg+xml");
+
+    public async Task SetSvgAsync(string svg, ClipboardImage? picture)
+    {
+        if (topLevel.Clipboard is not { } clipboard)
+            return;
+        var item = new DataTransferItem();
+        item.Set(SvgText, svg);
+        item.SetText(svg);
+        if (picture is not null)
+        {
+            var bitmap = new WriteableBitmap(new PixelSize(picture.Width, picture.Height), new Avalonia.Vector(96, 96),
+                PixelFormat.Bgra8888, AlphaFormat.Unpremul);
+            using (var fb = bitmap.Lock())
+                for (var y = 0; y < picture.Height; y++)
+                    Marshal.Copy(picture.Bgra, y * picture.Width * 4, fb.Address + y * fb.RowBytes, picture.Width * 4);
+            item.SetBitmap(bitmap);
+        }
+        var transfer = new DataTransfer();
+        transfer.Add(item);
+        await clipboard.SetDataAsync(transfer);
+    }
+
+    public async Task<string?> GetSvgAsync()
+    {
+        if (topLevel.Clipboard is not { } clipboard || await clipboard.TryGetDataAsync() is not { } data)
+            return null;
+        try
+        {
+            if (await data.TryGetValueAsync(SvgText) is { Length: > 0 } text)
+                return text;
+            if (await data.TryGetValueAsync(SvgBytes) is { Length: > 0 } bytes)
+                return System.Text.Encoding.UTF8.GetString(bytes);
+            return await data.TryGetTextAsync() is { } plain && CinnabarSharp.Core.Vector.SvgClipboard.LooksLikeSvg(plain) ? plain : null;
+        }
+        finally
+        {
+            (data as IDisposable)?.Dispose();
+        }
+    }
 
     /// <summary>Copies any Avalonia bitmap into straight-alpha BGRA by drawing it into a known format.</summary>
     public static ClipboardImage ToClipboardImage(Bitmap bitmap)
