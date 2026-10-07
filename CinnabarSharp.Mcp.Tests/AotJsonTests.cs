@@ -16,7 +16,7 @@ public class AotJsonTests
     public static TheoryData<string> ToolTypes()
     {
         var types = new HashSet<Type>();
-        foreach (var method in typeof(ImageTools).GetMethods().Where(m => m.GetCustomAttribute<McpServerToolAttribute>() is not null))
+        foreach (var method in typeof(ImageTools).GetMethods().Concat(typeof(VectorTools).GetMethods()).Where(m => m.GetCustomAttribute<McpServerToolAttribute>() is not null))
         {
             foreach (var p in method.GetParameters().Where(p => !Injected.Contains(p.ParameterType)))
                 types.Add(p.ParameterType);

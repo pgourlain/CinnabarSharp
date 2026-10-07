@@ -6,6 +6,8 @@ using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Photo;
 using CinnabarSharp.Core.Services;
 using CinnabarSharp.Core.Tools;
+using CinnabarSharp.Core.Vector;
+using CinnabarSharp.Vector;
 using ImageMagick;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -21,7 +23,7 @@ namespace CinnabarSharp.Mcp;
 [McpServerToolType]
 public sealed class ImageTools(McpContext context)
 {
-    private const string DocumentHelp = "Id or name of an open image (see list_documents); the active image when omitted.";
+    private const string DocumentHelp = "Id or name of an open document (see list_documents); the active document when omitted.";
     private const string LayerHelp = "Layer index, 0 = bottom layer; the current layer when omitted.";
     private const string ModeHelp = "How it combines with the current selection: Replace (default), Union, Exclude, Xor, Intersect.";
 
@@ -53,8 +55,8 @@ public sealed class ImageTools(McpContext context)
 
     [McpServerTool(Name = "save_image"), Description(
         "Saves the image to a file, which becomes the image's file (like File › Save / Save As). The format comes from " +
-        "'format' or the extension; only ORA keeps layers, other formats save the flattened image. Refuses to replace an " +
-        "existing file unless overwrite is true.")]
+        "'format' or the extension; only ORA keeps layers, other formats save the flattened image. An SVG drawing is saved " +
+        "as SVG (use export_image for a picture of it). Refuses to replace an existing file unless overwrite is true.")]
     public Task<SavedFile> SaveImage(
         [Description(DocumentHelp)] string? document = null,
         [Description("Destination path; the image's own file when omitted.")] string? path = null,
@@ -63,10 +65,14 @@ public sealed class ImageTools(McpContext context)
         [Description("Must be true to replace an existing file, including the image's own file.")] bool overwrite = false) =>
         context.Run(() =>
         {
-            var doc = context.Document(document);
+            var doc = context.AnyDocument(document);
             var target = path ?? doc.File?.FullName
-                ?? throw new McpException("This image has never been saved: give a path.");
+                ?? throw new McpException("This document has never been saved: give a path.");
             var (file, imageFormat) = Destination(target, format, overwrite);
+            if (doc is SvgDocument && imageFormat.DocumentKind != DocumentKind.Svg)
+                throw new McpException("An SVG drawing is saved as .svg (or .svgz). Use export_image to write a PNG, JPEG or other picture of it.");
+            if (doc is ImageDocument && imageFormat.DocumentKind == DocumentKind.Svg)
+                throw new McpException("An image can't be saved as SVG. Pick a raster format.");
             WithJpegQuality(imageFormat, jpegQuality, () => context.Formats.Save(doc, file, imageFormat));
             return Saved(file, imageFormat);
         });
@@ -79,12 +85,27 @@ public sealed class ImageTools(McpContext context)
         [Description(DocumentHelp)] string? document = null,
         [Description("Format name or extension (png, jpg, bmp, gif, tiff, webp, ora); from the extension when omitted.")] string? format = null,
         [Description("JPEG quality 1-100 (default 90).")] int? jpegQuality = null,
-        [Description("Must be true to replace an existing file.")] bool overwrite = false) =>
+        [Description("Must be true to replace an existing file.")] bool overwrite = false,
+        [Description("SVG drawings only: width of the picture in pixels (the height follows the ratio).")] int? width = null,
+        [Description("SVG drawings only: height in pixels, when no width is given.")] int? height = null,
+        [Description("SVG drawings only: color behind the drawing (#RRGGBB, white, black…); transparent when omitted.")] string? background = null) =>
         context.Run(() =>
         {
-            var doc = context.Document(document);
+            var doc = context.AnyDocument(document);
             var (file, imageFormat) = Destination(path, format, overwrite);
-            WithJpegQuality(imageFormat, jpegQuality, () => imageFormat.Export(doc, file));
+            if (doc is SvgDocument drawing)
+            {
+                if (imageFormat.DocumentKind == DocumentKind.Svg)
+                    throw new McpException("To write the drawing as SVG use save_image; export_image writes pictures (PNG, JPEG, WebP…).");
+                if (width is <= 0 or > 32768 || height is <= 0 or > 32768)
+                    throw new McpException("width and height must be between 1 and 32768.");
+                var fill = background is null ? null : Parse.Color(background, ColorBgra.Transparent) is { A: > 0 } c
+                    ? (CinnabarSharp.Vector.VColor?)CinnabarSharp.Vector.VColor.FromRgb(c.R, c.G, c.B) : null;
+                var options = new SvgExportOptions(1, width, height, fill);
+                WithJpegQuality(imageFormat, jpegQuality, () => context.Formats.Export(drawing, file, options, imageFormat));
+            }
+            else
+                WithJpegQuality(imageFormat, jpegQuality, () => imageFormat.Export(context.RequireImage(doc), file));
             file.Refresh();
             return Saved(file, imageFormat);
         });
@@ -117,8 +138,9 @@ public sealed class ImageTools(McpContext context)
         [Description("Number of histogram bins, 1-256 (default 16).")] int histogramBins = 16) =>
         context.Run(() =>
         {
-            var doc = context.Document(document);
-            return new ImageInfo(Describe.Document(context, doc), includeHistogram ? Describe.Histogram(doc, histogramBins) : null);
+            var doc = context.AnyDocument(document);
+            return new ImageInfo(Describe.Document(context, doc),
+                includeHistogram && doc is ImageDocument image ? Describe.Histogram(image, histogramBins) : null);
         });
 
     [McpServerTool(Name = "render_preview", ReadOnly = true), Description(
@@ -130,8 +152,11 @@ public sealed class ImageTools(McpContext context)
     {
         var (bgra, width, height, name) = await context.Run(() =>
         {
-            var doc = context.Document(document);
-            return (doc.Layers.GetFlattenedBgra(includeToolLayer: false), doc.ImageSize.Width, doc.ImageSize.Height, doc.DisplayName);
+            var doc = context.AnyDocument(document);
+            return doc is ImageDocument image
+                ? (image.Layers.GetFlattenedBgra(includeToolLayer: false), image.ImageSize.Width, image.ImageSize.Height, image.DisplayName)
+                : (VectorRasterizer.RenderAll(((SvgDocument)doc).Root, 1, ((SvgDocument)doc).RenderOptions).Bgra,
+                    doc.ImageSize.Width, doc.ImageSize.Height, doc.DisplayName);
         });
         var (png, w, h) = Preview(bgra, width, height, Math.Clamp(maxSize, 16, 2048));
         return
@@ -143,14 +168,14 @@ public sealed class ImageTools(McpContext context)
 
     [McpServerTool(Name = "get_history", ReadOnly = true), Description("The image's undo history; 'current' marks the state the image is in.")]
     public Task<IReadOnlyList<HistoryStep>> GetHistory([Description(DocumentHelp)] string? document = null) =>
-        context.Run(() => Describe.History(context.Document(document)));
+        context.Run(() => Describe.History(context.AnyDocument(document)));
 
     // ---------------------------------------------------------------- History
 
     [McpServerTool(Name = "undo"), Description("Undoes the last steps of an image.")]
     public Task<DocumentInfo> Undo([Description(DocumentHelp)] string? document = null,
         [Description("Number of steps (default 1).")] int steps = 1) =>
-        Edit(document, doc =>
+        EditAny(document, doc =>
         {
             for (var i = 0; i < steps && doc.Workspace.History.CanUndo; i++)
                 doc.Workspace.History.Undo();
@@ -159,7 +184,7 @@ public sealed class ImageTools(McpContext context)
     [McpServerTool(Name = "redo"), Description("Redoes steps that were undone.")]
     public Task<DocumentInfo> Redo([Description(DocumentHelp)] string? document = null,
         [Description("Number of steps (default 1).")] int steps = 1) =>
-        Edit(document, doc =>
+        EditAny(document, doc =>
         {
             for (var i = 0; i < steps && doc.Workspace.History.CanRedo; i++)
                 doc.Workspace.History.Redo();
@@ -655,6 +680,13 @@ public sealed class ImageTools(McpContext context)
 
     private IReadOnlyList<DocumentInfo> Documents() =>
         context.Workspace.OpenDocuments.Select(d => Describe.Document(context, d)).ToList();
+
+    private Task<DocumentInfo> EditAny(string? document, Action<IDocument> edit) => context.Run(() =>
+    {
+        var doc = context.AnyDocument(document);
+        edit(doc);
+        return Describe.Document(context, doc);
+    });
 
     private Task<DocumentInfo> Edit(string? document, Action<ImageDocument> edit) => context.Run(() =>
     {

@@ -24,7 +24,10 @@ public static class McpHost
         "the tools (apply_effect with names from list_effects, crop, resize_image, layers, selections), look at the " +
         "result with render_preview, then save_image or export_image. Edits apply to the current layer inside the " +
         "selection, if any. Every edit is one undo step (undo/redo). Files can only be read and written inside the " +
-        "allowed folders; replacing a file needs overwrite=true and closing unsaved work needs discardChanges=true.";
+        "allowed folders; replacing a file needs overwrite=true and closing unsaved work needs discardChanges=true. " +
+        "Vector drawings (SVG) are separate documents: new_svg or open_image on an .svg file, then the svg_ tools " +
+        "(svg_tree to see the objects, svg_add_shape/path/text/image, svg_set_style, svg_transform, svg_path_operation…). " +
+        "The same save_image, export_image (a PNG of the drawing), render_preview, undo and redo work on them.";
 
     public static bool IsMcpCommand(string[] args) => args.Contains("--mcp");
 
@@ -75,6 +78,7 @@ public static class McpHost
             o.ServerInstructions = Instructions;
         })
         .WithTools<ImageTools>(McpJson.ToolOptions)
+        .WithTools<VectorTools>(McpJson.ToolOptions)
         .WithResources<ImageResources>();
 
     private static string? Option(string[] args, string name) => Options(args, name).LastOrDefault();

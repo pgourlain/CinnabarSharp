@@ -151,3 +151,42 @@ open_image path=$out/flat.png
 get_image_info
 list_documents
 close_image discardChanges=true
+
+# ---- SVG drawings (the svg_ tools; objects are named by their XML ids, which are deterministic)
+new_svg width=200 height=200 units=px
+svg_add_shape kind=rect x=20 y=20 width=100 height=100 cornerRadius=12 fill=#cc2200 stroke=#220000 strokeWidth=3
+svg_add_shape kind=ellipse x=80 y=80 width=100 height=100 fill=#2255cc opacity=0.9
+svg_add_shape kind=star x=120 y=10 width=70 height=70 corners=5 ratio=0.45 rotation=-90 fill=#ffcc00
+svg_add_shape kind=line x=10 y=190 x2=190 y2=170 stroke=#000000 strokeWidth=4
+svg_add_path d="M10 150 C40 100 70 200 100 150" stroke=#00aa00 strokeWidth=3 fill=none
+svg_add_text text="Hi" x=20 y=60 fontSize=24 bold=true fill=#ffffff
+svg_add_image path=$samples/sample1.png x=150 y=150 width=40 height=30
+svg_tree
+svg_get_node node=rect1
+svg_set_style nodes=["rect1"] properties={"fill":"#aa2200","stroke-linejoin":"round"}
+svg_set_attributes node=rect1 attributes={"x":"22","width":"98"}
+svg_rename node=rect1 label="Red box"
+svg_set_gradient nodes=["star1"] stops=["0:#ffcc00","1:#ff6600"] kind=radial
+svg_transform action=rotate degrees=15 nodes=["star1"]
+svg_duplicate nodes=["line1"]
+svg_group nodes=["rect1","ellipse1"]
+svg_select nodes=["g1"]
+svg_ungroup
+svg_reorder move=to_top nodes=["rect1"]
+svg_align align=left relativeTo=page nodes=["rect1","star1"]
+svg_align distribute=center nodes=["rect1","ellipse1","star1"]
+svg_path_operation operation=stroke_to_path nodes=["line1"]
+svg_path_operation operation=union nodes=["rect1","ellipse1"]
+svg_path_operation operation=simplify nodes=["ellipse1"]
+svg_reorder move=to_top nodes=["star1"]
+svg_clip nodes=["image1","star1"]
+svg_clip release=true nodes=["image1"]
+svg_delete nodes=["text1"]
+get_history
+undo
+redo
+render_preview maxSize=128
+save_image path=$out/drawing.svg overwrite=true
+export_image path=$out/drawing.png width=100 background=white overwrite=true
+list_documents
+close_image discardChanges=true

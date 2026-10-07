@@ -169,7 +169,7 @@ public class ScriptTests : IDisposable
         var (exit, stderr, _) = await RunFile(SmokeScript, "--quiet");
 
         Assert.True(exit == 0, stderr);
-        foreach (var file in new[] { "result.png", "result.jpg", "result.ora", "flat.png", "flat.jpg" })
+        foreach (var file in new[] { "result.png", "result.jpg", "result.ora", "flat.png", "flat.jpg", "drawing.svg", "drawing.png" })
             Assert.True(new FileInfo(Path.Combine(Out, file)).Length > 1000, file);
     }
 

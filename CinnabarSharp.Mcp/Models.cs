@@ -36,6 +36,18 @@ public sealed record FolderExportResult(string OutputFolder, int Count);
 
 public sealed record SuggestedValues(string Effect, IReadOnlyDictionary<string, double>? Parameters, IReadOnlyList<double>? Values);
 
+public sealed record RectD(double X, double Y, double Width, double Height);
+
+/// <summary>One object of an SVG drawing. <c>Node</c> is the id to give the other svg_ tools (the XML id works too).</summary>
+public sealed record SvgNodeInfo(string Node, string Element, string? Id, string? Label, int Depth, string? Parent, RectD? Bounds,
+    string? Fill, string? Stroke, double Opacity, bool Visible, bool Locked, int Children);
+
+public sealed record SvgNodeDetails(SvgNodeInfo Info, IReadOnlyDictionary<string, string> Attributes,
+    IReadOnlyDictionary<string, string> Style, string? Text, IReadOnlyList<string> Children);
+
+/// <summary>What an svg_ editing tool did: the objects it created or changed, and the document's undo state.</summary>
+public sealed record SvgEditResult(string Document, IReadOnlyList<SvgNodeInfo> Nodes, bool CanUndo, bool CanRedo);
+
 public static class Describe
 {
     public static DocumentInfo Document(McpContext context, IDocument any)
@@ -61,7 +73,7 @@ public static class Describe
             history.CanRedo);
     }
 
-    public static IReadOnlyList<HistoryStep> History(ImageDocument doc)
+    public static IReadOnlyList<HistoryStep> History(IDocument doc)
     {
         var history = doc.Workspace.History;
         return history.Items.Select((item, i) => new HistoryStep(i, item.Text, i == history.Pointer, i > history.Pointer)).ToList();

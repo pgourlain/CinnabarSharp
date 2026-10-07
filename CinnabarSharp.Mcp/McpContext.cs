@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Services;
 using CinnabarSharp.Core.Tools;
+using CinnabarSharp.Core.Vector;
 using ImageMagick;
 using ModelContextProtocol;
 
@@ -91,4 +92,10 @@ public sealed class McpContext(IWorkspaceService workspace, IFormatManager forma
     public ImageDocument RequireImage(IDocument document) =>
         document as ImageDocument
         ?? throw new McpException($"Document {IdOf(document)} is an SVG document; this tool works on images.");
+
+    public SvgDocument Svg(string? id) => RequireSvg(AnyDocument(id));
+
+    public SvgDocument RequireSvg(IDocument document) =>
+        document as SvgDocument
+        ?? throw new McpException($"Document {IdOf(document)} is an image; this tool works on SVG drawings (new_svg, or open_image on an .svg file).");
 }

@@ -32,7 +32,7 @@ echo "Smoke test of $exe"
 "$exe" --run "$(native "$root/packaging/smoke-test.txt")" \
   --var "samples=$samples" --var "out=$output" --allow "$samples" --allow "$output" --quiet
 
-for file in result.png result.jpg result.ora flat.png flat.jpg; do
+for file in result.png result.jpg result.ora flat.png flat.jpg drawing.svg drawing.png; do
   [ -s "$work/out/$file" ] || { echo "Missing output: $file" >&2; exit 1; }
 done
 echo "Smoke test passed ($rid)"

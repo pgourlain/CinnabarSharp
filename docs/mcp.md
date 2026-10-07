@@ -84,6 +84,48 @@ Resources: `cinnabar://documents`, `cinnabar://effects` (every effect with its p
 
 Images are identified by the `id` that `open_image`, `new_image` and `list_documents` return. When you give no id, the tool uses the active image. Layers are numbered from 0, the bottom layer.
 
+## SVG drawings
+
+An SVG drawing is a document of its own (`"kind": "svg"` in `list_documents`): `new_svg`, or `open_image` on an `.svg` file. The
+`svg_` tools edit it; they all work through the same actions as the Object and Path menus, so each call is one undo step. The
+raster tools (layers, selections, effects…) refuse an SVG document with a message that says so, and the `svg_` tools refuse an image.
+
+| Tool | What it does |
+|---|---|
+| `new_svg` | New empty drawing: `width`, `height`, `units` (px, mm, in) |
+| `svg_tree` | The objects, bottom to top, with node id, element, XML id, label, depth, bounds, fill, stroke, opacity |
+| `svg_get_node` | One object: attributes, resolved style, text, children |
+| `svg_add_shape` | `kind`: rect (`cornerRadius`), ellipse, line (`x2`, `y2`), polygon, star (`corners`, `ratio`, `rotation`); `fill`, `stroke`, `strokeWidth`, `opacity` |
+| `svg_add_path` | A path from SVG path data (`d`) |
+| `svg_add_text` | A line of text. Headless mode has no fonts: text shows as a gray block; the app draws it with real fonts |
+| `svg_add_image` | A picture file (embedded, or `linked` by a relative path). `x`, `y`, `width`, `height` place it |
+| `svg_set_style` | Presentation properties (`fill`, `stroke`, `stroke-width`, `opacity`…); references must be local (`url(#id)`) |
+| `svg_set_attributes` | Geometry attributes only (`x`, `y`, `width`, `d`, `points`, `transform`…) and the `text` of a text object |
+| `svg_rename` | The XML id and the label |
+| `svg_set_gradient` | A new linear or radial gradient from `"offset:color"` stops, on the fill or the stroke |
+| `svg_transform` | `move`, `scale`, `rotate`, `resize`, `flip_horizontal`, `flip_vertical`, `rotate_90_cw`, `rotate_90_ccw` |
+| `svg_delete`, `svg_duplicate`, `svg_group`, `svg_ungroup`, `svg_reorder` | Structure and stacking order |
+| `svg_align` | Align to the page, the first/last selected, the biggest or the selection; or distribute (centers, edges, gaps) |
+| `svg_path_operation` | `union`, `difference`, `intersection`, `exclusion`, `division`, `combine`, `object_to_path`, `stroke_to_path`, `break_apart`, `simplify`, `reverse` |
+| `svg_clip` | Clip objects with the shape above them, or `release` the clip |
+| `svg_select` | Select objects (the window shows them in attached mode) |
+
+`save_image` writes the drawing as `.svg`; `export_image` writes a picture of it (PNG, JPEG, WebP…) with optional `width` (or
+`height`) in pixels and a `background`; `render_preview`, `get_history`, `undo` and `redo` work on drawings too.
+
+Objects are named by the `node` id that `svg_tree` returns, or by their XML id (`rect1`). Tools that take `nodes` act on the
+selected objects when you give none. Coordinates are user units of the drawing (pixels for a px drawing, origin top-left).
+
+Pictures linked from an SVG you open are read only from the SVG's own folder or below it (symbolic links resolved); any other
+link shows as a placeholder and is never read.
+
+> Draw a red-and-blue badge and give me a 512 px PNG.
+
+The agent calls `new_svg {"width": 200, "height": 200}` → `svg_add_shape {"kind": "rect", "x": 20, "y": 20, "width": 100, "height": 100, "fill": "#cc2200"}` →
+`svg_add_shape {"kind": "ellipse", "x": 80, "y": 80, "width": 100, "height": 100, "fill": "#cc2200"}` →
+`svg_path_operation {"operation": "union", "nodes": ["rect1", "ellipse1"]}` → `svg_set_style {"properties": {"fill": "#2255cc", "stroke": "#ffffff", "stroke-width": "4"}}` →
+`render_preview` → `save_image {"path": "badge.svg"}` → `export_image {"path": "badge.png", "width": 512}`.
+
 ## Examples
 
 > Make a comic page with the four photos I have open, in cartoon style.

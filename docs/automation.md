@@ -64,6 +64,22 @@ Progress goes to stderr, one line per command. The exit code is:
 
 The whole script is checked before anything runs, so a typo on line 40 doesn't leave a batch half done.
 
+## Drawing an SVG from a script
+
+The `svg_` tools are scriptable like the others. This script draws a badge, saves it as SVG and writes a PNG of it:
+
+```
+new_svg width=200 height=200
+svg_add_shape kind=rect x=20 y=20 width=100 height=100 fill=#cc2200
+svg_add_shape kind=ellipse x=80 y=80 width=100 height=100 fill=#cc2200
+svg_path_operation operation=union nodes=["rect1","ellipse1"]
+svg_set_style nodes=["rect1"] properties={"fill":"#2255cc","stroke":"#ffffff","stroke-width":"4"}
+save_image path=$out/badge.svg overwrite=true
+export_image path=$out/badge.png width=512 background=white overwrite=true
+```
+
+The objects get predictable XML ids (`rect1`, `ellipse1`, `path1`…); a path operation's result keeps the id of the bottom shape.
+
 ## Testing a build
 
 `packaging/smoke-test.txt` calls every MCP tool and every effect, saves in every format and reopens the files. The release
