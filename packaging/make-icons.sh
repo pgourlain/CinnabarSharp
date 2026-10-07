@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Regenerates every app icon from icon.svg (large) and icon-small.svg (16-32 px).
 # Needs rsvg-convert, python3, and iconutil (macOS only, for the .icns; skipped elsewhere).
+# On macOS with Xcode 26+ it also compiles CinnabarSharp.icon (Icon Composer, keeps the red in the dark icon style) into macos/Assets.car.
 set -euo pipefail
 cd "$(dirname "$0")"
 tmp=$(mktemp -d)
@@ -30,5 +31,10 @@ if command -v iconutil >/dev/null; then
     cp "$tmp/$((s * 2)).png" "$set_dir/icon_${s}x${s}@2x.png"
   done
   iconutil -c icns "$set_dir" -o CinnabarSharp.icns
+fi
+if command -v xcrun >/dev/null && xcrun --find actool >/dev/null 2>&1; then
+  xcrun actool CinnabarSharp.icon --compile "$tmp" --platform macosx --minimum-deployment-target 12.0 \
+    --app-icon CinnabarSharp --output-partial-info-plist "$tmp/icon.plist" >/dev/null \
+    && cp "$tmp/Assets.car" macos/Assets.car || echo "actool failed: macos/Assets.car left unchanged" >&2
 fi
 rm -rf "$tmp"

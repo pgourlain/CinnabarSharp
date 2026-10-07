@@ -18,6 +18,8 @@
     <string>CinnabarSharp</string>
     <key>CFBundleIconFile</key>
     <string>CinnabarSharp.icns</string>
+    <key>CFBundleIconName</key>
+    <string>CinnabarSharp</string>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>NSHighResolutionCapable</key>

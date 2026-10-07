@@ -44,6 +44,8 @@ case "$rid" in
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
     cp -R "$publish/." "$app/Contents/MacOS/"
     cp "$root/packaging/CinnabarSharp.icns" "$app/Contents/Resources/"
+    # Icon Composer icon (macOS 26: stays red in the dark icon style); older systems use the .icns.
+    cp "$root/packaging/macos/Assets.car" "$app/Contents/Resources/"
     # macOS bundle versions are numeric (x.y.z): drop a pre-release suffix such as "-rc".
     sed "s/@VERSION@/${version%%-*}/g" "$root/packaging/macos/Info.plist" > "$app/Contents/Info.plist"
     # Apple Silicon refuses to run unsigned code; an ad-hoc signature is enough for local use.
