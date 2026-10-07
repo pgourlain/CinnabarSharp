@@ -162,6 +162,7 @@ svg_add_path d="M10 150 C40 100 70 200 100 150" stroke=#00aa00 strokeWidth=3 fil
 svg_add_text text="Hi" x=20 y=60 fontSize=24 bold=true fill=#ffffff
 svg_add_image path=$samples/sample1.png x=150 y=150 width=40 height=30
 svg_tree
+svg_cut_segment x=130 y=177
 svg_get_node node=rect1
 svg_set_style nodes=["rect1"] properties={"fill":"#aa2200","stroke-linejoin":"round"}
 svg_set_attributes node=rect1 attributes={"x":"22","width":"98"}

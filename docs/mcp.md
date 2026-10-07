@@ -108,6 +108,7 @@ raster tools (layers, selections, effects…) refuse an SVG document with a mess
 | `svg_delete`, `svg_duplicate`, `svg_group`, `svg_ungroup`, `svg_reorder` | Structure and stacking order |
 | `svg_align` | Align to the page, the first/last selected, the biggest or the selection; or distribute (centers, edges, gaps) |
 | `svg_path_operation` | `union`, `difference`, `intersection`, `exclusion`, `division`, `combine`, `object_to_path`, `stroke_to_path`, `break_apart`, `simplify`, `reverse` |
+| `svg_cut_segment` | Scissors: takes out the run of an outline at `x`, `y` between two crossings with other shapes (a closed shape becomes an open path, an open one is cut in two) |
 | `svg_clip` | Clip objects with the shape above them, or `release` the clip |
 | `svg_select` | Select objects (the window shows them in attached mode) |
 

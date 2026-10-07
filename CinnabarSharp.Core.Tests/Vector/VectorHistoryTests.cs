@@ -35,6 +35,7 @@ public sealed class VectorHistoryTests : BaseTests
             <text id="t1" x="10" y="190" font-size="12">Hello</text>
             <rect id="r2" x="100" y="100" width="40" height="40" fill="url(#g1)" transform="rotate(10 120 120)"/>
             <path id="p2" d="M60 150h20v20h-20z M90 150h20v20h-20z" fill="#123456"/>
+            <line id="ln" x1="0" y1="25" x2="130" y2="25" stroke="#000000" stroke-width="2"/>
           </g>
         </svg>
         """;
@@ -104,6 +105,7 @@ public sealed class VectorHistoryTests : BaseTests
         { "Break Apart", d => d.Actions.BreakApart([El(d, "p2")]) },
         { "Simplify", d => d.Actions.Simplify([El(d, "p1")], 3) },
         { "Reverse", d => d.Actions.Reverse([El(d, "p1")]) },
+        { "Cut Segment", d => d.Actions.RemoveSegment(SvgScissors.Find(d, new VPoint(30, 25), 2)!) },
         { "Stroke to Path", d => d.Actions.StrokeToPath([El(d, "r1")]) },
         { "Paste Style", d => d.Actions.PasteStyle([El(d, "c1"), El(d, "grp")], SvgActions.CopyStyle(El(d, "r1"))) },
         { "Resize Image", d => d.Actions.ResizePage(new ImageSize(400, 300), null) },

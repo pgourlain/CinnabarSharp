@@ -2156,6 +2156,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void UpdateCursorPosition(Core.Models.PointD? canvasPoint)
     {
         CursorPositionText = canvasPoint is { } p ? $"{(int)Math.Floor(p.X)}, {(int)Math.Floor(p.Y)}" : "";
+        if (canvasPoint is { } hoverPoint && ActiveSvg is { } hoverDrawing && !IsBusy && ActiveVectorTool is IVectorHoverTool hoverTool
+            && hoverTool.OnHover(hoverDrawing, ImageToUser(hoverDrawing, hoverPoint)))
+            UpdateOverlay();
         HoverCursor = canvasPoint is { } point && ActiveSvg is { } drawing && ActiveVectorTool is { } vectorTool
             ? vectorTool.CursorAt(drawing, ImageToUser(drawing, point))
             : canvasPoint is { } imagePoint && ActiveImageTab is { } d && ActiveTool is IOverlayTool tool

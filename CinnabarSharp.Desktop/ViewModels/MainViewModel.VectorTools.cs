@@ -65,6 +65,7 @@ public partial class MainViewModel
         VectorTextTool => "click to place text and type · click a text to edit it · Esc finishes",
         VectorGradientTool => "select an object, then drag across it to make a gradient",
         VectorEyedropperTool => "click an object to take its colors · Shift = the pixel color",
+        VectorScissorsTool => "click an outline between two crossings with other shapes to take that run out",
         _ => null,
     };
 

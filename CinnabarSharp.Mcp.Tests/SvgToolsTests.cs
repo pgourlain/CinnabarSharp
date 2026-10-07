@@ -26,12 +26,32 @@ public class SvgToolsTests
         {
             "new_svg", "svg_tree", "svg_get_node", "svg_add_shape", "svg_add_path", "svg_add_text", "svg_add_image", "svg_set_style",
             "svg_set_attributes", "svg_transform", "svg_delete", "svg_duplicate", "svg_group", "svg_ungroup", "svg_reorder",
-            "svg_align", "svg_path_operation", "svg_select", "svg_set_gradient", "svg_rename", "svg_clip", "svg_copy_style",
+            "svg_align", "svg_path_operation", "svg_select", "svg_set_gradient", "svg_rename", "svg_clip", "svg_copy_style", "svg_cut_segment",
         }, tools);
 
         var document = await server.Call("new_svg", new { width = 200, height = 100, units = "px" });
         Assert.Equal("svg", document.Str("kind"));
         Assert.Equal(200, document.Int("width"));
+    }
+
+    [Fact]
+    public async Task Cut_segment_takes_the_run_between_two_crossings_out_of_a_line()
+    {
+        await using var server = await McpTestServer.StartAsync();
+        await server.Call("new_svg", new { width = 200, height = 200 });
+        await server.Call("svg_add_shape", new { kind = "line", x = 0, y = 100, x2 = 200, y2 = 100, stroke = "#000000", strokeWidth = 4 });
+        await server.Call("svg_add_shape", new { kind = "rect", x = 50, y = 50, width = 20, height = 100, fill = "none", stroke = "#ff0000" });
+
+        var cut = await server.Call("svg_cut_segment", new { x = 60, y = 100 });
+        Assert.Equal(["path", "path"], cut.Get("nodes").EnumerateArray().Select(n => n.Str("element")!).ToArray());
+        var tree = await server.Call("svg_tree");
+        Assert.Equal(["g", "path", "path", "rect"], tree.EnumerateArray().Select(n => n.Str("element")!).ToArray());
+
+        var error = await Assert.ThrowsAnyAsync<Exception>(() => server.Call("svg_cut_segment", new { x = 100, y = 20 }));
+        Assert.Contains("No outline", error.Message);
+        await server.Call("undo");
+        tree = await server.Call("svg_tree");
+        Assert.Equal(["g", "line", "rect"], tree.EnumerateArray().Select(n => n.Str("element")!).ToArray());
     }
 
     [Fact]

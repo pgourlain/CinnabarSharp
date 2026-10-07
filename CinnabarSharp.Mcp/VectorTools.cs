@@ -560,6 +560,24 @@ public sealed class VectorTools(McpContext context)
             return Result(drawing, result);
         });
 
+    [McpServerTool(Name = "svg_cut_segment"), Description(
+        "Scissors (one undo step): takes out the run of an outline at the point (x, y), between the two places where it crosses " +
+        "other shapes of the drawing (for an open path, the run to its end counts). A closed shape becomes an open path, an open " +
+        "one is cut in two; a shape that is not a path becomes a path. The curves are kept. Returns the objects that are left. " +
+        "Fails when no crossed outline is at the point.")]
+    public Task<SvgEditResult> SvgCutSegment(
+        [Description("Point on the outline, in user units of the drawing.")] double x,
+        [Description("Point on the outline, in user units of the drawing.")] double y,
+        [Description("How far from the outline the point may be, in user units (default 2).")] double tolerance = 2,
+        [Description(DrawingHelp)] string? document = null) =>
+        context.Run(() =>
+        {
+            var drawing = context.Svg(document);
+            var hit = SvgScissors.Find(drawing, new VPoint(x, y), Math.Max(tolerance, 0.01))
+                ?? throw new McpException("No outline crossed by another shape at that point. Use svg_tree to see the bounds of the objects.");
+            return Result(drawing, drawing.Actions.RemoveSegment(hit));
+        });
+
     [McpServerTool(Name = "svg_clip"), Description(
         "Clips objects with the top-most of the given objects (a shape, which becomes the clip and disappears), or releases " +
         "the clip of objects. To clip a picture with a circle: svg_clip nodes=[picture, circle] with the circle above it.")]

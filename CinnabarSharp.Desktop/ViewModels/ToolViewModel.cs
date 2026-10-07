@@ -35,7 +35,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
 
     /// <summary>Tools that paint get a crosshair cursor.</summary>
     public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or LineTool or PaintBucketTool or ColorPickerTool or CropTool or SpeechBubbleTool
-        || VectorTool is ShapeDrawTool or VectorPenTool or VectorPencilTool or VectorGradientTool or VectorEyedropperTool;
+        || VectorTool is ShapeDrawTool or VectorPenTool or VectorPencilTool or VectorGradientTool or VectorEyedropperTool or VectorScissorsTool;
 
     // Options bar of the vector tools.
     public bool IsVectorSelect => VectorTool is VectorSelectTool;
@@ -64,6 +64,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
         new("Text", "Tx", "T") { VectorTool = new VectorTextTool(settings) },
         new("Gradient", "Gr", "G") { VectorTool = new VectorGradientTool(settings) },
         new("Eyedropper", "Ey", "K") { VectorTool = new VectorEyedropperTool(settings) },
+        new("Scissors", "Sc", "X") { VectorTool = new VectorScissorsTool() },
     ];
 
     public static ToolViewModel[] CreatePaintDotNetTools(ToolSettings settings, ITextRasterizer textRasterizer) =>
