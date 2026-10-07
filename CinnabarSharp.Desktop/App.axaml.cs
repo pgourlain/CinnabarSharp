@@ -27,6 +27,9 @@ public partial class App : Application
         Services?.GetRequiredService<MainViewModel>().AboutCommand.Execute(null);
 
     /// <summary>"Open Log Folder" in the macOS application menu (there is no Help menu there).</summary>
+    private void OnCheckForUpdatesClick(object? sender, EventArgs e) =>
+        Services?.GetRequiredService<MainViewModel>().CheckForUpdatesCommand.Execute(null);
+
     private void OnOpenLogFolderClick(object? sender, EventArgs e) =>
         Services?.GetRequiredService<MainViewModel>().OpenLogFolderCommand.Execute(null);
 
@@ -42,6 +45,7 @@ public partial class App : Application
             var settings = Services.GetRequiredService<SettingsStore>();
             // Before RestoreSettings: it turns attached mode back on if the user left it on.
             vm.Agents = Services.GetRequiredService<AgentConnection>();
+            vm.Updates = Services.GetRequiredService<CinnabarSharp.Core.Services.UpdateChecker>();
             desktop.Exit += (_, _) => vm.Agents.Dispose();
             var window = new MainWindow { DataContext = vm };
             StartupTrace.Mark("MainWindow created");
@@ -68,6 +72,9 @@ public partial class App : Application
                     StartupTrace.Mark("First frame");
                     if (StartupTrace.ExitWhenVisible && files.Length == 0)
                         desktop.Shutdown();
+                    // Once the window is up, in the background: ask once, then look for a newer release.
+                    else if (Environment.GetEnvironmentVariable("CINNABARSHARP_NO_UPDATE_CHECK") is not { Length: > 0 })
+                        _ = vm.StartUpdateCheckAsync();
                 }, DispatcherPriority.Background);
                 foreach (var file in files)
                     await vm.OpenFileAsync(file);

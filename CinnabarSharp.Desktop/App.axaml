@@ -9,6 +9,7 @@
     <NativeMenu.Menu>
         <NativeMenu>
             <NativeMenuItem Header="About CinnabarSharp" Click="OnAboutClick" />
+            <NativeMenuItem Header="Check for Updates…" Click="OnCheckForUpdatesClick" />
             <NativeMenuItem Header="Open Log Folder" Click="OnOpenLogFolderClick" />
         </NativeMenu>
     </NativeMenu.Menu>

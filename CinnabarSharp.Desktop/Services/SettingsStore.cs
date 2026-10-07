@@ -57,6 +57,14 @@ public record AppSettings
     public bool BubbleOwnLayer { get; init; } = true;
     public bool AllowAgents { get; init; }
     public bool ShowWelcome { get; init; } = true;
+
+    /// <summary>Whether the app may look for a newer release at startup; null until the user has been asked.</summary>
+    public bool? CheckForUpdates { get; init; }
+
+    /// <summary>The version the user chose to ignore ("0.9.1").</summary>
+    public string? SkippedUpdate { get; init; }
+
+    public DateTime? LastUpdateCheckUtc { get; init; }
     public ComicSettings ComicPage { get; init; } = new();
 }
 

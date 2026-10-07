@@ -963,6 +963,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleNumbered = settings.BubbleNumbered;
         BubbleOwnLayer = settings.BubbleOwnLayer;
         ShowWelcomeScreen = settings.ShowWelcome;
+        _checkForUpdates = settings.CheckForUpdates;
+        _skippedUpdate = settings.SkippedUpdate;
+        _lastUpdateCheck = settings.LastUpdateCheckUtc;
         _restoringSettings = true;
         try
         {
@@ -1009,6 +1012,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleOwnLayer = BubbleOwnLayer,
         AllowAgents = AllowAgents,
         ShowWelcome = ShowWelcomeScreen,
+        CheckForUpdates = _checkForUpdates,
+        SkippedUpdate = _skippedUpdate,
+        LastUpdateCheckUtc = _lastUpdateCheck,
         ComicPage = ComicDefaults,
     };
 

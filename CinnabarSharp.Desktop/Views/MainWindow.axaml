@@ -180,6 +180,19 @@
         </Border>
 
         <!-- Tool options (Paint.NET shows these under the toolbar) -->
+        <!-- A newer release exists (found at startup, after the user agreed to the check). -->
+        <Border DockPanel.Dock="Top" Padding="12,6" IsVisible="{Binding HasUpdate}"
+                Background="{DynamicResource CinnabarAccentTintBrush}" BorderBrush="{DynamicResource CinnabarBorderBrush}" BorderThickness="0,0,0,1">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                    <Button Content="Download" Command="{Binding OpenUpdatePageCommand}" AutomationProperties.Name="Open the download page" />
+                    <Button Content="Skip this version" Command="{Binding SkipUpdateCommand}" AutomationProperties.Name="Skip this version" />
+                    <Button Content="Later" Command="{Binding DismissUpdateCommand}" AutomationProperties.Name="Remind me later" />
+                </StackPanel>
+                <TextBlock Text="{Binding UpdateText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" AutomationProperties.Name="Update available" />
+            </DockPanel>
+        </Border>
+
         <Border DockPanel.Dock="Top" Classes="panel" Padding="8,0" Height="40" IsEnabled="{Binding IsIdle}">
             <!-- Scrolls sideways when the options do not fit (a 200 % screen leaves 960 logical pixels). -->
             <ScrollViewer x:Name="OptionsScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">

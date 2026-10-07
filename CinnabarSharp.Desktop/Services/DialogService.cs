@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -75,6 +76,12 @@ public class DialogService(Window owner) : IDialogService
     {
         Directory.CreateDirectory(folder);
         await owner.Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(folder));
+    }
+
+    public async Task OpenUrlAsync(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            await owner.Launcher.LaunchUriAsync(uri);
     }
 
     public async Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties) =>

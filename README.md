@@ -29,6 +29,7 @@ The SVG editor, with one of every kind of object (rectangle, rounded rectangle w
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
 - **AI agents (MCP)**: Claude Code, Claude Desktop and other MCP clients can open, edit and save images and SVG drawings (`svg_` tools), headless (`CinnabarSharp --mcp`) or in the running app while you watch (`--mcp --attach`). File access is limited to allowed folders, and every edit can be undone. See [docs/mcp.md](docs/mcp.md).
 - **Automation**: `CinnabarSharp --run script.txt --input ~/Photos/*.heic` runs a text script of image operations (the MCP tools: open, effects, resize, SVG drawing, save…) on one or many files without a window. See [docs/automation.md](docs/automation.md).
+- **Updates**: after you agree once, the app looks for a newer release on GitHub when it starts (in the background, at most once a day), and shows a banner with a link to the download page; Help › Check for Updates does it on demand. It sends one request and nothing about you, and never installs anything.
 - **Native feel on each OS**: macOS menu bar and ⌘ shortcuts, in-window menu and Ctrl shortcuts on Windows and Linux, native file dialogs, drag and drop, recent files.
 
 ## Download

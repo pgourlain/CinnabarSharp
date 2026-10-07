@@ -635,7 +635,7 @@ public partial class MainWindow : Window, IViewportService
             ]),
         ];
         if (!isMac)
-            menus = [.. menus, new("_Help", Children: [new("Open _Log Folder", vm.OpenLogFolderCommand), MenuSpec.Separator, new("_About CinnabarSharp", vm.AboutCommand)])];
+            menus = [.. menus, new("_Help", Children: [new("Check for _Updates…", vm.CheckForUpdatesCommand), new("Open _Log Folder", vm.OpenLogFolderCommand), MenuSpec.Separator, new("_About CinnabarSharp", vm.AboutCommand)])];
 
         // Built once: the macOS native menu can't be replaced while the window is shown, only mutated.
         if (isMac)

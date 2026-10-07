@@ -34,6 +34,9 @@ public interface IDialogService
     /// <summary>Shows a folder in the system's file manager.</summary>
     Task OpenFolderAsync(string folder);
 
+    /// <summary>Opens an https address in the browser (refuses anything else).</summary>
+    Task OpenUrlAsync(string url);
+
     /// <summary>The dialog edits the layer live; returns true for OK, false for Cancel.</summary>
     Task<bool> ShowLayerPropertiesAsync(LayerPropertiesViewModel properties);
 

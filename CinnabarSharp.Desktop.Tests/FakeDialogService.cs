@@ -170,6 +170,14 @@ public class FakeDialogService : IDialogService
 
     public List<string> OpenedFolders { get; } = [];
 
+    public List<string> UrlsOpened { get; } = [];
+
+    public Task OpenUrlAsync(string url)
+    {
+        UrlsOpened.Add(url);
+        return Task.CompletedTask;
+    }
+
     public Task OpenFolderAsync(string folder)
     {
         OpenedFolders.Add(folder);

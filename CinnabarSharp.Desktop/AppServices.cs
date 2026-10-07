@@ -25,6 +25,7 @@ public static class AppServices
         // Text in SVG drawings is drawn from the platform fonts (SvgDocument takes this from the container).
         services.AddSingleton<CinnabarSharp.Vector.IGlyphOutlineProvider, AvaloniaGlyphOutlineProvider>();
         services.AddSingleton<AgentConnection>();
+        services.AddSingleton(_ => new UpdateChecker());
         services.AddSingleton<MainViewModel>();
         configure?.Invoke(services);
         var provider = services.BuildServiceProvider();
