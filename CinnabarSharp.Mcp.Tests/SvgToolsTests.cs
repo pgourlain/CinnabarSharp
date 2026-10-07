@@ -26,7 +26,7 @@ public class SvgToolsTests
         {
             "new_svg", "svg_tree", "svg_get_node", "svg_add_shape", "svg_add_path", "svg_add_text", "svg_add_image", "svg_set_style",
             "svg_set_attributes", "svg_transform", "svg_delete", "svg_duplicate", "svg_group", "svg_ungroup", "svg_reorder",
-            "svg_align", "svg_path_operation", "svg_select", "svg_set_gradient", "svg_rename", "svg_clip",
+            "svg_align", "svg_path_operation", "svg_select", "svg_set_gradient", "svg_rename", "svg_clip", "svg_copy_style",
         }, tools);
 
         var document = await server.Call("new_svg", new { width = 200, height = 100, units = "px" });

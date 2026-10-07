@@ -166,6 +166,7 @@ svg_get_node node=rect1
 svg_set_style nodes=["rect1"] properties={"fill":"#aa2200","stroke-linejoin":"round"}
 svg_set_attributes node=rect1 attributes={"x":"22","width":"98"}
 svg_rename node=rect1 label="Red box"
+svg_copy_style from=rect1 nodes=["ellipse1"]
 svg_set_gradient nodes=["star1"] stops=["0:#ffcc00","1:#ff6600"] kind=radial
 svg_transform action=rotate degrees=15 nodes=["star1"]
 svg_duplicate nodes=["line1"]

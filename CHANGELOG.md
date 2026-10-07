@@ -11,6 +11,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 ## [0.9.2] - 2026-10-07
 
 ### Added
+- Edit › Copy Style and Paste Style (Alt+Shift+C / Alt+Shift+V, with Ctrl/⌘) for drawings: take the look of an object (fill, stroke, widths, dashes, opacity; the font between texts) and give it to others, one step; a group passes it to everything inside. MCP: `svg_copy_style`.
 - Shape tool (U) for drawings: over 120 ready-made shapes in eight categories (Basic, Arrows, Symbols, Flowchart, Dialog balloons, Nature, Weather, Objects) picked from a flyout in the options bar and drawn by dragging a box (Shift keeps the proportions, Alt draws from the center). They are ordinary paths, so they take fills, strokes, gradients and can be edited point by point.
 - Node tool: pressing a point on the outline of any shape (rectangle, ellipse, circle, line, polygon) turns it into a path and edits that point, so every point of every object can be moved; the corner radius handles of a rectangle now sit just inside its corners.
 - Double click on a text with the Select tool edits it again.

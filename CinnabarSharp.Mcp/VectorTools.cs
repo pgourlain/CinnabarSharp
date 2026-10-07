@@ -308,6 +308,22 @@ public sealed class VectorTools(McpContext context)
             return Result(drawing, [element]);
         });
 
+    [McpServerTool(Name = "svg_copy_style"), Description(
+        "Gives objects the look of another one: fill, stroke, widths, dashes, opacity (and, between texts, the font). One undo step. " +
+        "A group passes it to every shape and text inside; a gradient is shared by reference.")]
+    public Task<SvgEditResult> SvgCopyStyle(
+        [Description("The object to take the look from: node id from svg_tree, or an XML id.")] string from,
+        [Description(NodesHelp)] string[]? nodes = null,
+        [Description(DrawingHelp)] string? document = null) =>
+        context.Run(() =>
+        {
+            var drawing = context.Svg(document);
+            var source = Find(drawing, from);
+            var targets = Nodes(drawing, nodes);
+            drawing.Actions.PasteStyle(targets, SvgActions.CopyStyle(source));
+            return Result(drawing, targets);
+        });
+
     [McpServerTool(Name = "svg_rename"), Description("Sets the XML id and/or the label (the name shown in the Objects panel) of an object.")]
     public Task<SvgEditResult> SvgRename(
         [Description("Node id from svg_tree, or an XML id.")] string node,

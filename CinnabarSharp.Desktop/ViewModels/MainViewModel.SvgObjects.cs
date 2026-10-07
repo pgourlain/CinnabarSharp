@@ -25,6 +25,7 @@ public partial class MainViewModel
     {
         OnPropertyChanged(nameof(HasImageObjectSelected));
         OnPropertyChanged(nameof(ShowGridOptions));
+        OnPropertyChanged(nameof(CanPasteStyle));
         OnPropertyChanged(nameof(CanUpdateDrawing));
         foreach (var command in new IRelayCommand[]
                  {
@@ -34,13 +35,36 @@ public partial class MainViewModel
                      RotateObjectsCounterClockwiseCommand, AlignObjectsCommand, DistributeObjectsCommand, ObjectToPathCommand,
                      StrokeToPathCommand, ApplyPathOperationCommand, BreakApartPathsCommand, SimplifyPathsCommand, ReversePathsCommand,
                      ImportPictureCommand, ImportLinkedPictureCommand, SetClipCommand, ReleaseClipCommand, EditBitmapCommand,
-                     UpdateDrawingCommand,
+                     UpdateDrawingCommand, CopyStyleCommand, PasteStyleCommand,
                  })
             command.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
     private void SetAlignRelativeTo(AlignRelativeTo value) => AlignRelativeTo = value;
+
+    private CopiedStyle? _copiedStyle;
+
+    public bool CanPasteStyle => _copiedStyle is not null && HasObjectSelection;
+
+    /// <summary>Takes the look (fill, stroke, opacity…) of the selected object, to paste it on others.</summary>
+    [RelayCommand(CanExecute = nameof(HasObjectSelection))]
+    private void CopyStyle()
+    {
+        if (ActiveSvg?.Selection.Primary is { } source)
+        {
+            _copiedStyle = SvgActions.CopyStyle(source);
+            OnPropertyChanged(nameof(CanPasteStyle));
+            PasteStyleCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanPasteStyle))]
+    private void PasteStyle()
+    {
+        if (_copiedStyle is { } style)
+            ActiveSvg?.Actions.PasteStyle(null, style);
+    }
 
     [RelayCommand(CanExecute = nameof(HasObjectSelection))]
     private void FlipObjectsHorizontal() => ActiveSvg?.Actions.Flip(null, horizontal: true);

@@ -105,6 +105,7 @@ public sealed class VectorHistoryTests : BaseTests
         { "Simplify", d => d.Actions.Simplify([El(d, "p1")], 3) },
         { "Reverse", d => d.Actions.Reverse([El(d, "p1")]) },
         { "Stroke to Path", d => d.Actions.StrokeToPath([El(d, "r1")]) },
+        { "Paste Style", d => d.Actions.PasteStyle([El(d, "c1"), El(d, "grp")], SvgActions.CopyStyle(El(d, "r1"))) },
         { "Resize Image", d => d.Actions.ResizePage(new ImageSize(400, 300), null) },
         { "Canvas Size", d => d.Actions.ResizePage(new ImageSize(260, 180), Anchor.SE) },
         { "Set Clip", d => d.Actions.SetClip([El(d, "c1"), El(d, "grp"), El(d, "r2")]) },

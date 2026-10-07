@@ -102,6 +102,7 @@ raster tools (layers, selections, effects…) refuse an SVG document with a mess
 | `svg_set_style` | Presentation properties (`fill`, `stroke`, `stroke-width`, `opacity`…); references must be local (`url(#id)`) |
 | `svg_set_attributes` | Geometry attributes only (`x`, `y`, `width`, `d`, `points`, `transform`…) and the `text` of a text object |
 | `svg_rename` | The XML id and the label |
+| `svg_copy_style` | Gives objects the look of another one (fill, stroke, widths, dashes, opacity; fonts between texts) |
 | `svg_set_gradient` | A new linear or radial gradient from `"offset:color"` stops, on the fill or the stroke |
 | `svg_transform` | `move`, `scale`, `rotate`, `resize`, `flip_horizontal`, `flip_vertical`, `rotate_90_cw`, `rotate_90_ccw` |
 | `svg_delete`, `svg_duplicate`, `svg_group`, `svg_ungroup`, `svg_reorder` | Structure and stacking order |

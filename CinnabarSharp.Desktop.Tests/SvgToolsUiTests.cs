@@ -407,3 +407,45 @@ public sealed class SvgBitmapUiTests : IDisposable
         Assert.Equal("Edit Bitmap", Svg.History.Items[^1].Text);
     }
 }
+
+public sealed class SvgStyleCopyUiTests : IDisposable
+{
+    private readonly TestHarness _h = new();
+
+    public void Dispose() => _h.Dispose();
+
+    private MainViewModel Vm => _h.Vm;
+
+    private SvgDocument Svg => Assert.IsType<SvgDocument>(Vm.ActiveDocument!.Document);
+
+    [AvaloniaFact]
+    public void Copy_style_then_paste_style_on_another_object()
+    {
+        Vm.CreateImage(new NewImageOptions(new ImageSize(200, 150), ColorBgra.Transparent, new SvgDrawingOptions(200, 150, SvgUnit.Px)));
+        SvgRect Rect(string id, double x, string fill)
+        {
+            var rect = new SvgRect { Id = id };
+            rect.X = x;
+            rect.Width = 40;
+            rect.Height = 40;
+            rect.SetAttribute("fill", fill);
+            return rect;
+        }
+        var a = Svg.Actions.AddNode(Rect("a", 10, "#cc2200"));
+        var b = Svg.Actions.AddNode(Rect("b", 100, "#00cc00"));
+        Dispatcher.UIThread.RunJobs();
+
+        Svg.Selection.Set(a);
+        Assert.False(Vm.PasteStyleCommand.CanExecute(null));          // nothing copied yet
+        Vm.CopyStyleCommand.Execute(null);
+        Svg.Selection.Set(b);
+        Assert.True(Vm.PasteStyleCommand.CanExecute(null));
+        var steps = Svg.History.Items.Count;
+        Vm.PasteStyleCommand.Execute(null);
+
+        Assert.Equal(steps + 1, Svg.History.Items.Count);
+        Assert.Equal(VColor.FromRgb(0xcc, 0x22, 0x00), StyleResolver.ComputeFor(b).Fill.Color);
+        Svg.Selection.Clear();
+        Assert.False(Vm.PasteStyleCommand.CanExecute(null));          // needs something selected
+    }
+}
