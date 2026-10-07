@@ -4,6 +4,9 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+- The grid looks like draw.io's: thin light grey lines with a darker one every fifth line, on a plain white page (the soft checkerboard comes back when the grid is off).
+
 ## [0.9.2] - 2026-10-07
 
 ### Added

@@ -723,7 +723,8 @@ public class CanvasView : Control
     private void RenderDrawing(DrawingContext context, SvgDocument drawing)
     {
         var view = drawing.Workspace.ViewSize;
-        context.FillRectangle(SoftCheckerBrush, new Rect(0, 0, view.Width, view.Height));
+        // With the grid on, the page is plain white (as in draw.io) so the grid reads clearly; otherwise a soft checkerboard.
+        context.FillRectangle(Grid is null ? SoftCheckerBrush : Brushes.White, new Rect(0, 0, view.Width, view.Height));
         if (_drawingBitmap is { } bitmap)
         {
             var scaling = RenderScaling;
@@ -740,25 +741,34 @@ public class CanvasView : Control
             DrawOverlay(context, overlay, drawing.Workspace.Scale);
     }
 
-    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromArgb(170, 40, 90, 200)), 1);
+    // Like draw.io: thin light grey lines, a darker one every fifth line, on a white page.
+    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromRgb(224, 224, 224)), 1);
+    private static readonly IPen MajorGridPen = new Pen(new SolidColorBrush(Color.FromRgb(192, 192, 192)), 1);
+    private const int MajorEvery = 5;
 
-    /// <summary>Thin lines every grid step; when the lines would be closer than 6 screen pixels every few steps are drawn.</summary>
+    /// <summary>Thin lines every grid step, a stronger one every fifth; when the lines would be closer than 6 screen pixels every few steps are drawn.</summary>
     private void DrawGrid(DrawingContext context, double scale)
     {
         if (Grid is not { Spacing: > 0 } grid)
             return;
         var step = grid.Spacing * scale;
-        var every = Math.Max(1, (int)Math.Ceiling(6 / step));
-        step *= every;
+        step *= Math.Max(1, (int)Math.Ceiling(6 / step));
         var view = Bounds.Size;
         // Never more than a few thousand lines, whatever the zoom.
         while (step > 0 && (view.Width / step > 3000 || view.Height / step > 3000))
             step *= 2;
-        double Start(double origin) => (origin * scale % step + step) % step;
-        for (var x = Start(grid.OriginX * 1.0); x <= view.Width; x += step)
-            context.DrawLine(GridPen, new Point(Math.Floor(x) + 0.5, 0), new Point(Math.Floor(x) + 0.5, view.Height));
-        for (var y = Start(grid.OriginY * 1.0); y <= view.Height; y += step)
-            context.DrawLine(GridPen, new Point(0, Math.Floor(y) + 0.5), new Point(view.Width, Math.Floor(y) + 0.5));
+        var ox = grid.OriginX * scale;
+        var oy = grid.OriginY * scale;
+        for (var i = (int)Math.Ceiling(-ox / step); ox + i * step <= view.Width; i++)
+        {
+            var x = Math.Floor(ox + i * step) + 0.5;
+            context.DrawLine(i % MajorEvery == 0 ? MajorGridPen : GridPen, new Point(x, 0), new Point(x, view.Height));
+        }
+        for (var i = (int)Math.Ceiling(-oy / step); oy + i * step <= view.Height; i++)
+        {
+            var y = Math.Floor(oy + i * step) + 0.5;
+            context.DrawLine(i % MajorEvery == 0 ? MajorGridPen : GridPen, new Point(0, y), new Point(view.Width, y));
+        }
     }
 
     /// <summary>Re-renders only <paramref name="imageRegion"/> (picture pixels at 100 %) into the bitmap already there.</summary>
