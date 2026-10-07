@@ -4,6 +4,8 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-10-07
+
 ### Changed
 - Node tool: the selected nodes are drawn bigger, filled in blue with a white edge, so they stand out from the others, and the node buttons (Corner, Smooth, Symmetric, Line, Curve, Join, Break, To path) are grayed until they can apply.
 - The grid looks like draw.io's: thin light grey lines with a darker one every fifth line, on a plain white page (the soft checkerboard comes back when the grid is off).
