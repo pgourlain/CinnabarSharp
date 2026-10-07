@@ -78,6 +78,9 @@ public class CanvasView : Control
     private const int CheckerSize = 8;
     private static readonly IBrush CheckerBrush = CreateCheckerBrush();
 
+    /// <summary>Behind a drawing: a much softer checkerboard, so the grid and the shapes stand out from it.</summary>
+    private static readonly IBrush SoftCheckerBrush = CreateCheckerBrush(darker: 240);
+
     private WriteableBitmap? _bitmap;
 
     static CanvasView()
@@ -720,7 +723,7 @@ public class CanvasView : Control
     private void RenderDrawing(DrawingContext context, SvgDocument drawing)
     {
         var view = drawing.Workspace.ViewSize;
-        context.FillRectangle(CheckerBrush, new Rect(0, 0, view.Width, view.Height));
+        context.FillRectangle(SoftCheckerBrush, new Rect(0, 0, view.Width, view.Height));
         if (_drawingBitmap is { } bitmap)
         {
             var scaling = RenderScaling;
@@ -737,7 +740,7 @@ public class CanvasView : Control
             DrawOverlay(context, overlay, drawing.Workspace.Scale);
     }
 
-    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromArgb(130, 70, 90, 140)), 1);
+    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromArgb(170, 40, 90, 200)), 1);
 
     /// <summary>Thin lines every grid step; when the lines would be closer than 6 screen pixels every few steps are drawn.</summary>
     private void DrawGrid(DrawingContext context, double scale)
@@ -821,7 +824,7 @@ public class CanvasView : Control
         return bitmap;
     }
 
-    private static IBrush CreateCheckerBrush()
+    private static IBrush CreateCheckerBrush(byte darker = 204)
     {
         var size = CheckerSize * 2;
         var bitmap = new WriteableBitmap(new PixelSize(size, size), new Avalonia.Vector(96, 96),
@@ -834,7 +837,7 @@ public class CanvasView : Control
                 for (var x = 0; x < size; x++)
                 {
                     var light = (x / CheckerSize + y / CheckerSize) % 2 == 0;
-                    byte v = light ? (byte)255 : (byte)204;
+                    byte v = light ? (byte)255 : darker;
                     row[x * 4] = v;
                     row[x * 4 + 1] = v;
                     row[x * 4 + 2] = v;
