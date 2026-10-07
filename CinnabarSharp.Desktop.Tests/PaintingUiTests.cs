@@ -159,8 +159,25 @@ public sealed class PaintingUiTests : IDisposable
     {
         var dialog = new ColorPickerWindow("Primary Color", Colors.Orange);
         dialog.Show();
-        TestHarness.CaptureWindow(dialog, "52-color-dialog");
+        var frame = TestHarness.CaptureWindow(dialog, "52-color-dialog");
         Assert.True(dialog.Bounds.Width > 200);
+
+        // The three tabs show their icons: dark pixels where each icon is, on the light tab bar.
+        var icons = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(dialog).OfType<Avalonia.Controls.PathIcon>().ToList();
+        Assert.Equal(3, icons.Count);
+        foreach (var icon in icons)
+        {
+            var origin = icon.TranslatePoint(default, dialog)!.Value;
+            var dark = 0;
+            for (var y = 0; y < icon.Bounds.Height; y += 2)
+                for (var x = 0; x < icon.Bounds.Width; x += 2)
+                {
+                    var (r, g, b) = TestHarness.PixelAt(frame, new Avalonia.Point(origin.X + x, origin.Y + y));
+                    if (r + g + b < 3 * 150)
+                        dark++;
+                }
+            Assert.True(dark > 5, "a tab icon of the color dialog is blank");
+        }
         dialog.Close();
     }
 

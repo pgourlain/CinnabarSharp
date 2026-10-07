@@ -11,6 +11,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 - Save never flattens an image that has layers: when its file is a flat format (PNG, JPEG…), Save asks where to put a layered copy and suggests OpenRaster (.ora); after that, Save rewrites the .ora. Choosing a flat format in Save As still warns before flattening, and now points to Export As.
 
 ### Fixed
+- The color dialog's tabs (spectrum, palette, components) showed no icons, so they could not be told apart.
 - The welcome screen's thumbnail loader could stay blocked if a window closed while it was reading a file.
 
 ## [0.9.1] - 2026-10-07
