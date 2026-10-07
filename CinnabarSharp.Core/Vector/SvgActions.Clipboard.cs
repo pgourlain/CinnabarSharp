@@ -121,11 +121,14 @@ public sealed partial class SvgActions
     /// Inserts a picture as an <c>&lt;image&gt;</c> with embedded data, at 96 dpi (<paramref name="pixelWidth"/> × <paramref name="pixelHeight"/>
     /// pixels, scaled down to fit the page), centered on the page.
     /// </summary>
-    public SvgImage AddImage(byte[] data, string mimeType, int pixelWidth, int pixelHeight, string name = "Add Image") =>
-        AddImageReference($"data:{mimeType};base64,{Convert.ToBase64String(data)}", pixelWidth, pixelHeight, name);
+    public SvgImage AddImage(byte[] data, string mimeType, int pixelWidth, int pixelHeight, string name = "Add Image", VRect? box = null) =>
+        AddImageReference($"data:{mimeType};base64,{Convert.ToBase64String(data)}", pixelWidth, pixelHeight, name, box);
 
-    /// <summary>Like <see cref="AddImage"/> for any <c>href</c>: embedded data, or the relative path of a linked file.</summary>
-    public SvgImage AddImageReference(string href, int pixelWidth, int pixelHeight, string name = "Add Image")
+    /// <summary>
+    /// Like <see cref="AddImage"/> for any <c>href</c>: embedded data, or the relative path of a linked file. With a
+    /// <paramref name="box"/> the picture goes exactly there (stretched to it) instead of being fitted and centered.
+    /// </summary>
+    public SvgImage AddImageReference(string href, int pixelWidth, int pixelHeight, string name = "Add Image", VRect? box = null)
     {
         var (pageWidth, pageHeight) = Root.UserSize;
         var (pixelsWidth, pixelsHeight) = Root.PixelSize;
@@ -141,6 +144,13 @@ public sealed partial class SvgActions
         image.Width = Math.Round(width, 3);
         image.Height = Math.Round(height, 3);
         image.SetAttribute("preserveAspectRatio", "none");
+        if (box is { } place)
+        {
+            image.X = place.X;
+            image.Y = place.Y;
+            image.Width = place.Width;
+            image.Height = place.Height;
+        }
         image.Href = href;
         return (SvgImage)AddNode(image, name: name);
     }

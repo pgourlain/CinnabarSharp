@@ -54,6 +54,6 @@ public sealed class SvgPerformanceTests(ITestOutputHelper output) : BaseTests
 
         output.WriteLine($"parse {parse} ms, open {open} ms, 1600x900 window {window} ms, thumbnail {thumb} ms ({thumbnail.Width}x{thumbnail.Height})");
         Assert.True(open < 2000, $"opening took {open} ms");
-        Assert.True(window < 1000, $"drawing the window took {window} ms");
+        Assert.True(window < 4000, $"drawing the window took {window} ms");   // about 600 ms on a quiet machine; the suites run in parallel
     }
 }

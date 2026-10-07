@@ -18,7 +18,7 @@ public sealed partial class SvgActions
     /// bytes go into the file as a data URI (other formats are converted to PNG). Linked: the drawing keeps the relative path;
     /// the drawing must be saved and the picture must be in its folder or below it.
     /// </summary>
-    public SvgImage ImportImage(FileInfo file, bool linked)
+    public SvgImage ImportImage(FileInfo file, bool linked, VRect? box = null)
     {
         if (!file.Exists)
             throw new FileNotFoundException("The picture does not exist.", file.FullName);
@@ -34,13 +34,13 @@ public sealed partial class SvgActions
             var relative = Path.GetRelativePath(folder, file.FullName);
             if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
                 throw new InvalidOperationException("A linked picture must be in the folder of the drawing or below it.");
-            return AddImageReference(Uri.EscapeDataString(relative.Replace('\\', '/')).Replace("%2F", "/"), decoded.Width, decoded.Height, "Import Linked Picture");
+            return AddImageReference(Uri.EscapeDataString(relative.Replace('\\', '/')).Replace("%2F", "/"), decoded.Width, decoded.Height, "Import Linked Picture", box);
         }
         if (IsPng(data))
-            return AddImage(data, "image/png", decoded.Width, decoded.Height, "Import Picture");
+            return AddImage(data, "image/png", decoded.Width, decoded.Height, "Import Picture", box);
         if (IsJpeg(data))
-            return AddImage(data, "image/jpeg", decoded.Width, decoded.Height, "Import Picture");
-        return AddImage(EncodePng(decoded.Bgra, decoded.Width, decoded.Height), "image/png", decoded.Width, decoded.Height, "Import Picture");
+            return AddImage(data, "image/jpeg", decoded.Width, decoded.Height, "Import Picture", box);
+        return AddImage(EncodePng(decoded.Bgra, decoded.Width, decoded.Height), "image/png", decoded.Width, decoded.Height, "Import Picture", box);
     }
 
     private static byte[] EncodePng(byte[] bgra, int width, int height)

@@ -208,13 +208,14 @@ public sealed class VectorTools(McpContext context)
             var file = new FileInfo(context.Files.Resolve(path));
             if (!file.Exists)
                 throw new McpException($"'{path}' does not exist.");
-            var image = drawing.Actions.ImportImage(file, linked);
+            VRect? box = null;
             if (x is not null || y is not null || width is not null || height is not null)
             {
                 if (x is null || y is null || width is not > 0 || height is not > 0)
                     throw new McpException("To place the picture give x, y, width and height together.");
-                drawing.Actions.Resize([image], new VRect(x.Value, y.Value, width.Value, height.Value));
+                box = new VRect(x.Value, y.Value, width.Value, height.Value);
             }
+            var image = drawing.Actions.ImportImage(file, linked, box);
             return Result(drawing, [image]);
         });
 
