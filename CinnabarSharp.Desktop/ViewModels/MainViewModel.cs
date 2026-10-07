@@ -1021,6 +1021,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleOwnLayer = settings.BubbleOwnLayer;
         ShowWelcomeScreen = settings.ShowWelcome;
         GridSize = settings.GridSize;
+        SnapToGuides = settings.SnapToGuides;
+        ShowRulers = settings.ShowRulers;
         if (CinnabarSharp.Core.Vector.ShapeLibrary.Find(settings.LibraryShape) is { } libraryShape)
             ToolSettings.LibraryShape = libraryShape.Id;
         SnapToGrid = settings.SnapToGrid;
@@ -1075,6 +1077,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         AllowAgents = AllowAgents,
         ShowWelcome = ShowWelcomeScreen,
         ShowGrid = ShowGrid,
+        ShowRulers = ShowRulers,
+        SnapToGuides = SnapToGuides,
         LibraryShape = ToolSettings.LibraryShape,
         SnapToGrid = SnapToGrid,
         GridSize = GridSize,
@@ -1143,8 +1147,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (ActiveImageTab is { } d && ActiveTool is { } tool)
         {
-            if (ToolSettings.SnapToGrid && tool is IGridSnappingTool)
-                pointer = pointer with { Position = GridSnapping.Snap(pointer.Position, ToolSettings.GridSize, default) };
+            if (tool is IGridSnappingTool)
+            {
+                var guided = SnapToGuidesImage(pointer.Position);
+                var position = ToolSettings.SnapToGrid ? GridSnapping.Snap(guided.Point, ToolSettings.GridSize, default) : guided.Point;
+                pointer = pointer with { Position = new Core.Models.PointD(guided.X ? guided.Point.X : position.X, guided.Y ? guided.Point.Y : position.Y) };
+            }
             handler(tool)(d.Image, pointer);
         }
         UpdateOverlay();
@@ -2162,6 +2170,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     partial void OnActiveDocumentChanged(DocumentViewModel? value)
     {
         SyncToolbox();
+        RefreshGuides();
         if (value is not null && !_syncingSelection)
             _workspace.SetActiveDocument(value.Document);
         RefreshLayers();

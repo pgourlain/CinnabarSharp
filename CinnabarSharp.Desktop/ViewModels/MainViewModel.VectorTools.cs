@@ -82,8 +82,10 @@ public partial class MainViewModel
     {
         if (ActiveVectorTool is not { } tool)
             return;
-        pointer = pointer with { Position = ImageToUser(drawing, pointer.Position) };
-        handler(tool, drawing, tool is IGridSnappingTool ? SnapToGridUser(drawing, pointer) : pointer);
+        var snapsToGrid = tool is IGridSnappingTool;
+        var guided = snapsToGrid ? SnapToGuidesImage(pointer.Position) : (pointer.Position, false, false);
+        pointer = pointer with { Position = ImageToUser(drawing, guided.Item1) };
+        handler(tool, drawing, snapsToGrid ? SnapToGridUser(drawing, pointer, guided.Item2, guided.Item3) : pointer);
     }
 
     private static PointD ImageToUser(SvgDocument drawing, PointD image)

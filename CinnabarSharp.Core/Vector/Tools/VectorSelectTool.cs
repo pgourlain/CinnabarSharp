@@ -339,15 +339,45 @@ public sealed class VectorSelectTool(ToolSettings settings) : IVectorKeyboardToo
         if (modifiers.HasFlag(ToolModifiers.Alt))
             return delta;
         var byObjects = SnapToObjects(document, delta);
-        // Objects win where they snap; otherwise the edges of the moved box go to the grid.
-        if (!settings.SnapToGrid || byObjects != delta)
+        // Objects win where they snap; then the guides; otherwise the edges of the moved box go to the grid.
+        if (byObjects != delta)
             return byObjects;
+        var byGuides = SnapToGuides(document, delta);
+        if (byGuides != delta || !settings.SnapToGrid)
+            return byGuides;
         var origin = GridOrigin(document);
         var reach = Math.Min(document.ScreenToUser(SnapReach), settings.GridSize / 2);
         var moved = _box.Offset(delta.X, delta.Y);
         var dx = GridSnapping.ShiftToGrid([moved.Left, moved.Right], settings.GridSize, origin.X, reach);
         var dy = GridSnapping.ShiftToGrid([moved.Top, moved.Bottom], settings.GridSize, origin.Y, reach);
         return new VVector(delta.X + dx, delta.Y + dy);
+    }
+
+    /// <summary>Moves the edges and the middle of the moved box onto a guide line that is within reach.</summary>
+    private VVector SnapToGuides(SvgDocument document, VVector delta)
+    {
+        var guides = document.Workspace.Guides;
+        if (!settings.SnapToGuides || guides.Count == 0)
+            return delta;
+        var reach = document.ScreenToUser(SnapReach);
+        var moved = _box.Offset(delta.X, delta.Y);
+        double Shift(IEnumerable<double> guideLines, double[] mine)
+        {
+            var best = double.NaN;
+            var distance = reach;
+            foreach (var line in guideLines)
+                foreach (var m in mine)
+                    if (Math.Abs(line - m) < distance)
+                    {
+                        distance = Math.Abs(line - m);
+                        best = line - m;
+                    }
+            return double.IsNaN(best) ? 0 : best;
+        }
+        var xs = guides.Items.Where(g => g.Orientation == GuideOrientation.Vertical).Select(g => document.ImageToUserPoint(new VPoint(g.Position, 0)).X);
+        var ys = guides.Items.Where(g => g.Orientation == GuideOrientation.Horizontal).Select(g => document.ImageToUserPoint(new VPoint(0, g.Position)).Y);
+        return new VVector(delta.X + Shift(xs, [moved.Left, moved.Left + moved.Width / 2, moved.Right]),
+            delta.Y + Shift(ys, [moved.Top, moved.Top + moved.Height / 2, moved.Bottom]));
     }
 
     /// <summary>The page's top-left corner in user space: where the grid lines start.</summary>

@@ -582,18 +582,26 @@
                 </ListBox>
 
                 <Panel Background="{DynamicResource CinnabarWorkspaceBrush}">
-                    <ScrollViewer x:Name="CanvasScroller"
-                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                        <c:CanvasView x:Name="Canvas" AutomationProperties.Name="Image canvas"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
-                                      Document="{Binding ActiveDocument.ImageOrNull, FallbackValue={x:Null}}"
-                                      SvgDocument="{Binding ActiveDocument.SvgOrNull, FallbackValue={x:Null}}"
-                                      RenderVersion="{Binding RenderVersion}"
-                                      ViewVersion="{Binding ViewVersion}"
-                                      SelectionVersion="{Binding SelectionVersion}"
-                                      Overlay="{Binding Overlay}" Grid="{Binding Grid}"
-                                      BrushSize="{Binding BrushOutlineSize}" />
-                    </ScrollViewer>
+                    <!-- Rulers (View › Show Rulers) around the canvas; dragging out of one makes a guide. -->
+                    <Grid x:Name="CanvasArea" RowDefinitions="Auto,*" ColumnDefinitions="Auto,*">
+                        <Border Grid.Row="0" Grid.Column="0" Width="20" Height="20" Background="#EEEBE6" IsVisible="{Binding ShowRulers}" />
+                        <c:RulerView x:Name="RulerTop" Grid.Row="0" Grid.Column="1" Orientation="Horizontal" IsVisible="{Binding ShowRulers}"
+                                     AutomationProperties.Name="Horizontal ruler" ToolTip.Tip="Drag down to make a horizontal guide" />
+                        <c:RulerView x:Name="RulerLeft" Grid.Row="1" Grid.Column="0" Orientation="Vertical" IsVisible="{Binding ShowRulers}"
+                                     AutomationProperties.Name="Vertical ruler" ToolTip.Tip="Drag right to make a vertical guide" />
+                        <ScrollViewer x:Name="CanvasScroller" Grid.Row="1" Grid.Column="1"
+                                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <c:CanvasView x:Name="Canvas" AutomationProperties.Name="Image canvas"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
+                                          Document="{Binding ActiveDocument.ImageOrNull, FallbackValue={x:Null}}"
+                                          SvgDocument="{Binding ActiveDocument.SvgOrNull, FallbackValue={x:Null}}"
+                                          RenderVersion="{Binding RenderVersion}"
+                                          ViewVersion="{Binding ViewVersion}"
+                                          SelectionVersion="{Binding SelectionVersion}"
+                                          Overlay="{Binding Overlay}" Grid="{Binding Grid}" Guides="{Binding Guides}"
+                                          BrushSize="{Binding BrushOutlineSize}" />
+                        </ScrollViewer>
+                    </Grid>
                     <TextBlock x:Name="EmptyHint" IsVisible="{Binding IsEmptyHintVisible}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                Foreground="White" FontSize="16" />

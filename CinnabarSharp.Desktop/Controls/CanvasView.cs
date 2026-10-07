@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -46,6 +47,16 @@ public class CanvasView : Control
     public static readonly StyledProperty<ToolOverlay?> OverlayProperty =
         AvaloniaProperty.Register<CanvasView, ToolOverlay?>(nameof(Overlay));
 
+    /// <summary>The guide lines drawn over the picture (picture pixels), or null for none.</summary>
+    public static readonly StyledProperty<IReadOnlyList<GuideLine>?> GuidesProperty =
+        AvaloniaProperty.Register<CanvasView, IReadOnlyList<GuideLine>?>(nameof(Guides));
+
+    public IReadOnlyList<GuideLine>? Guides
+    {
+        get => GetValue(GuidesProperty);
+        set => SetValue(GuidesProperty, value);
+    }
+
     /// <summary>The grid drawn over the picture, or null for none.</summary>
     public static readonly StyledProperty<GridInfo?> GridProperty =
         AvaloniaProperty.Register<CanvasView, GridInfo?>(nameof(Grid));
@@ -89,7 +100,7 @@ public class CanvasView : Control
     {
         AffectsMeasure<CanvasView>(DocumentProperty, SvgDocumentProperty, RenderVersionProperty, ViewVersionProperty);
         AffectsRender<CanvasView>(ViewVersionProperty);
-        AffectsRender<CanvasView>(SelectionVersionProperty, OverlayProperty, BrushSizeProperty, GridProperty);
+        AffectsRender<CanvasView>(SelectionVersionProperty, OverlayProperty, BrushSizeProperty, GridProperty, GuidesProperty);
     }
 
     public CanvasView()
@@ -228,6 +239,7 @@ public class CanvasView : Control
         }
 
         DrawGrid(context, doc.Workspace.Scale);
+        DrawGuides(context, doc.Workspace.Scale);
         if (Overlay is { } overlay)
             DrawOverlay(context, overlay, doc.Workspace.Scale);
 
@@ -742,8 +754,27 @@ public class CanvasView : Control
                 context.DrawImage(bitmap, new Rect(bitmap.Size), dest);
         }
         DrawGrid(context, drawing.Workspace.Scale);
+        DrawGuides(context, drawing.Workspace.Scale);
         if (Overlay is { } overlay)
             DrawOverlay(context, overlay, drawing.Workspace.Scale);
+    }
+
+    private static readonly IPen GuidePen = new Pen(new SolidColorBrush(Color.FromRgb(0, 170, 255)), 1);
+
+    /// <summary>Guide lines: thin cyan lines across the whole picture.</summary>
+    private void DrawGuides(DrawingContext context, double scale)
+    {
+        if (Guides is not { Count: > 0 } guides)
+            return;
+        var view = Bounds.Size;
+        foreach (var guide in guides)
+        {
+            var at = Math.Floor(guide.Position * scale) + 0.5;
+            if (guide.Orientation == Core.Models.GuideOrientation.Vertical)
+                context.DrawLine(GuidePen, new Point(at, 0), new Point(at, view.Height));
+            else
+                context.DrawLine(GuidePen, new Point(0, at), new Point(view.Width, at));
+        }
     }
 
     // Like draw.io: thin light grey lines, a darker one every fifth line, on a white page.

@@ -151,6 +151,12 @@ public class ToolSettings
     /// <summary>The ready-made shape the Shape tool draws (see <c>ShapeLibrary</c>), by id such as "basic/star".</summary>
     public string LibraryShape { get; set; } = "basic/star";
 
+    /// <summary>The drawing tools snap what they place to the guide lines (dragged out of the rulers).</summary>
+    public bool SnapToGuides { get; set; } = true;
+
+    /// <summary>Rulers (and the guides) are shown around the picture.</summary>
+    public bool ShowRulers { get; set; }
+
     // ---- Grid ----
 
     /// <summary>Draws a grid over the picture.</summary>

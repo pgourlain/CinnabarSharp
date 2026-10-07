@@ -66,11 +66,13 @@ public partial class MainViewModel
     }
 
     /// <summary>A drawing tool's pointer, moved to the grid when snapping is on (positions in user space of the drawing).</summary>
-    private ToolPointer SnapToGridUser(SvgDocument drawing, ToolPointer pointer)
+    private ToolPointer SnapToGridUser(SvgDocument drawing, ToolPointer pointer, bool keepX = false, bool keepY = false)
     {
         if (!ToolSettings.SnapToGrid)
             return pointer;
         var origin = drawing.Root.ViewBox is { } box ? new PointD(box.X, box.Y) : default;
-        return pointer with { Position = GridSnapping.Snap(pointer.Position, ToolSettings.GridSize, origin) };
+        var snapped = GridSnapping.Snap(pointer.Position, ToolSettings.GridSize, origin);
+        // An axis that already snapped to a guide stays where the guide put it.
+        return pointer with { Position = new PointD(keepX ? pointer.Position.X : snapped.X, keepY ? pointer.Position.Y : snapped.Y) };
     }
 }

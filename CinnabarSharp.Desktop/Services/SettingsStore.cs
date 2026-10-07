@@ -58,6 +58,8 @@ public record AppSettings
     public bool AllowAgents { get; init; }
     public bool ShowWelcome { get; init; } = true;
     public string? LibraryShape { get; init; }
+    public bool ShowRulers { get; init; }
+    public bool SnapToGuides { get; init; } = true;
     public bool ShowGrid { get; init; }
     public bool SnapToGrid { get; init; }
     public double GridSize { get; init; } = 10;

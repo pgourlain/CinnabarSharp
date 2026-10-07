@@ -38,6 +38,9 @@ namespace CinnabarSharp.Core.Models
         private readonly ILogger _logger;
         private ImageSize _viewSize;
 
+        /// <summary>The guide lines of the document (rulers): positions in picture pixels.</summary>
+        public GuideSet Guides { get; } = new();
+
         // The zoom as requested. Deriving it from ViewSize (whole pixels) loses precision: at 25 % a 1023-pixel-wide
         // image is 255 pixels wide, i.e. 24.93 %, and "zoom in" then goes back to 25 % forever.
         private double _scale = 1;

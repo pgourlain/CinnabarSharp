@@ -44,7 +44,12 @@ public partial class MainWindow : Window, IViewportService
         StartupTrace.Mark("MainWindow ctor start");
         InitializeComponent();
         StartupTrace.Mark("MainWindow XAML loaded");
-        Canvas.CanvasPointerMoved += p => Vm?.UpdateCursorPosition(p);
+        Canvas.CanvasPointerMoved += p =>
+        {
+            Vm?.UpdateCursorPosition(p);
+            RulerTop.Marker = p?.X;
+            RulerLeft.Marker = p?.Y;
+        };
         Canvas.ToolPointerPressed += p => Vm?.ToolPointerDown(p);
         Canvas.ToolPointerMoved += p => Vm?.ToolPointerMove(p);
         Canvas.ToolPointerReleased += p => Vm?.ToolPointerUp(p);
@@ -62,6 +67,15 @@ public partial class MainWindow : Window, IViewportService
         CanvasScroller.AddHandler(PointerMovedEvent, OnCanvasPointerMoved, RoutingStrategies.Tunnel);
         CanvasScroller.AddHandler(PointerReleasedEvent, OnCanvasPointerReleased, RoutingStrategies.Tunnel);
         CanvasScroller.AddHandler(PointerCaptureLostEvent, (_, _) => EndPan());
+        CanvasScroller.ScrollChanged += (_, _) => UpdateRulers();
+        CanvasScroller.SizeChanged += (_, _) => UpdateRulers();
+        Canvas.LayoutUpdated += (_, _) => UpdateRulers();
+        foreach (var ruler in new[] { RulerTop, RulerLeft })
+        {
+            ruler.PointerPressed += OnRulerPressed;
+            ruler.PointerMoved += OnRulerMoved;
+            ruler.PointerReleased += OnRulerReleased;
+        }
         AddHandler(KeyDownEvent, OnToolKeyDown, RoutingStrategies.Tunnel);
         AddHandler(TextInputEvent, OnToolTextInput, RoutingStrategies.Tunnel);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
@@ -397,6 +411,8 @@ public partial class MainWindow : Window, IViewportService
                 return;
             }
         }
+        if (TryGrabGuide(e))
+            return;
         if (Vm?.HasDocument != true || !IsPanGesture(e))
             return;
         _panStart = e.GetPosition(CanvasScroller);
@@ -408,6 +424,12 @@ public partial class MainWindow : Window, IViewportService
 
     private void OnCanvasPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (_guide is not null)
+        {
+            DragGuide(e, CanvasScroller);
+            e.Handled = true;
+            return;
+        }
         if (_panStart is not { } start)
             return;
         var delta = e.GetPosition(CanvasScroller) - start;
@@ -417,11 +439,108 @@ public partial class MainWindow : Window, IViewportService
 
     private void OnCanvasPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_guide is not null)
+        {
+            DropGuide(e, CanvasScroller);
+            e.Pointer.Capture(null);
+            e.Handled = true;
+            return;
+        }
         if (_panStart is null)
             return;
         e.Pointer.Capture(null);
         EndPan();
         e.Handled = true;
+    }
+
+    // ---- Rulers and guides ----
+
+    private Core.Models.Guide? _guide;
+
+    private double CanvasScale => Vm?.ActiveDocument?.Document.Workspace.Scale ?? 1;
+
+    /// <summary>Tells the rulers where picture coordinate 0 is and the zoom: they follow the scroll and the zoom.</summary>
+    private void UpdateRulers()
+    {
+        if (Vm is not { ShowRulers: true })
+            return;
+        var scale = CanvasScale;
+        RulerTop.Scale = scale;
+        RulerLeft.Scale = scale;
+        if (Canvas.TranslatePoint(default, RulerTop) is { } top)
+            RulerTop.Origin = top.X;
+        if (Canvas.TranslatePoint(default, RulerLeft) is { } left)
+            RulerLeft.Origin = left.Y;
+    }
+
+    private Core.Models.PointD PictureAt(PointerEventArgs e)
+    {
+        var p = e.GetPosition(Canvas);
+        var scale = CanvasScale;
+        return new Core.Models.PointD(p.X / scale, p.Y / scale);
+    }
+
+    private void OnRulerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (Vm?.ActiveGuides is not { } guides || !e.GetCurrentPoint((Visual)sender!).Properties.IsLeftButtonPressed)
+            return;
+        // The top ruler makes horizontal guides, the left one vertical guides.
+        var horizontal = ReferenceEquals(sender, RulerTop);
+        var at = PictureAt(e);
+        _guide = guides.Add(horizontal ? Core.Models.GuideOrientation.Horizontal : Core.Models.GuideOrientation.Vertical, horizontal ? at.Y : at.X);
+        e.Pointer.Capture((IInputElement)sender!);
+        e.Handled = true;
+    }
+
+    private void OnRulerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_guide is not null)
+            DragGuide(e, (Visual)sender!);
+    }
+
+    private void OnRulerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_guide is null)
+            return;
+        DropGuide(e, CanvasScroller);
+        e.Pointer.Capture(null);
+    }
+
+    private void DragGuide(PointerEventArgs e, Visual _)
+    {
+        if (_guide is null || Vm?.ActiveGuides is not { } guides)
+            return;
+        var at = PictureAt(e);
+        guides.Move(_guide, Math.Round(_guide.Orientation == Core.Models.GuideOrientation.Horizontal ? at.Y : at.X, 2));
+    }
+
+    /// <summary>Lets go of a guide: one dropped outside the picture area (back on a ruler) is deleted.</summary>
+    private void DropGuide(PointerEventArgs e, Visual area)
+    {
+        var guide = _guide;
+        _guide = null;
+        if (guide is null || Vm?.ActiveGuides is not { } guides)
+            return;
+        var p = e.GetPosition(CanvasScroller);
+        if (p.X < 0 || p.Y < 0 || p.X > CanvasScroller.Bounds.Width || p.Y > CanvasScroller.Bounds.Height)
+            guides.Remove(guide);
+    }
+
+    /// <summary>Ctrl/⌘ + press on a guide picks it up (a plain press belongs to the tool, which snaps to it).</summary>
+    private bool TryGrabGuide(PointerPressedEventArgs e)
+    {
+        if (Vm is not { ShowRulers: true, ActiveGuides: { Count: > 0 } guides }
+            || !e.KeyModifiers.HasFlag(CommandModifier) || !e.GetCurrentPoint(CanvasScroller).Properties.IsLeftButtonPressed)
+            return false;
+        var at = PictureAt(e);
+        var reach = 4 / CanvasScale;
+        var guide = guides.Nearest(Core.Models.GuideOrientation.Vertical, at.X, reach) ?? guides.Nearest(Core.Models.GuideOrientation.Horizontal, at.Y, reach);
+        if (guide is null)
+            return false;
+        _guide = guide;
+        e.Pointer.Capture(CanvasScroller);
+        e.Handled = true;
+        return true;
     }
 
     private void EndPan()
@@ -510,6 +629,9 @@ public partial class MainWindow : Window, IViewportService
                 new("_Actual Size", vm.ActualSizeCommand, G(Key.D0)),
                 MenuSpec.Separator,
                 new("Show _Grid", vm.ToggleGridCommand, G(Key.OemQuotes), Checked: (vm, nameof(MainViewModel.ShowGrid), () => vm.ShowGrid)),
+                new("Show _Rulers", vm.ToggleRulersCommand, G(Key.R, KeyModifiers.Alt), Checked: (vm, nameof(MainViewModel.ShowRulers), () => vm.ShowRulers)),
+                new("Snap to Gui_des", vm.ToggleSnapToGuidesCommand, Checked: (vm, nameof(MainViewModel.SnapToGuides), () => vm.SnapToGuides)),
+                new("Clear Guides", vm.ClearGuidesCommand),
                 new("S_nap to Grid", vm.ToggleSnapToGridCommand, G(Key.OemSemicolon), Checked: (vm, nameof(MainViewModel.SnapToGrid), () => vm.SnapToGrid)),
             ]),
             new("_Object", Children:
