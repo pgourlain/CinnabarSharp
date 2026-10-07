@@ -212,7 +212,7 @@ public sealed class VectorNodeToolTests : VectorToolTestBase
         Assert.True(tool.CanConvertToPath(doc));
 
         var steps = Steps(doc);
-        Drag(tool, doc, 80, 140, 65, 140);                                    // the corner radius handle on the top edge
+        Drag(tool, doc, 66, 140, 65, 140);                                    // the corner radius handle, 14 inside the top right corner
         Assert.Equal(steps + 1, Steps(doc));
         Assert.Equal("Round Corners", doc.History.Items[^1].Text);
         Assert.Equal(15, ((SvgRect)El(doc, "r")).Rx, 3);
@@ -260,5 +260,62 @@ public sealed class VectorNodeToolTests : VectorToolTestBase
         doc.History.Undo();
         var overlay = tool.GetOverlay(doc)!;
         Assert.Equal(100, (int)overlay.Handles[1].X);
+    }
+
+    [Fact]
+    public void Pressing_a_corner_of_a_rectangle_makes_it_a_path_and_drags_that_node()
+    {
+        var (doc, tool) = Setup();
+        doc.Selection.Set(El(doc, "r"));
+        var steps = Steps(doc);
+        // The nodes of the outline are shown before anything is converted.
+        Assert.Equal(4, tool.GetOverlay(doc)!.Highlights.Count);
+
+        Drag(tool, doc, 20, 140, 10, 120);                        // the top-left corner of the rectangle
+
+        var path = Assert.IsType<SvgPath>(doc.Selection.Primary);
+        Assert.Equal(steps + 2, Steps(doc));                       // Object to Path, then the edit
+        Assert.Equal(new VRect(10, 120, 70, 60), SvgBounds.InDocument(path));
+        doc.History.Undo();
+        doc.History.Undo();
+        Assert.IsType<SvgRect>(El(doc, "r"));
+    }
+
+    [Fact]
+    public void Every_kind_of_shape_can_be_edited_point_by_point()
+    {
+        var doc = Open("<polygon id='pg' points='20,20 80,20 50,70' fill='#f00'/>" +
+            "<line id='l' x1='100' y1='20' x2='180' y2='60' stroke='#000'/>" +
+            "<ellipse id='e' cx='60' cy='140' rx='40' ry='20' fill='#0f0'/>" +
+            "<circle id='c' cx='150' cy='140' r='25' fill='#00f'/>");
+        var tool = new VectorNodeTool(Settings);
+
+        doc.Selection.Set(El(doc, "pg"));
+        Drag(tool, doc, 50, 70, 50, 90);
+        Assert.IsType<SvgPath>(doc.Selection.Primary);
+        Assert.Equal(90, SvgBounds.InDocument((SvgElement)doc.Selection.Primary!)!.Value.Bottom, 0.01);
+
+        doc.Selection.Set(El(doc, "l"));
+        Drag(tool, doc, 180, 60, 190, 90);
+        Assert.IsType<SvgPath>(doc.Selection.Primary);
+
+        doc.Selection.Set(El(doc, "e"));
+        Drag(tool, doc, 20, 140, 5, 140);                         // the left node of the ellipse (the right one is a radius handle)
+        Assert.IsType<SvgPath>(doc.Selection.Primary);
+        Assert.Equal(5, SvgBounds.InDocument((SvgElement)doc.Selection.Primary!)!.Value.Left, 0.5);
+
+        doc.Selection.Set(El(doc, "c"));
+        Drag(tool, doc, 150, 115, 150, 100);                      // the top node of the circle
+        Assert.IsType<SvgPath>(doc.Selection.Primary);
+    }
+
+    [Fact]
+    public void Pressing_inside_a_shape_or_on_its_radius_handle_does_not_convert_it()
+    {
+        var (doc, tool) = Setup();
+        doc.Selection.Set(El(doc, "r"));
+        Click(tool, doc, 50, 160);                                // inside the rectangle, away from its outline
+        Assert.IsType<SvgRect>(El(doc, "r"));
+        Assert.Empty(doc.History.Items.Skip(1));
     }
 }

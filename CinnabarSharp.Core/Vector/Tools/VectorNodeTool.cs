@@ -21,6 +21,7 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
 
     private const double Reach = 7;        // screen pixels
     private const double SegmentReach = 5; // screen pixels
+    private const double HandleInset = 14; // screen pixels: how far inside a corner the radius handles of a rectangle sit
 
     private SvgPath? _path;
     private string? _data;
@@ -102,6 +103,17 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
         _before = [.. document.Selection.Nodes];
         var p = _start;
         var reach = document.ScreenToUser(Reach);
+
+        // Pressing a point of the outline of any other shape (rectangle, ellipse, polygon, line…) turns it into a path
+        // first, so every point of every object can be edited. The radius handles of an ellipse, a circle and a rounded
+        // rectangle keep priority; the corner radius handles sit a little inside the corners, which are plain points.
+        if (document.Selection.Primary is SvgShape { } outlined and not SvgPath
+            && ShapeHandleAt(document, p, reach) is null
+            && OnOutline(document, outlined, p))
+        {
+            document.Actions.ObjectToPath([outlined]);
+            Sync(document);
+        }
 
         if (_path is not null && _editable is not null)
         {
@@ -499,6 +511,35 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
         Sync(document);
     }
 
+    /// <summary>The nodes of a shape's outline, in document space, as the path they would become.</summary>
+    private static List<VPoint> OutlineNodes(SvgShape shape)
+    {
+        var world = SvgBounds.ToDocument(shape);
+        return EditablePath.From(shape.CreatePath()).Figures.SelectMany(f => f.Nodes).Select(n => world.Transform(n.Point)).ToList();
+    }
+
+    /// <summary>True when <paramref name="p"/> is on the outline of the shape: within a few screen pixels of one of its edges.</summary>
+    private static bool OnOutline(SvgDocument document, SvgShape shape, VPoint p)
+    {
+        var reach = document.ScreenToUser(SegmentReach);
+        var world = SvgBounds.ToDocument(shape);
+        foreach (var polyline in Flattener.Flatten(shape.CreatePath(), world, document.ScreenToUser(0.5)))
+        {
+            var points = polyline.Points;
+            for (var i = 0; i + 1 < points.Count || (polyline.Closed && i < points.Count); i++)
+            {
+                var a = points[i];
+                var b = points[(i + 1) % points.Count];
+                var ab = b - a;
+                var length2 = ab.Dot(ab);
+                var t = length2 <= 0 ? 0 : Math.Clamp((p - a).Dot(ab) / length2, 0, 1);
+                if (p.DistanceTo(a + ab * t) <= reach)
+                    return true;
+            }
+        }
+        return false;
+    }
+
     public bool CanConvertToPath(SvgDocument document) => document.Selection.Primary is SvgShape and not SvgPath;
 
     public void SelectAllNodes(SvgDocument document)
@@ -515,7 +556,7 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
 
     // ---- Shape handles ----
 
-    private (VPoint Radius1, VPoint Radius2)? ShapePoints(SvgElement shape)
+    private (VPoint Radius1, VPoint Radius2)? ShapePoints(SvgElement shape, double inset)
     {
         var world = SvgBounds.ToDocument(shape);
         switch (shape)
@@ -523,7 +564,9 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
             case SvgRect rect:
             {
                 var (rx, ry) = rect.EffectiveRadii;
-                return (world.Transform(new VPoint(rect.X + rect.Width - rx, rect.Y)), world.Transform(new VPoint(rect.X, rect.Y + ry)));
+                // The handles sit at least `inset` inside the corners, so the corners themselves stay free to edit as points.
+                return (world.Transform(new VPoint(rect.X + rect.Width - Math.Min(Math.Max(rx, inset), rect.Width / 2), rect.Y)),
+                    world.Transform(new VPoint(rect.X, rect.Y + Math.Min(Math.Max(ry, inset), rect.Height / 2))));
             }
             case SvgEllipse ellipse:
             {
@@ -540,7 +583,7 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
 
     private int? ShapeHandleAt(SvgDocument document, VPoint p, double reach)
     {
-        if (document.Selection.Primary is not { } shape || shape is SvgPath || ShapePoints(shape) is not { } points)
+        if (document.Selection.Primary is not { } shape || shape is SvgPath || ShapePoints(shape, document.ScreenToUser(HandleInset)) is not { } points)
             return null;
         if (shape is SvgCircle)
             return p.DistanceTo(points.Radius1) <= reach ? 0 : null;
@@ -636,12 +679,18 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
             var overlay = NodeHandles(I);
             return new ToolOverlay { Handles = overlay.Handles, Lines = overlay.Lines, Highlights = overlay.Highlights, SquareHandles = true };
         }
-        if (document.Selection.Primary is { } shape && ShapePoints(shape) is { } points)
+        if (document.Selection.Primary is SvgShape outlined)
         {
-            var handles = new List<PointD> { I(points.Radius1) };
-            if (shape is not SvgCircle)
-                handles.Add(I(points.Radius2));
-            return new ToolOverlay { Handles = handles, SquareHandles = false };
+            // The points that can be edited: press one (or an edge) and the shape becomes a path.
+            var markers = OutlineNodes(outlined).Select(n => I(n)).Select(c => new RectangleD(c.X - 4, c.Y - 4, 8, 8)).ToList();
+            var handles = new List<PointD>();
+            if (ShapePoints(outlined, document.ScreenToUser(HandleInset)) is { } points)
+            {
+                handles.Add(I(points.Radius1));
+                if (outlined is not SvgCircle)
+                    handles.Add(I(points.Radius2));
+            }
+            return new ToolOverlay { Handles = handles, Highlights = markers, SquareHandles = false };
         }
         return null;
     }
@@ -681,7 +730,11 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
         var p = userPoint.ToVector();
         var reach = document.ScreenToUser(Reach);
         if (_editable is null)
-            return ShapeHandleAt(document, p, reach) is not null ? ToolCursor.Move : ToolCursor.Default;
+        {
+            if (ShapeHandleAt(document, p, reach) is not null)
+                return ToolCursor.Move;
+            return document.Selection.Primary is SvgShape outlined && OnOutline(document, outlined, p) ? ToolCursor.Move : ToolCursor.Default;
+        }
         return HandleAt(p, reach) is not null || NodeAt(p, reach) is not null ? ToolCursor.Move : ToolCursor.Default;
     }
 }
