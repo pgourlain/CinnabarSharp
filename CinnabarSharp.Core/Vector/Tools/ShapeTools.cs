@@ -274,3 +274,18 @@ public sealed class VectorPolygonTool(ToolSettings settings) : ShapeDrawTool(set
         return path.Close();
     }
 }
+
+/// <summary>Shape (U): draws one of the ready-made shapes of <see cref="ShapeLibrary"/> in the box you drag (Shift keeps the proportions, Alt draws from the center).</summary>
+public sealed class VectorLibraryShapeTool(ToolSettings settings) : ShapeDrawTool(settings, "Shape", "Shape")
+{
+    protected override SvgElement? Build(SvgDocument document, SvgElement? current, VPoint start, VPoint end, ToolModifiers modifiers)
+    {
+        var box = DragBox(start, end, modifiers);
+        if (box.Width <= 0 || box.Height <= 0)
+            return current;
+        var shape = ShapeLibrary.Find(Settings.LibraryShape) ?? ShapeLibrary.Default;
+        var path = current as SvgPath ?? new SvgPath { Id = document.Root.NewId(shape.Name.ToLowerInvariant().Replace(' ', '-')) };
+        path.SetPath(shape.Place(box), 3);
+        return path;
+    }
+}

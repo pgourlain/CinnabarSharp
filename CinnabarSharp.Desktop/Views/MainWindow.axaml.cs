@@ -196,6 +196,15 @@ public partial class MainWindow : Window, IViewportService
         }
     }
 
+    // ---- Shape tool: the picker ----
+
+    private void OnLibraryShapeClicked(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is ViewModels.LibraryShapeItem item)
+            Vm?.PickLibraryShape(item);
+        LibraryShapeButton.Flyout?.Hide();
+    }
+
     // ---- Objects panel ----
 
     private void OnObjectDoubleTapped(object? sender, TappedEventArgs e)

@@ -145,7 +145,7 @@ public partial class MainViewModel
                  {
                      nameof(ShowVectorSelectOptions), nameof(ShowVectorNodeOptions), nameof(ShowVectorShapeOptions),
                      nameof(ShowVectorRectangleOptions), nameof(ShowVectorPolygonOptions), nameof(ShowVectorPencilOptions),
-                     nameof(ShowVectorGradientOptions), nameof(ShowVectorStrokeOptions), nameof(ShowGridOptions),
+                     nameof(ShowVectorGradientOptions), nameof(ShowVectorStrokeOptions), nameof(ShowGridOptions), nameof(ShowLibraryShapeOptions),
                  })
             OnPropertyChanged(name);
     }

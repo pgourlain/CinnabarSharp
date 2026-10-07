@@ -312,6 +312,43 @@
                     <NumericUpDown Value="{Binding VectorCornerRadius}" AutomationProperties.Name="Rectangle corner radius" Minimum="0" Maximum="10000" Increment="1"
                                    FormatString="0" Width="110" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowLibraryShapeOptions}">
+                    <Button x:Name="LibraryShapeButton" AutomationProperties.Name="Choose shape" ToolTip.Tip="Choose the shape to draw">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Viewbox Width="18" Height="18">
+                                <Path Data="{Binding CurrentLibraryShape.Icon}" Fill="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                            </Viewbox>
+                            <TextBlock Text="{Binding CurrentLibraryShape.Name}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedLeft">
+                                <Grid ColumnDefinitions="170,Auto" Height="360">
+                                    <ListBox ItemsSource="{Binding LibraryCategories}" SelectedItem="{Binding SelectedLibraryCategory}"
+                                             AutomationProperties.Name="Shape categories" />
+                                    <ScrollViewer Grid.Column="1" Width="420" Margin="8,0,0,0" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl ItemsSource="{Binding LibraryShapes}" AutomationProperties.Name="Shapes">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:LibraryShapeItem">
+                                                    <Button Width="60" Height="60" Margin="2" Padding="0" Click="OnLibraryShapeClicked"
+                                                            ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}">
+                                                        <Viewbox Width="36" Height="36">
+                                                            <Path Data="{Binding Icon}" Fill="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                                                        </Viewbox>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorPolygonOptions}">
                     <TextBlock Text="Corners:" />
                     <NumericUpDown Value="{Binding PolygonCorners}" AutomationProperties.Name="Polygon corners" Minimum="3" Maximum="100" Increment="1" FormatString="0" Width="100" />

@@ -148,6 +148,9 @@ public class ToolSettings
     /// <summary>Magic wand selects matching pixels anywhere, not only connected ones.</summary>
     public bool GlobalFill { get; set; }
 
+    /// <summary>The ready-made shape the Shape tool draws (see <c>ShapeLibrary</c>), by id such as "basic/star".</summary>
+    public string LibraryShape { get; set; } = "basic/star";
+
     // ---- Grid ----
 
     /// <summary>Draws a grid over the picture.</summary>

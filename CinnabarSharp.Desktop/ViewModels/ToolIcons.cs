@@ -38,6 +38,7 @@ public static class ToolIcons
         ["Ellipse"] = ("M3 12a9 7 0 1 0 18 0a9 7 0 1 0-18 0", false),
         ["Line"] = ("M4 20L20 4", false),
         ["Polygon / Star"] = ("M12 3l2.6 6 6.4.6-4.8 4.3 1.5 6.3L12 17l-5.7 3.2 1.5-6.3L3 9.6 9.4 9z", false),
+        ["Shape"] = ("M3 20 L9 8 L15 20Z M19 7 a4 4 0 1 0 0.01 0 M14 21 L21 21", false),
         ["Eyedropper"] = ("M19 5a2 2 0 0 0-3-1l-3 3-1-1-2 2 1 1-7 7v3h3l7-7 1 1 2-2-1-1 3-3a2 2 0 0 0 0-2z", false),
         ["Shapes"] = ("M3 3h10v10H3z M17 21a5 5 0 1 0 0-10a5 5 0 1 0 0 10", false),
     };

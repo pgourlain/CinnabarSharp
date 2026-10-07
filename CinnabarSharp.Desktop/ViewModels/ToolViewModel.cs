@@ -43,6 +43,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
     public bool IsVectorShape => VectorTool is ShapeDrawTool;
     public bool IsVectorRectangle => VectorTool is VectorRectangleTool;
     public bool IsVectorPolygon => VectorTool is VectorPolygonTool;
+    public bool IsVectorLibraryShape => VectorTool is VectorLibraryShapeTool;
     public bool IsVectorPencil => VectorTool is VectorPencilTool;
     public bool IsVectorGradient => VectorTool is VectorGradientTool;
     public bool HasVectorStroke => VectorTool is ShapeDrawTool or VectorPenTool or VectorPencilTool;
@@ -59,6 +60,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
         new("Ellipse", "El", "E") { VectorTool = new VectorEllipseTool(settings) },
         new("Line", "Li", "L") { VectorTool = new VectorLineTool(settings) },
         new("Polygon / Star", "Po", "Y") { VectorTool = new VectorPolygonTool(settings) },
+        new("Shape", "Sh", "U") { VectorTool = new VectorLibraryShapeTool(settings) },
         new("Text", "Tx", "T") { VectorTool = new VectorTextTool(settings) },
         new("Gradient", "Gr", "G") { VectorTool = new VectorGradientTool(settings) },
         new("Eyedropper", "Ey", "K") { VectorTool = new VectorEyedropperTool(settings) },

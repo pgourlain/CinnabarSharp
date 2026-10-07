@@ -1021,6 +1021,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleOwnLayer = settings.BubbleOwnLayer;
         ShowWelcomeScreen = settings.ShowWelcome;
         GridSize = settings.GridSize;
+        if (CinnabarSharp.Core.Vector.ShapeLibrary.Find(settings.LibraryShape) is { } libraryShape)
+            ToolSettings.LibraryShape = libraryShape.Id;
         SnapToGrid = settings.SnapToGrid;
         ShowGrid = settings.ShowGrid;
         _checkForUpdates = settings.CheckForUpdates;
@@ -1073,6 +1075,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         AllowAgents = AllowAgents,
         ShowWelcome = ShowWelcomeScreen,
         ShowGrid = ShowGrid,
+        LibraryShape = ToolSettings.LibraryShape,
         SnapToGrid = SnapToGrid,
         GridSize = GridSize,
         CheckForUpdates = _checkForUpdates,
