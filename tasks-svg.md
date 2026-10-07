@@ -175,10 +175,11 @@ Tools implement a new `IVectorTool` interface in Core (same shape as `ITool` but
 
 ## Phase S8 — Object operations (Core + Desktop)
 
-- [ ] **Object menu** (only on SVG tabs): Group, Ungroup, Raise, Lower, Raise to Top, Lower to Bottom, Flip Horizontal/Vertical, Rotate 90° CW/CCW, Align and Distribute (left, centers, right, top, middles, bottom; relative to first/last selected, biggest, page, selection; distribute centers and gaps) through a small dialog or panel.
-- [ ] **Path menu:** Object to Path, Stroke to Path (uses the stroker from S3), Union, Difference, Intersection, Exclusion, Division, Combine, Break Apart, Simplify, Reverse.
-- [ ] Path boolean operations in `CinnabarSharp.Vector` (`PathBoolean`, tests in Vector.Tests): robust polygon clipping on flattened curves (Vatti or Martinez–Rueda; port of a permissively licensed algorithm only — check the license, add it to `THIRD-PARTY-NOTICES.txt`), then curve fitting back to Béziers within a tolerance. Deterministic; tests with known shapes (two overlapping squares, circle minus square, self-intersecting star, holes), checksum of the rendered result.
-- [ ] Every operation is an `SvgActions` method with history, added to `VectorHistoryTests.Actions`.
+- [x] **Object menu** (only on SVG tabs): Group, Ungroup, Raise, Lower, Raise to Top, Lower to Bottom, Flip Horizontal/Vertical, Rotate 90° CW/CCW, Align and Distribute (left, centers, right, top, middles, bottom; relative to first/last selected, biggest, page, selection; distribute centers and gaps) through a small dialog or panel.
+- [x] **Path menu:** Object to Path, Stroke to Path (uses the stroker from S3), Union, Difference, Intersection, Exclusion, Division, Combine, Break Apart, Simplify, Reverse.
+  > Note: `PathBoolean` is an original implementation written for this project (exact integer noding on a 1/128 grid, winding-number classification, outline tracing), not a port, so no third-party notice is needed. Align and Distribute are submenus of Object (with a Relative To choice) instead of a dialog. The boolean results are pinned by areas, corner sets and repeat-equality rather than a rendered checksum.
+- [x] Path boolean operations in `CinnabarSharp.Vector` (`PathBoolean`, tests in Vector.Tests): robust polygon clipping on flattened curves (Vatti or Martinez–Rueda; port of a permissively licensed algorithm only — check the license, add it to `THIRD-PARTY-NOTICES.txt`), then curve fitting back to Béziers within a tolerance. Deterministic; tests with known shapes (two overlapping squares, circle minus square, self-intersecting star, holes), checksum of the rendered result.
+- [x] Every operation is an `SvgActions` method with history, added to `VectorHistoryTests.Actions`.
 
 **Validation**
 - [ ] On each OS: boolean ops on overlapping shapes, text converted to path, then union; result renders correctly in a browser.

@@ -11,6 +11,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using CinnabarSharp.Core.Effects;
+using CinnabarSharp.Core.Vector;
 using CinnabarSharp.Desktop.Services;
 using CinnabarSharp.Desktop.ViewModels;
 
@@ -110,6 +111,19 @@ public partial class MainWindow : Window, IViewportService
         BuildMenu(vm);
         StartupTrace.Mark("Menu built");
     }
+
+    private static MenuSpec[] AlignTargets(MainViewModel vm) =>
+    [
+        AlignTarget(vm, "Relative to _First Selected", AlignRelativeTo.FirstSelected),
+        AlignTarget(vm, "Relative to _Last Selected", AlignRelativeTo.LastSelected),
+        AlignTarget(vm, "Relative to _Biggest", AlignRelativeTo.Biggest),
+        AlignTarget(vm, "Relative to _Page", AlignRelativeTo.Page),
+        AlignTarget(vm, "Relative to _Selection", AlignRelativeTo.Selection),
+    ];
+
+    private static MenuSpec AlignTarget(MainViewModel vm, string header, AlignRelativeTo target) =>
+        new(header, vm.SetAlignRelativeToCommand, CommandParameter: target,
+            Checked: (vm, nameof(MainViewModel.AlignRelativeTo), () => vm.AlignRelativeTo == target));
 
     private static Cursor? CanvasCursor(MainViewModel vm) => vm.HoverCursor switch
     {
@@ -491,7 +505,53 @@ public partial class MainWindow : Window, IViewportService
                 new("_Lower", vm.LowerObjectsCommand, new KeyGesture(Key.PageDown)),
                 new("Lower to _Bottom", vm.LowerToBottomCommand, new KeyGesture(Key.End)),
                 MenuSpec.Separator,
+                new("Flip _Horizontal", vm.FlipObjectsHorizontalCommand),
+                new("Flip _Vertical", vm.FlipObjectsVerticalCommand),
+                new("Rotate 90° _Clockwise", vm.RotateObjectsClockwiseCommand),
+                new("Rotate 90° Counter-C_lockwise", vm.RotateObjectsCounterClockwiseCommand),
+                MenuSpec.Separator,
+                new("_Align", Children:
+                [
+                    new("_Left", vm.AlignObjectsCommand, CommandParameter: AlignEdge.Left),
+                    new("Center _Horizontally", vm.AlignObjectsCommand, CommandParameter: AlignEdge.CenterHorizontal),
+                    new("_Right", vm.AlignObjectsCommand, CommandParameter: AlignEdge.Right),
+                    new("_Top", vm.AlignObjectsCommand, CommandParameter: AlignEdge.Top),
+                    new("Center _Vertically", vm.AlignObjectsCommand, CommandParameter: AlignEdge.CenterVertical),
+                    new("_Bottom", vm.AlignObjectsCommand, CommandParameter: AlignEdge.Bottom),
+                    MenuSpec.Separator,
+                    .. AlignTargets(vm),
+                ]),
+                new("Dis_tribute", Children:
+                [
+                    new("_Left Edges", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.Left),
+                    new("Centers _Horizontally", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.CenterHorizontal),
+                    new("_Right Edges", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.Right),
+                    new("Horizontal _Gaps", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.GapHorizontal),
+                    MenuSpec.Separator,
+                    new("_Top Edges", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.Top),
+                    new("Centers _Vertically", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.CenterVertical),
+                    new("_Bottom Edges", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.Bottom),
+                    new("Vertical G_aps", vm.DistributeObjectsCommand, CommandParameter: DistributeMode.GapVertical),
+                ]),
+                MenuSpec.Separator,
                 new("D_eselect Objects", vm.DeselectObjectsCommand, G(Key.A, KeyModifiers.Shift)),
+            ]),
+            new("_Path", Children:
+            [
+                new("_Object to Path", vm.ObjectToPathCommand, G(Key.O, KeyModifiers.Shift)),
+                new("_Stroke to Path", vm.StrokeToPathCommand, G(Key.O, KeyModifiers.Shift | KeyModifiers.Alt)),
+                MenuSpec.Separator,
+                new("_Union", vm.ApplyPathOperationCommand, G(Key.OemPlus, KeyModifiers.Shift), CommandParameter: PathOperation.Union),
+                new("_Difference", vm.ApplyPathOperationCommand, G(Key.OemMinus, KeyModifiers.Shift), CommandParameter: PathOperation.Difference),
+                new("_Intersection", vm.ApplyPathOperationCommand, CommandParameter: PathOperation.Intersection),
+                new("E_xclusion", vm.ApplyPathOperationCommand, CommandParameter: PathOperation.Exclusion),
+                new("D_ivision", vm.ApplyPathOperationCommand, CommandParameter: PathOperation.Division),
+                MenuSpec.Separator,
+                new("_Combine", vm.ApplyPathOperationCommand, G(Key.K), CommandParameter: PathOperation.Combine),
+                new("_Break Apart", vm.BreakApartPathsCommand, G(Key.K, KeyModifiers.Shift)),
+                MenuSpec.Separator,
+                new("Sim_plify", vm.SimplifyPathsCommand, G(Key.L)),
+                new("_Reverse", vm.ReversePathsCommand),
             ]),
             new("_Image", Children:
             [

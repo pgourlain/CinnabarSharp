@@ -61,12 +61,7 @@ public partial class MainViewModel
         _syncingObjects = false;
         OnPropertyChanged(nameof(HasObjectSelection));
         OnPropertyChanged(nameof(ObjectSelectionText));
-        foreach (var command in new IRelayCommand[]
-                 {
-                     DeselectObjectsCommand, DeleteObjectsCommand, DuplicateObjectsCommand, GroupObjectsCommand, UngroupObjectsCommand,
-                     RaiseObjectsCommand, LowerObjectsCommand, RaiseToTopCommand, LowerToBottomCommand,
-                 })
-            command.NotifyCanExecuteChanged();
+        NotifyObjectCommands();
     }
 
     private void AddRows(SvgDocument drawing, SvgContainer container, int depth, List<ObjectViewModel> rows)
@@ -116,12 +111,7 @@ public partial class MainViewModel
         _syncingObjects = false;
         OnPropertyChanged(nameof(HasObjectSelection));
         OnPropertyChanged(nameof(ObjectSelectionText));
-        foreach (var command in new IRelayCommand[]
-                 {
-                     DeselectObjectsCommand, DeleteObjectsCommand, DuplicateObjectsCommand, GroupObjectsCommand, UngroupObjectsCommand,
-                     RaiseObjectsCommand, LowerObjectsCommand, RaiseToTopCommand, LowerToBottomCommand,
-                 })
-            command.NotifyCanExecuteChanged();
+        NotifyObjectCommands();
     }
 
     // ---- Commands on the selected objects ----

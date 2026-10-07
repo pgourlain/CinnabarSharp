@@ -138,3 +138,64 @@ public sealed class SvgToolsUiTests : IDisposable
         Assert.Equal("r", Assert.Single(Svg.Root.Descendants().OfType<SvgText>()).Content);
     }
 }
+
+public sealed class SvgObjectMenuUiTests : IDisposable
+{
+    private readonly TestHarness _h = new();
+
+    public void Dispose() => _h.Dispose();
+
+    private MainViewModel Vm => _h.Vm;
+
+    private SvgDocument Svg => Assert.IsType<SvgDocument>(Vm.ActiveDocument!.Document);
+
+    private static SvgRect Rect(string id, double x, double y, string fill)
+    {
+        var rect = new SvgRect { Id = id };
+        rect.X = x;
+        rect.Y = y;
+        rect.Width = 60;
+        rect.Height = 60;
+        rect.SetAttribute("fill", fill);
+        return rect;
+    }
+
+    private void Setup()
+    {
+        Vm.CreateImage(new NewImageOptions(new ImageSize(200, 150), ColorBgra.Transparent, new SvgDrawingOptions(200, 150, SvgUnit.Px)));
+        var root = Svg.Root;
+        Svg.Actions.AddNode(Rect("a", 20, 20, "#cc2200"));
+        Svg.Actions.AddNode(Rect("b", 50, 40, "#0033cc"));
+        Dispatcher.UIThread.RunJobs();
+        Svg.Selection.Set(root.Descendants().OfType<SvgRect>());
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    [AvaloniaFact]
+    public void Union_from_the_path_menu_merges_the_selection()
+    {
+        Setup();
+        Assert.True(Vm.ApplyPathOperationCommand.CanExecute(PathOperation.Union));
+        Vm.ApplyPathOperationCommand.Execute(PathOperation.Union);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Single(Svg.Root.Descendants().OfType<SvgShape>());
+        Assert.IsType<SvgPath>(Svg.Root.Descendants().OfType<SvgShape>().Single());
+        _h.Capture("svg-70-union");
+        Vm.UndoCommand.Execute(null);
+        Assert.Equal(2, Svg.Root.Descendants().OfType<SvgRect>().Count());
+    }
+
+    [AvaloniaFact]
+    public void Align_follows_the_chosen_reference_and_flip_and_rotate_work()
+    {
+        Setup();
+        Vm.SetAlignRelativeToCommand.Execute(AlignRelativeTo.Page);
+        Vm.AlignObjectsCommand.Execute(AlignEdge.Right);
+        var rects = Svg.Root.Descendants().OfType<SvgRect>().ToList();
+        Assert.All(rects, r => Assert.Equal(200, r.X + r.Width, 1e-6));
+        Vm.RotateObjectsClockwiseCommand.Execute(null);
+        Vm.FlipObjectsHorizontalCommand.Execute(null);
+        Assert.Equal("Flip Horizontal", Svg.History.Items[^1].Text);
+        Assert.Equal("Rotate 90° Clockwise", Svg.History.Items[^2].Text);
+    }
+}
