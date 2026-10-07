@@ -4,6 +4,8 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-10-07
+
 ### Added
 - Shape tool (U) for drawings: over 120 ready-made shapes in eight categories (Basic, Arrows, Symbols, Flowchart, Dialog balloons, Nature, Weather, Objects) picked from a flyout in the options bar and drawn by dragging a box (Shift keeps the proportions, Alt draws from the center). They are ordinary paths, so they take fills, strokes, gradients and can be edited point by point.
 - Node tool: pressing a point on the outline of any shape (rectangle, ellipse, circle, line, polygon) turns it into a path and edits that point, so every point of every object can be moved; the corner radius handles of a rectangle now sit just inside its corners.
