@@ -4,6 +4,12 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-10-07
+
+### Added
+- SVG drawings: Scissors tool (X). Click an outline to take out the run between the two crossings with other shapes; the run is highlighted under the pointer. A closed shape becomes an open path, an open one is cut in two, and curves stay curves. An open outline cut earlier still cuts what its ends touch.
+- MCP: `svg_cut_segment` does the same for an agent.
+
 ## [0.9.4] - 2026-10-07
 
 ### Changed
