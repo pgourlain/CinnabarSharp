@@ -4,6 +4,10 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-07
+
+The SVG editor.
+
 ### Added
 - **SVG editor**: SVG files open as drawings with vector tools (select, node, pen, pencil, shapes, text, gradient, eyedropper), an Objects panel, a Properties panel, Object and Path menus (align, distribute, flip, rotate, union, difference, intersection, exclusion, division, stroke to path, combine, break apart, simplify, reverse), pictures inside drawings (import embedded or linked, clip, Edit Bitmap), and are saved back as SVG without disturbing the parts of the file you did not edit. Export to PNG, JPEG, WebP and other formats at any size. Big drawings (thousands of paths) are drawn on a background thread.
 - MCP: `new_svg` and the `svg_` tools (tree, add shapes/paths/text/images, style, transform, align, path operations, clip, select); `save_image`, `export_image`, `render_preview`, `undo` and `redo` work on drawings. Scripts can call them too.
