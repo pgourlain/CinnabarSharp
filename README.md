@@ -6,6 +6,10 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 
 ![CinnabarSharp main window](docs/screenshot.png)
 
+The SVG editor, with one of every kind of object (rectangle, rounded rectangle with a gradient, ellipse with a radial gradient, clipped picture, line, polygon, star, Bézier curve, blob, group with text):
+
+![CinnabarSharp SVG editor](docs/screenshot-svg.png)
+
 ## Features
 
 - **SVG drawings**: open and edit `.svg` files and save them back as SVG, keeping the file's own XML where you did not touch it. Select, node, pen, pencil, rectangle, ellipse, line, polygon/star, text, gradient and eyedropper tools; Objects panel (reorder, group, hide, lock, rename) and Properties panel (position and size, fill and stroke with gradients, opacity, stroke options, text); align, distribute, flip, rotate; Path menu with union, difference, intersection, exclusion, division, stroke to path, combine, break apart, simplify; pictures in a drawing (embedded or linked, clip, edit the pixels in a raster tab); export to PNG, JPEG and more at any size. Unlimited undo, one step per gesture. Drawings with thousands of paths are drawn in the background.
