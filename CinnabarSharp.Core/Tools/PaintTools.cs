@@ -193,7 +193,7 @@ public sealed class RecolorTool(ToolSettings settings) : PaintbrushTool(settings
 /// <summary>
 /// Drag to draw; the preview is redrawn from the original pixels on every move and committed on release.
 /// </summary>
-public abstract class DragShapeTool(ToolSettings settings) : ITool
+public abstract class DragShapeTool(ToolSettings settings) : ITool, IGridSnappingTool
 {
     private PaintSession? _session;
     private PointD _start;
@@ -234,7 +234,7 @@ public abstract class DragShapeTool(ToolSettings settings) : ITool
 /// Drag to draw a line. It stays editable until finished (Enter, click away, another tool): drag its end points to
 /// move them, or its two control points to bend it into a cubic Bézier curve, as in Paint.NET.
 /// </summary>
-public sealed class LineTool(ToolSettings settings) : IKeyboardTool, IOverlayTool
+public sealed class LineTool(ToolSettings settings) : IKeyboardTool, IOverlayTool, IGridSnappingTool
 {
     private const int Creating = -2;
     private const int None = -1;

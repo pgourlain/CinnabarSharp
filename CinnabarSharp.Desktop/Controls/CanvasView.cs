@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using CinnabarSharp.Core.Models;
+using CinnabarSharp.Desktop.ViewModels;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Core.Vector;
 using CinnabarSharp.Vector;
@@ -45,6 +46,16 @@ public class CanvasView : Control
     public static readonly StyledProperty<ToolOverlay?> OverlayProperty =
         AvaloniaProperty.Register<CanvasView, ToolOverlay?>(nameof(Overlay));
 
+    /// <summary>The grid drawn over the picture, or null for none.</summary>
+    public static readonly StyledProperty<GridInfo?> GridProperty =
+        AvaloniaProperty.Register<CanvasView, GridInfo?>(nameof(Grid));
+
+    public GridInfo? Grid
+    {
+        get => GetValue(GridProperty);
+        set => SetValue(GridProperty, value);
+    }
+
     /// <summary>Diameter in image pixels of the brush outline drawn under the pointer; 0 for none.</summary>
     public static readonly StyledProperty<double> BrushSizeProperty =
         AvaloniaProperty.Register<CanvasView, double>(nameof(BrushSize));
@@ -73,7 +84,7 @@ public class CanvasView : Control
     {
         AffectsMeasure<CanvasView>(DocumentProperty, SvgDocumentProperty, RenderVersionProperty, ViewVersionProperty);
         AffectsRender<CanvasView>(ViewVersionProperty);
-        AffectsRender<CanvasView>(SelectionVersionProperty, OverlayProperty, BrushSizeProperty);
+        AffectsRender<CanvasView>(SelectionVersionProperty, OverlayProperty, BrushSizeProperty, GridProperty);
     }
 
     public CanvasView()
@@ -211,6 +222,7 @@ public class CanvasView : Control
             context.DrawGeometry(null, new Pen(AntsDark, 1, new DashStyle([4, 4], _antsOffset)), geometry);
         }
 
+        DrawGrid(context, doc.Workspace.Scale);
         if (Overlay is { } overlay)
             DrawOverlay(context, overlay, doc.Workspace.Scale);
 
@@ -720,8 +732,30 @@ public class CanvasView : Control
             using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = mode }))
                 context.DrawImage(bitmap, new Rect(bitmap.Size), dest);
         }
+        DrawGrid(context, drawing.Workspace.Scale);
         if (Overlay is { } overlay)
             DrawOverlay(context, overlay, drawing.Workspace.Scale);
+    }
+
+    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromArgb(130, 70, 90, 140)), 1);
+
+    /// <summary>Thin lines every grid step; when the lines would be closer than 6 screen pixels every few steps are drawn.</summary>
+    private void DrawGrid(DrawingContext context, double scale)
+    {
+        if (Grid is not { Spacing: > 0 } grid)
+            return;
+        var step = grid.Spacing * scale;
+        var every = Math.Max(1, (int)Math.Ceiling(6 / step));
+        step *= every;
+        var view = Bounds.Size;
+        // Never more than a few thousand lines, whatever the zoom.
+        while (step > 0 && (view.Width / step > 3000 || view.Height / step > 3000))
+            step *= 2;
+        double Start(double origin) => (origin * scale % step + step) % step;
+        for (var x = Start(grid.OriginX * 1.0); x <= view.Width; x += step)
+            context.DrawLine(GridPen, new Point(Math.Floor(x) + 0.5, 0), new Point(Math.Floor(x) + 0.5, view.Height));
+        for (var y = Start(grid.OriginY * 1.0); y <= view.Height; y += step)
+            context.DrawLine(GridPen, new Point(0, Math.Floor(y) + 0.5), new Point(view.Width, Math.Floor(y) + 0.5));
     }
 
     /// <summary>Re-renders only <paramref name="imageRegion"/> (picture pixels at 100 %) into the bitmap already there.</summary>

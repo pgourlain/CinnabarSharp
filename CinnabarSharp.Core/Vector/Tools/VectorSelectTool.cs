@@ -133,6 +133,11 @@ public sealed class VectorSelectTool(ToolSettings settings) : IVectorKeyboardToo
                 document.Selection.Set(_bandBase.Concat(inside));
                 break;
             case Mode.Resize:
+                if (settings.SnapToGrid && !pointer.Modifiers.HasFlag(ToolModifiers.Alt))
+                {
+                    var origin = GridOrigin(document);
+                    p = new VPoint(GridSnapping.Snap(p.X, settings.GridSize, origin.X), GridSnapping.Snap(p.Y, settings.GridSize, origin.Y));
+                }
                 Preview(document, ResizeMatrix(p, pointer.Modifiers));
                 break;
             case Mode.Rotate:
@@ -331,7 +336,27 @@ public sealed class VectorSelectTool(ToolSettings settings) : IVectorKeyboardToo
 
     private VVector Snap(SvgDocument document, VVector delta, ToolModifiers modifiers)
     {
-        if (!settings.SnapToObjects || _snapTargets.Count == 0 || modifiers.HasFlag(ToolModifiers.Alt))
+        if (modifiers.HasFlag(ToolModifiers.Alt))
+            return delta;
+        var byObjects = SnapToObjects(document, delta);
+        // Objects win where they snap; otherwise the edges of the moved box go to the grid.
+        if (!settings.SnapToGrid || byObjects != delta)
+            return byObjects;
+        var origin = GridOrigin(document);
+        var reach = Math.Min(document.ScreenToUser(SnapReach), settings.GridSize / 2);
+        var moved = _box.Offset(delta.X, delta.Y);
+        var dx = GridSnapping.ShiftToGrid([moved.Left, moved.Right], settings.GridSize, origin.X, reach);
+        var dy = GridSnapping.ShiftToGrid([moved.Top, moved.Bottom], settings.GridSize, origin.Y, reach);
+        return new VVector(delta.X + dx, delta.Y + dy);
+    }
+
+    /// <summary>The page's top-left corner in user space: where the grid lines start.</summary>
+    internal static VPoint GridOrigin(SvgDocument document) =>
+        document.Root.ViewBox is { } vb ? new VPoint(vb.X, vb.Y) : default;
+
+    private VVector SnapToObjects(SvgDocument document, VVector delta)
+    {
+        if (!settings.SnapToObjects || _snapTargets.Count == 0)
             return delta;
         var reach = document.ScreenToUser(SnapReach);
         double Best(double[] mine, IEnumerable<double> targets)

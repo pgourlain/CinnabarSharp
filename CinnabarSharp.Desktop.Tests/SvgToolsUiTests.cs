@@ -4,6 +4,7 @@ using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Core.Vector;
 using CinnabarSharp.Desktop.ViewModels;
+using CinnabarSharp.Desktop.Services;
 using CinnabarSharp.Vector;
 
 namespace CinnabarSharp.Desktop.Tests;
@@ -81,6 +82,57 @@ public sealed class SvgToolsUiTests : IDisposable
         Vm.UndoCommand.Execute(null);
         Assert.Equal(new ImageSize(200, 150), Svg.ImageSize);
         Assert.Equal("200 × 150", Vm.ImageSizeText);
+    }
+
+    [AvaloniaFact]
+    public void The_grid_is_shown_and_the_drawing_tools_snap_to_it()
+    {
+        NewDrawing();                                           // 200 × 150, one user unit per pixel
+        Assert.Null(Vm.Grid);
+        Vm.GridSize = 20;
+        Vm.ShowGrid = true;
+        Assert.Equal(new GridInfo(20, 0, 0), Vm.Grid);
+        Assert.True(Vm.ShowGridOptions);
+        _h.Capture("svg-97-grid");
+
+        Vm.SnapToGrid = true;
+        Pick("Rectangle");
+        Drag(43, 27, 98, 64);                                   // → 40,20 to 100,60
+        var rect = Svg.Root.Descendants().OfType<SvgRect>().Single();
+        Assert.Equal((40, 20, 60, 40), (rect.X, rect.Y, rect.Width, rect.Height));
+
+        Pick("Pencil");                                         // freehand is not snapped
+        Assert.False(Vm.SelectedTool.VectorTool is CinnabarSharp.Core.Tools.IGridSnappingTool);
+
+        Vm.SnapToGrid = false;
+        Pick("Ellipse");
+        Drag(43, 27, 98, 64);
+        Assert.Equal(43, Svg.Root.Descendants().OfType<SvgEllipse>().Single().Cx - Svg.Root.Descendants().OfType<SvgEllipse>().Single().Rx, 1e-6);
+
+        // The grid follows a change of the page, and the settings remember it.
+        Vm.ZoomInCommand.Execute(null);
+        Assert.Equal(20, Vm.Grid!.Spacing);                    // image pixels at 100 %; the canvas scales it with the zoom
+        var saved = Vm.CaptureSettings(new AppSettings());
+        Assert.True(saved.ShowGrid);
+        Assert.Equal(20, saved.GridSize);
+        Vm.ToggleGridCommand.Execute(null);
+        Assert.Null(Vm.Grid);
+    }
+
+    [AvaloniaFact]
+    public void The_grid_of_an_image_snaps_the_selection_tools()
+    {
+        Vm.CreateImage(new NewImageOptions(new ImageSize(100, 80), ColorBgra.White, null));
+        Dispatcher.UIThread.RunJobs();
+        Vm.GridSize = 10;
+        Vm.SnapToGrid = true;
+        Vm.SelectedTool = Vm.Tools.First(t => t.Name == "Rectangle Select");
+        Vm.ToolPointerDown(P(13, 18));
+        Vm.ToolPointerMove(P(44, 37));
+        Vm.ToolPointerUp(P(44, 37));
+        var bounds = Vm.ActiveDocument!.Image.Selection!.Bounds;
+        Assert.Equal((10, 20, 30, 20), (bounds.X, bounds.Y, bounds.Width, bounds.Height));
+        Assert.True(Vm.ShowGridOptions);                        // a snapping tool is selected
     }
 
     [AvaloniaFact]

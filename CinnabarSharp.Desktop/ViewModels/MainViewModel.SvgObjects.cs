@@ -24,6 +24,7 @@ public partial class MainViewModel
     private void NotifyObjectCommands()
     {
         OnPropertyChanged(nameof(HasImageObjectSelected));
+        OnPropertyChanged(nameof(ShowGridOptions));
         OnPropertyChanged(nameof(CanUpdateDrawing));
         foreach (var command in new IRelayCommand[]
                  {

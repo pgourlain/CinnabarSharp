@@ -26,7 +26,7 @@ public enum CropAspect
 /// corner to resize it; Enter crops the image, Escape removes the frame. The frame shows the rule of thirds and
 /// shades what will be cut away.
 /// </summary>
-public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayTool
+public sealed class CropTool(ToolSettings settings) : IKeyboardTool, IOverlayTool, IGridSnappingTool
 {
     private enum DragKind
     {

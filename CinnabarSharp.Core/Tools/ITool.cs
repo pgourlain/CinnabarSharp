@@ -148,6 +148,17 @@ public class ToolSettings
     /// <summary>Magic wand selects matching pixels anywhere, not only connected ones.</summary>
     public bool GlobalFill { get; set; }
 
+    // ---- Grid ----
+
+    /// <summary>Draws a grid over the picture.</summary>
+    public bool ShowGrid { get; set; }
+
+    /// <summary>The drawing tools snap what they place to the grid (hold Alt to place freely).</summary>
+    public bool SnapToGrid { get; set; }
+
+    /// <summary>Distance between grid lines: pixels on an image, user units on a drawing.</summary>
+    public double GridSize { get; set; } = 10;
+
     // ---- Vector (SVG) tools ----
 
     /// <summary>Corner radius of rectangles drawn with the vector Rectangle tool, in user units.</summary>

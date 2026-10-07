@@ -74,7 +74,8 @@ public partial class MainViewModel
     {
         if (ActiveVectorTool is not { } tool)
             return;
-        handler(tool, drawing, pointer with { Position = ImageToUser(drawing, pointer.Position) });
+        pointer = pointer with { Position = ImageToUser(drawing, pointer.Position) };
+        handler(tool, drawing, tool is IGridSnappingTool ? SnapToGridUser(drawing, pointer) : pointer);
     }
 
     private static PointD ImageToUser(SvgDocument drawing, PointD image)
@@ -136,7 +137,7 @@ public partial class MainViewModel
                  {
                      nameof(ShowVectorSelectOptions), nameof(ShowVectorNodeOptions), nameof(ShowVectorShapeOptions),
                      nameof(ShowVectorRectangleOptions), nameof(ShowVectorPolygonOptions), nameof(ShowVectorPencilOptions),
-                     nameof(ShowVectorGradientOptions), nameof(ShowVectorStrokeOptions),
+                     nameof(ShowVectorGradientOptions), nameof(ShowVectorStrokeOptions), nameof(ShowGridOptions),
                  })
             OnPropertyChanged(name);
     }

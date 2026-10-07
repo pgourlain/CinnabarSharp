@@ -5,6 +5,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 ## [Unreleased]
 
 ### Added
+- Grid: View › Show Grid (Ctrl/⌘+') draws a grid over images and drawings, and View › Snap to Grid (Ctrl/⌘+;) makes the drawing tools place their points on it: shapes, pen, node, gradient and text tools on drawings, and the shape, line, gradient, crop and box-selection tools on images; the Select tool snaps the edges of what you move or resize. Grid size and the two toggles are in the options bar and remembered.
 - File › Export As… (Ctrl/⌘+Alt+S): writes a flat picture (PNG, JPEG, WebP…) of an image, or a rendered picture of a drawing, without changing the document's file, name or unsaved state; it remembers the last format.
 
 ### Changed

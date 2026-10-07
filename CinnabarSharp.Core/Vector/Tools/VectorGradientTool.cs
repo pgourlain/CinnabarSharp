@@ -10,7 +10,7 @@ namespace CinnabarSharp.Core.Vector.Tools;
 /// (start and end, or center, radius and focus) and the stops along the line: drag a handle or a stop, double click on the line
 /// adds a stop, Delete removes the selected stop. The stops are the same ones the Properties panel edits.
 /// </summary>
-public sealed class VectorGradientTool(ToolSettings settings) : IVectorKeyboardTool
+public sealed class VectorGradientTool(ToolSettings settings) : IVectorKeyboardTool, IGridSnappingTool
 {
     private enum Mode { None, Create, Handle, Stop }
 

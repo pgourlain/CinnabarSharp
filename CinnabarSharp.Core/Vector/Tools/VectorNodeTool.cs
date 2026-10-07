@@ -15,7 +15,7 @@ public readonly record struct NodeRef(int Figure, int Index);
 /// shape's own handles (corner radii, radii) and "Convert to path" turns it into a path to edit.
 /// Edits are shown while dragging and become one history step on release.
 /// </summary>
-public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool
+public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool, IGridSnappingTool
 {
     private enum Mode { None, Nodes, Handle, Band, Shape }
 

@@ -9,7 +9,7 @@ namespace CinnabarSharp.Core.Vector.Tools;
 /// node closes the path, Enter or a double click finishes it open, Escape cancels, Backspace removes the last node, Shift
 /// snaps the direction from the last node to 15°. The path is editable until finished and becomes one history step then.
 /// </summary>
-public sealed class VectorPenTool(ToolSettings settings) : IVectorKeyboardTool
+public sealed class VectorPenTool(ToolSettings settings) : IVectorKeyboardTool, IGridSnappingTool
 {
     private const double CloseReach = 7;      // screen pixels
     private const double DragThreshold = 3;   // screen pixels

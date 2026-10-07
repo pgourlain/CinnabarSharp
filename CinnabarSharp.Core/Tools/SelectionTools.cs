@@ -85,7 +85,7 @@ public abstract class ShapeSelectionTool(ToolSettings settings) : ITool
 /// (corners and middle of each edge) that resize the shape, as in Paint.NET, until the selection changes in any
 /// other way (undo, Select All, another tool...). Each resize is one history step.
 /// </summary>
-public abstract class BoxSelectionTool(ToolSettings settings) : ShapeSelectionTool(settings), IOverlayTool
+public abstract class BoxSelectionTool(ToolSettings settings) : ShapeSelectionTool(settings), IOverlayTool, IGridSnappingTool
 {
     // Screen pixels around a handle that grab it.
     private const double GrabRadius = 6;

@@ -1020,6 +1020,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleNumbered = settings.BubbleNumbered;
         BubbleOwnLayer = settings.BubbleOwnLayer;
         ShowWelcomeScreen = settings.ShowWelcome;
+        GridSize = settings.GridSize;
+        SnapToGrid = settings.SnapToGrid;
+        ShowGrid = settings.ShowGrid;
         _checkForUpdates = settings.CheckForUpdates;
         _skippedUpdate = settings.SkippedUpdate;
         _lastUpdateCheck = settings.LastUpdateCheckUtc;
@@ -1069,6 +1072,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         BubbleOwnLayer = BubbleOwnLayer,
         AllowAgents = AllowAgents,
         ShowWelcome = ShowWelcomeScreen,
+        ShowGrid = ShowGrid,
+        SnapToGrid = SnapToGrid,
+        GridSize = GridSize,
         CheckForUpdates = _checkForUpdates,
         SkippedUpdate = _skippedUpdate,
         LastUpdateCheckUtc = _lastUpdateCheck,
@@ -1129,7 +1135,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void WithTool(Func<ITool, Action<ImageDocument, ToolPointer>> handler, ToolPointer pointer)
     {
         if (ActiveImageTab is { } d && ActiveTool is { } tool)
+        {
+            if (ToolSettings.SnapToGrid && tool is IGridSnappingTool)
+                pointer = pointer with { Position = GridSnapping.Snap(pointer.Position, ToolSettings.GridSize, default) };
             handler(tool)(d.Image, pointer);
+        }
         UpdateOverlay();
     }
 
@@ -1205,6 +1215,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void UpdateOverlay()
     {
         OnPropertyChanged(nameof(StatusToolName));
+        UpdateGrid();
         if (ActiveSvg is { } drawing)
         {
             Overlay = VectorToolOverlay(drawing);

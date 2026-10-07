@@ -57,6 +57,9 @@ public record AppSettings
     public bool BubbleOwnLayer { get; init; } = true;
     public bool AllowAgents { get; init; }
     public bool ShowWelcome { get; init; } = true;
+    public bool ShowGrid { get; init; }
+    public bool SnapToGrid { get; init; }
+    public double GridSize { get; init; } = 10;
 
     /// <summary>Whether the app may look for a newer release at startup; null until the user has been asked.</summary>
     public bool? CheckForUpdates { get; init; }

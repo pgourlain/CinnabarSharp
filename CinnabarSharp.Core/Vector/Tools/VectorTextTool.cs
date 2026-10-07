@@ -11,7 +11,7 @@ namespace CinnabarSharp.Core.Vector.Tools;
 /// Enter or Escape finish. Font family, size, bold, italic and alignment (<c>text-anchor</c>) come from the tool settings and
 /// follow them while editing. The text is shown live and becomes one history step when finished.
 /// </summary>
-public sealed class VectorTextTool(ToolSettings settings) : IVectorTextTool
+public sealed class VectorTextTool(ToolSettings settings) : IVectorTextTool, IGridSnappingTool
 {
     private SvgText? _text;
     private bool _isNew;

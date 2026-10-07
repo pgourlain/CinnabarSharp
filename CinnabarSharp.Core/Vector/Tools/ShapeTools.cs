@@ -9,7 +9,7 @@ namespace CinnabarSharp.Core.Vector.Tools;
 /// styled with the stroke (primary color, brush width) and fill (secondary color) settings like Paint.NET's shape tools,
 /// as the Shape style option says: outline, fill or both.
 /// </summary>
-public abstract class ShapeDrawTool(ToolSettings settings, string name, string historyName) : IVectorTool
+public abstract class ShapeDrawTool(ToolSettings settings, string name, string historyName) : IVectorTool, IGridSnappingTool
 {
     private SvgElement? _live;
     private VPoint _start;

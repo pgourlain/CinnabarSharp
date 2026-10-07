@@ -496,6 +496,9 @@ public partial class MainWindow : Window, IViewportService
                 new("Zoom _Out", vm.ZoomOutCommand, G(Key.OemMinus)),
                 new("_Best Fit", vm.BestFitCommand, G(Key.B)),
                 new("_Actual Size", vm.ActualSizeCommand, G(Key.D0)),
+                MenuSpec.Separator,
+                new("Show _Grid", vm.ToggleGridCommand, G(Key.OemQuotes), Checked: (vm, nameof(MainViewModel.ShowGrid), () => vm.ShowGrid)),
+                new("S_nap to Grid", vm.ToggleSnapToGridCommand, G(Key.OemSemicolon), Checked: (vm, nameof(MainViewModel.SnapToGrid), () => vm.SnapToGrid)),
             ]),
             new("_Object", Children:
             [
