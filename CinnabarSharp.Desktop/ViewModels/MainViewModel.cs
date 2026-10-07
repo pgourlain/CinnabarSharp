@@ -1096,6 +1096,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         // Prepare for TV without Crop to fill has no frame to move.
         if (ActiveSvg is { } drawing)
         {
+            // A double click on a text with the Select tool edits it again: the Text tool takes over at that click.
+            if (!IsBusy && pointer.ClickCount >= 2 && ActiveVectorTool is VectorSelectTool && TextAt(drawing, pointer) is not null
+                && VectorTools.FirstOrDefault(t => t.VectorTool is VectorTextTool) is { } textTool)
+                SelectedTool = textTool;
             if (!IsBusy)
                 WithVectorTool(drawing, pointer, (t, d, p) => t.OnPointerDown(d, p));
             UpdateOverlay();

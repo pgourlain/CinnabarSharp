@@ -220,6 +220,36 @@ public sealed class SvgToolsUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void A_double_click_on_a_text_with_the_select_tool_edits_it_again()
+    {
+        NewDrawing();
+        Pick("Text");
+        Vm.ToolPointerDown(P(30, 60));
+        Vm.ToolPointerUp(P(30, 60));
+        Vm.ToolTextInput("Hello");
+        Vm.ToolKeyDown(ToolKey.Escape, ToolModifiers.None);
+        var text = Assert.Single(Svg.Root.Descendants().OfType<SvgText>());
+        var steps = Steps();
+
+        Pick("Select");
+        Vm.ToolPointerDown(P(33, 55));                             // a single click only selects
+        Vm.ToolPointerUp(P(33, 55));
+        Assert.Equal("Select", Vm.SelectedTool.Name);
+        Assert.False(Vm.IsTyping);
+
+        Vm.ToolPointerDown(new ToolPointer(new PointD(33, 55), ToolButton.Left, ToolModifiers.None, 1, 2));
+        Vm.ToolPointerUp(new ToolPointer(new PointD(33, 55), ToolButton.Left, ToolModifiers.None, 1, 2));
+        Assert.Equal("Text", Vm.SelectedTool.Name);
+        Assert.True(Vm.IsTyping);
+        Vm.ToolKeyDown(ToolKey.End, ToolModifiers.None);          // the caret is where the click was
+        Vm.ToolTextInput("!");
+        Vm.ToolKeyDown(ToolKey.Escape, ToolModifiers.None);
+        Assert.Equal("Hello!", text.Content);
+        Assert.Equal(steps + 1, Steps());
+        int Steps() => Svg.History.Items.Count;
+    }
+
+    [AvaloniaFact]
     public void Typing_with_the_text_tool_does_not_trigger_tool_shortcuts()
     {
         NewDrawing();

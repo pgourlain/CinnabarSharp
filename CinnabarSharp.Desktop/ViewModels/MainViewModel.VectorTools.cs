@@ -68,6 +68,14 @@ public partial class MainViewModel
         _ => null,
     };
 
+    /// <summary>The text under the pointer (image coordinates), if it is a plain one the Text tool can edit.</summary>
+    private static CinnabarSharp.Vector.SvgText? TextAt(SvgDocument drawing, ToolPointer pointer)
+    {
+        var p = ImageToUser(drawing, pointer.Position);
+        return SvgHitTester.HitTest(drawing, new CinnabarSharp.Vector.VPoint(p.X, p.Y), drawing.ScreenToUser(3), enterGroups: true)
+            is CinnabarSharp.Vector.SvgText text && !text.Children.OfType<CinnabarSharp.Vector.SvgTextSpan>().Any() ? text : null;
+    }
+
     private IVectorTool? ActiveVectorTool => SelectedTool?.VectorTool;
 
     private void WithVectorTool(SvgDocument drawing, ToolPointer pointer, Action<IVectorTool, SvgDocument, ToolPointer> handler)
