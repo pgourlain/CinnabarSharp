@@ -16,6 +16,7 @@ using CinnabarSharp.Core.Adjustments;
 using CinnabarSharp.Core.Effects;
 using Effect = CinnabarSharp.Core.Effects.Effect;
 using CinnabarSharp.Core.Tools;
+using CinnabarSharp.Core.Vector.Tools;
 using CinnabarSharp.Core.Photo;
 using CinnabarSharp.Core.Vector;
 using CinnabarSharp.Desktop.Services;
@@ -43,6 +44,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _formats = formats;
         RecentFiles = recentFiles;
         Tools = ToolViewModel.CreatePaintDotNetTools(ToolSettings, textRasterizer);
+        CreateVectorTools();
         Properties = new SvgPropertiesViewModel(this);
         ToolSettings.ColorsChanged += OnColorsChanged;
         ToolSettings.BubbleNumberChanged += () => OnPropertyChanged(nameof(BubbleNextNumber));
@@ -1012,7 +1014,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Selects the next tool with this Paint.NET shortcut letter (pressing S again cycles the select tools).</summary>
     public void SelectToolByShortcut(string letter)
     {
-        var matches = Tools.Where(t => t.Shortcut.Equals(letter, StringComparison.OrdinalIgnoreCase) && (t.Tool is not null || t.Name is "Pan" or "Zoom")).ToList();
+        var matches = ToolboxTools.Where(t => t.Shortcut.Equals(letter, StringComparison.OrdinalIgnoreCase) && (t.Tool is not null || t.VectorTool is not null || t.Name is "Pan" or "Zoom")).ToList();
         if (matches.Count == 0)
             return;
         var index = matches.IndexOf(SelectedTool);
@@ -1022,14 +1024,39 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void ToolPointerDown(ToolPointer pointer)
     {
         // Prepare for TV without Crop to fill has no frame to move.
+        if (ActiveSvg is { } drawing)
+        {
+            if (!IsBusy)
+                WithVectorTool(drawing, pointer, (t, d, p) => t.OnPointerDown(d, p));
+            UpdateOverlay();
+            return;
+        }
         if (!IsBusy && Tv is not { ShowsFrame: false })
             WithTool(t => t.OnPointerDown, pointer);
     }
 
-    public void ToolPointerMove(ToolPointer pointer) => WithTool(t => t.OnPointerMove, pointer);
+    public void ToolPointerMove(ToolPointer pointer)
+    {
+        if (ActiveSvg is { } drawing)
+        {
+            if (!IsBusy)
+                WithVectorTool(drawing, pointer, (t, d, p) => t.OnPointerMove(d, p));
+            UpdateOverlay();
+            return;
+        }
+        WithTool(t => t.OnPointerMove, pointer);
+    }
 
     public void ToolPointerUp(ToolPointer pointer)
     {
+        if (ActiveSvg is { } drawing)
+        {
+            if (!IsBusy)
+                WithVectorTool(drawing, pointer, (t, d, p) => t.OnPointerUp(d, p));
+            UpdateOverlay();
+            RefreshThumbnails();
+            return;
+        }
         WithTool(t => t.OnPointerUp, pointer);
         if (SelectedTool.Tool is IEditingTool)
             RefreshThumbnails();
@@ -1046,7 +1073,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private ITool? ActiveTool => Comic?.Tool ?? SelectedTool?.Tool;
 
     /// <summary>True while keys typed belong to the selected tool (the Text tool is editing).</summary>
-    public bool IsTyping => ActiveImageTab is { } d && SelectedTool.Tool is IKeyboardTool k && k.IsTyping(d.Image);
+    public bool IsTyping => IsVectorTyping || ActiveImageTab is { } d && SelectedTool.Tool is IKeyboardTool k && k.IsTyping(d.Image);
 
     /// <summary>
     /// Sends a key to the selected tool; returns true if it was used. Escape that no tool uses (to cancel a crop
@@ -1057,12 +1084,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (ActiveSvg is { } drawing && !IsBusy)
         {
             // Escape deselects objects (a vector tool that uses Escape handles it first).
-            if (key == ToolKey.Escape && modifiers == ToolModifiers.None && !drawing.Selection.IsEmpty)
-            {
-                drawing.Selection.Clear();
-                return true;
-            }
-            return false;
+            return VectorToolKeyDown(drawing, key, modifiers);
         }
         if (ActiveImageTab is not { } d || IsBusy)
             return false;
@@ -1094,6 +1116,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public void ToolTextInput(string text)
     {
+        if (ActiveSvg is { } drawing)
+        {
+            if (ActiveVectorTool is IVectorKeyboardTool vectorTool)
+            {
+                vectorTool.OnTextInput(drawing, text);
+                UpdateOverlay();
+            }
+            return;
+        }
         if (ActiveImageTab is not { } d || SelectedTool.Tool is not IKeyboardTool tool)
             return;
         tool.OnTextInput(d.Image, text);
@@ -1111,7 +1142,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (ActiveSvg is { } drawing)
         {
-            Overlay = SvgOverlay(drawing);
+            Overlay = VectorToolOverlay(drawing);
             return;
         }
         Overlay = ActiveImageTab is not { } d ? null
@@ -1127,6 +1158,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Redraws the curve or text being edited after a color or option change.</summary>
     private void RefreshEditingTool()
     {
+        RefreshEditingVectorTool();
         if (ActiveImageTab is not { } d || SelectedTool?.Tool is not IEditingTool tool || !tool.IsEditing(d.Image))
             return;
         tool.Refresh(d.Image);
@@ -1151,6 +1183,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             ExitTv();
         }
         FinishEditing(oldValue?.Tool, ActiveDocument?.ImageOrNull);
+        FinishVectorEditing(oldValue?.VectorTool, ActiveDocument?.SvgOrNull);
     }
 
     partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue)
@@ -1160,6 +1193,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             ExitComic(closeDocument: false);
         ExitTv();
         FinishEditing(SelectedTool?.Tool, oldValue?.ImageOrNull);
+        FinishVectorEditing(SelectedTool?.VectorTool, oldValue?.SvgOrNull);
     }
 
     partial void OnSelectedToolChanged(ToolViewModel value)
@@ -1170,15 +1204,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      nameof(ShowShapeOptions), nameof(ShowGradientOptions), nameof(ShowColorPickerOptions),
                      nameof(ShowHardnessOptions), nameof(ShowCornerRadiusOptions), nameof(ShowTextOptions),
                      nameof(ShowCropOptions), nameof(ShowBubbleOptions),
-                     nameof(BrushOutlineSize),
+                     nameof(BrushOutlineSize), nameof(ToolboxSelection),
                  })
             OnPropertyChanged(name);
+        RaiseVectorOptionFlags();
         UpdateOverlay();
     }
 
     public bool ShowSelectionOptions => SelectedTool.IsSelectionTool;
     public bool ShowToleranceOptions => SelectedTool.HasTolerance;
-    public bool ShowBrushOptions => SelectedTool.HasBrushWidth;
+    public bool ShowBrushOptions => SelectedTool.HasBrushWidth || SelectedTool.HasVectorStroke;
     public bool ShowHardnessOptions => SelectedTool.IsBrush;
     public bool ShowShapeOptions => SelectedTool.IsShapes;
     public bool ShowCornerRadiusOptions => SelectedTool.IsShapes && ShapeKind == ShapeKind.RoundedRectangle;
@@ -1204,6 +1239,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(HasContent))]
     private void SelectAll()
     {
+        if (EditingVectorText is { } vectorText && ActiveSvg is { } svgText)
+        {
+            vectorText.SelectAll(svgText);
+            UpdateOverlay();
+            return;
+        }
         if (ActiveSvg is { } drawing)
         {
             drawing.Selection.Set(SvgDocumentFactory.DefaultParent(drawing.Root).Elements.Where(IsObject));
@@ -1259,6 +1300,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private async Task CopyAsync(bool merged)
     {
+        if (EditingVectorText is { } vectorText && Clipboard is not null)
+        {
+            await vectorText.Copy(Clipboard);
+            return;
+        }
         if (ActiveSvg is { } drawing)
         {
             await CopyObjectsAsync(drawing, cut: false);
@@ -1276,6 +1322,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(HasContent))]
     private async Task Cut()
     {
+        if (EditingVectorText is { } vectorText && ActiveSvg is { } svgText && Clipboard is not null)
+        {
+            await vectorText.Cut(svgText, Clipboard);
+            UpdateOverlay();
+            return;
+        }
         if (ActiveSvg is { } drawing)
         {
             await CopyObjectsAsync(drawing, cut: true);
@@ -1298,6 +1350,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private async Task Paste()
     {
+        if (EditingVectorText is { } vectorText && ActiveSvg is { } svgText && Clipboard is not null)
+        {
+            await vectorText.Paste(svgText, Clipboard);
+            UpdateOverlay();
+            return;
+        }
         if (ActiveSvg is { } drawing)
         {
             await PasteIntoDrawingAsync(drawing);
@@ -1990,9 +2048,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void UpdateCursorPosition(Core.Models.PointD? canvasPoint)
     {
         CursorPositionText = canvasPoint is { } p ? $"{(int)Math.Floor(p.X)}, {(int)Math.Floor(p.Y)}" : "";
-        HoverCursor = canvasPoint is { } point && ActiveImageTab is { } d && ActiveTool is IOverlayTool tool
-            ? tool.CursorAt(d.Image, point)
-            : ToolCursor.Default;
+        HoverCursor = canvasPoint is { } point && ActiveSvg is { } drawing && ActiveVectorTool is { } vectorTool
+            ? vectorTool.CursorAt(drawing, ImageToUser(drawing, point))
+            : canvasPoint is { } imagePoint && ActiveImageTab is { } d && ActiveTool is IOverlayTool tool
+                ? tool.CursorAt(d.Image, imagePoint)
+                : ToolCursor.Default;
     }
 
     /// <summary>What the selected tool wants the cursor to show under the mouse (e.g. resize arrows over a handle).</summary>
@@ -2001,6 +2061,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     partial void OnActiveDocumentChanged(DocumentViewModel? value)
     {
+        SyncToolbox();
         if (value is not null && !_syncingSelection)
             _workspace.SetActiveDocument(value.Document);
         RefreshLayers();

@@ -31,6 +31,14 @@ public static class ToolIcons
         ["Text"] = ("M5 5h14 M12 5v14 M9 19h6", false),
         ["Speech Bubble"] = ("M5 4h14a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-8l-5 4v-4H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z", false),
         ["Line / Curve"] = ("M4 20L20 4 M4 20a1 1 0 1 0 0.1 0 M20 4a1 1 0 1 0 0.1 0", false),
+        ["Select"] = ("M5 3l14 8-6 2 4 7-3 1-4-7-5 4z", false),
+        ["Node"] = ("M5 3l14 8-6 2 4 7-3 1-4-7-5 4z M17 3h4v4h-4z", false),
+        ["Pen"] = ("M12 3l7 9-7 9-7-9z M12 3v10 M12 13a1 1 0 1 0 0.1 0", false),
+        ["Rectangle"] = ("M4 6h16v12H4z", false),
+        ["Ellipse"] = ("M3 12a9 7 0 1 0 18 0a9 7 0 1 0-18 0", false),
+        ["Line"] = ("M4 20L20 4", false),
+        ["Polygon / Star"] = ("M12 3l2.6 6 6.4.6-4.8 4.3 1.5 6.3L12 17l-5.7 3.2 1.5-6.3L3 9.6 9.4 9z", false),
+        ["Eyedropper"] = ("M19 5a2 2 0 0 0-3-1l-3 3-1-1-2 2 1 1-7 7v3h3l7-7 1 1 2-2-1-1 3-3a2 2 0 0 0 0-2z", false),
         ["Shapes"] = ("M3 3h10v10H3z M17 21a5 5 0 1 0 0-10a5 5 0 1 0 0 10", false),
     };
 

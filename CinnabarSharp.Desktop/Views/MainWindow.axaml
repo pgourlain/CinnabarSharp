@@ -270,6 +270,60 @@
                     <NumericUpDown Value="{Binding CornerRadius}" AutomationProperties.Name="Corner radius" Minimum="0" Maximum="1000" Increment="1"
                                    FormatString="0" Width="110" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorSelectOptions}">
+                    <CheckBox Content="Snap" IsChecked="{Binding SnapToObjects}" AutomationProperties.Name="Snap to objects"
+                              ToolTip.Tip="Snap to the page and to other objects" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorNodeOptions}">
+                    <Button Content="Corner" Command="{Binding NodesCornerCommand}" ToolTip.Tip="Corner node" />
+                    <Button Content="Smooth" Command="{Binding NodesSmoothCommand}" ToolTip.Tip="Smooth node" />
+                    <Button Content="Symmetric" Command="{Binding NodesSymmetricCommand}" ToolTip.Tip="Symmetric node" />
+                    <Button Content="Line" Command="{Binding SegmentsToLinesCommand}" ToolTip.Tip="Make selected segments straight" />
+                    <Button Content="Curve" Command="{Binding SegmentsToCurvesCommand}" ToolTip.Tip="Make selected segments curves" />
+                    <Button Content="Join" Command="{Binding NodesJoinCommand}" ToolTip.Tip="Join the two selected end nodes" />
+                    <Button Content="Break" Command="{Binding NodesBreakCommand}" ToolTip.Tip="Break the path at the selected nodes" />
+                    <Button Content="To path" Command="{Binding ConvertToPathCommand}" ToolTip.Tip="Convert the shape to a path" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorShapeOptions}">
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.ShapeStyles}" AutomationProperties.Name="Vector shape style" SelectedItem="{Binding ShapeStyle}" MinWidth="140"
+                              ToolTip.Tip="Stroke uses the primary color, fill the secondary color">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorRectangleOptions}">
+                    <TextBlock Text="Radius:" />
+                    <NumericUpDown Value="{Binding VectorCornerRadius}" AutomationProperties.Name="Rectangle corner radius" Minimum="0" Maximum="10000" Increment="1"
+                                   FormatString="0" Width="110" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorPolygonOptions}">
+                    <TextBlock Text="Corners:" />
+                    <NumericUpDown Value="{Binding PolygonCorners}" AutomationProperties.Name="Polygon corners" Minimum="3" Maximum="100" Increment="1" FormatString="0" Width="100" />
+                    <TextBlock Text="Star:" />
+                    <NumericUpDown Value="{Binding StarRatioPercent}" AutomationProperties.Name="Star ratio" Minimum="0" Maximum="100" Increment="5" FormatString="0" Width="100"
+                                   ToolTip.Tip="0 draws a polygon; larger values dig the inner corners deeper" />
+                    <TextBlock Text="Rounding:" />
+                    <NumericUpDown Value="{Binding PolygonRounding}" AutomationProperties.Name="Polygon rounding" Minimum="0" Maximum="1000" Increment="1" FormatString="0" Width="100" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorPencilOptions}">
+                    <TextBlock Text="Smoothing:" />
+                    <Slider Value="{Binding PencilSmoothing}" AutomationProperties.Name="Pencil smoothing" Minimum="0" Maximum="100" Width="120" />
+                    <TextBlock Text="{Binding PencilSmoothing, StringFormat={}{0}%}" MinWidth="36" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowVectorGradientOptions}">
+                    <TextBlock Text="Gradient:" />
+                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.GradientKinds}" AutomationProperties.Name="Vector gradient" SelectedItem="{Binding GradientKind}" MinWidth="110">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static conv:EnumDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <CheckBox Content="On stroke" IsChecked="{Binding GradientOnStroke}" ToolTip.Tip="Paint the stroke instead of the fill" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowGradientOptions}">
                     <TextBlock Text="Gradient:" />
                     <ComboBox ItemsSource="{x:Static vm:MainViewModel.GradientKinds}" AutomationProperties.Name="Gradient" SelectedItem="{Binding GradientKind}" MinWidth="110">
@@ -410,7 +464,7 @@
             <!-- Tools -->
             <Border Grid.Column="0" BorderThickness="0,0,1,0" Padding="4"
                     BorderBrush="{DynamicResource CinnabarBorderBrush}">
-                <ListBox x:Name="ToolsList" Classes="tools" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}"
+                <ListBox x:Name="ToolsList" Classes="tools" ItemsSource="{Binding ToolboxTools}" SelectedItem="{Binding ToolboxSelection}"
                          IsEnabled="{Binding IsNotComicMode}"
                          AutomationProperties.Name="Tools"
                          Width="70" Background="Transparent">

@@ -1,0 +1,205 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using CinnabarSharp.Core.Models;
+using CinnabarSharp.Core.Tools;
+using CinnabarSharp.Core.Vector;
+using CinnabarSharp.Core.Vector.Tools;
+using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace CinnabarSharp.Desktop.ViewModels;
+
+// The tools of SVG drawings: a toolbox of its own, pointer/key routing in user space, options bar.
+public partial class MainViewModel
+{
+    private ToolViewModel? _lastRasterTool;
+    private ToolViewModel? _lastVectorTool;
+    private bool _toolboxIsVector;
+
+    public ToolViewModel[] VectorTools { get; private set; } = [];
+
+    /// <summary>The toolbox shown: the raster tools, or the vector tools while a drawing is active.</summary>
+    public ToolViewModel[] ToolboxTools => _toolboxIsVector ? VectorTools : Tools;
+
+    /// <summary>What the toolbox list selects. Ignores null, which the list writes while it swaps its items.</summary>
+    public ToolViewModel? ToolboxSelection
+    {
+        get => SelectedTool;
+        set
+        {
+            if (value is not null)
+                SelectedTool = value;
+        }
+    }
+
+    private void CreateVectorTools() => VectorTools = ToolViewModel.CreateVectorTools(ToolSettings, Tools);
+
+    /// <summary>Swaps the toolbox when the active tab changes between an image and a drawing.</summary>
+    private void SyncToolbox()
+    {
+        var vector = ActiveSvg is not null;
+        if (vector == _toolboxIsVector)
+            return;
+        if (vector)
+            _lastRasterTool = SelectedTool;
+        else
+            _lastVectorTool = SelectedTool;
+        _toolboxIsVector = vector;
+        SelectedTool = vector ? _lastVectorTool ?? VectorTools[0] : _lastRasterTool ?? Tools.First(t => t.Name == "Rectangle Select");
+        OnPropertyChanged(nameof(ToolboxTools));
+        OnPropertyChanged(nameof(ToolboxSelection));
+    }
+
+    private IVectorTool? ActiveVectorTool => SelectedTool?.VectorTool;
+
+    private void WithVectorTool(SvgDocument drawing, ToolPointer pointer, Action<IVectorTool, SvgDocument, ToolPointer> handler)
+    {
+        if (ActiveVectorTool is not { } tool)
+            return;
+        handler(tool, drawing, pointer with { Position = ImageToUser(drawing, pointer.Position) });
+    }
+
+    private static PointD ImageToUser(SvgDocument drawing, PointD image)
+    {
+        var p = drawing.ImageToUserPoint(new CinnabarSharp.Vector.VPoint(image.X, image.Y));
+        return new PointD(p.X, p.Y);
+    }
+
+    private ToolOverlay? VectorToolOverlay(SvgDocument drawing) =>
+        (ActiveVectorTool?.GetOverlay(drawing)) ?? SvgSelectionOverlay.For(drawing);
+
+    private void FinishVectorEditing(IVectorTool? tool, SvgDocument? drawing)
+    {
+        if (drawing is null || tool is not IVectorEditingTool editing || !editing.IsEditing(drawing))
+            return;
+        editing.Finish(drawing);
+    }
+
+    private IVectorTextTool? EditingVectorText =>
+        ActiveSvg is { } d && ActiveVectorTool is IVectorTextTool t && t.IsEditing(d) ? t : null;
+
+    private bool IsVectorTyping => ActiveSvg is { } d && ActiveVectorTool is IVectorKeyboardTool k && k.IsTyping(d);
+
+    private bool VectorToolKeyDown(SvgDocument drawing, ToolKey key, ToolModifiers modifiers)
+    {
+        var handled = ActiveVectorTool is IVectorKeyboardTool tool && tool.OnKeyDown(drawing, key, modifiers);
+        // Escape that the tool doesn't use deselects the objects.
+        if (!handled && key == ToolKey.Escape && modifiers == ToolModifiers.None && !drawing.Selection.IsEmpty)
+        {
+            drawing.Selection.Clear();
+            handled = true;
+        }
+        UpdateOverlay();
+        return handled;
+    }
+
+    private void RefreshEditingVectorTool()
+    {
+        if (ActiveSvg is not { } d || ActiveVectorTool is not IVectorEditingTool tool || !tool.IsEditing(d))
+            return;
+        tool.Refresh(d);
+        UpdateOverlay();
+    }
+
+    // ---- Options bar ----
+
+    public bool ShowVectorSelectOptions => SelectedTool?.IsVectorSelect == true;
+    public bool ShowVectorNodeOptions => SelectedTool?.IsVectorNode == true;
+    public bool ShowVectorShapeOptions => SelectedTool?.IsVectorShape == true;
+    public bool ShowVectorRectangleOptions => SelectedTool?.IsVectorRectangle == true;
+    public bool ShowVectorPolygonOptions => SelectedTool?.IsVectorPolygon == true;
+    public bool ShowVectorPencilOptions => SelectedTool?.IsVectorPencil == true;
+    public bool ShowVectorGradientOptions => SelectedTool?.IsVectorGradient == true;
+    public bool ShowVectorStrokeOptions => SelectedTool?.HasVectorStroke == true;
+
+    private void RaiseVectorOptionFlags()
+    {
+        foreach (var name in new[]
+                 {
+                     nameof(ShowVectorSelectOptions), nameof(ShowVectorNodeOptions), nameof(ShowVectorShapeOptions),
+                     nameof(ShowVectorRectangleOptions), nameof(ShowVectorPolygonOptions), nameof(ShowVectorPencilOptions),
+                     nameof(ShowVectorGradientOptions), nameof(ShowVectorStrokeOptions),
+                 })
+            OnPropertyChanged(name);
+    }
+
+    public double VectorCornerRadius
+    {
+        get => ToolSettings.VectorCornerRadius;
+        set { ToolSettings.VectorCornerRadius = Math.Max(0, value); OnPropertyChanged(); }
+    }
+
+    public int PolygonCorners
+    {
+        get => ToolSettings.PolygonCorners;
+        set { ToolSettings.PolygonCorners = Math.Clamp(value, 3, 100); OnPropertyChanged(); }
+    }
+
+    /// <summary>0–100: 0 draws a polygon, higher values dig the star's inner corners deeper.</summary>
+    public int StarRatioPercent
+    {
+        get => (int)Math.Round(ToolSettings.StarRatio * 100);
+        set { ToolSettings.StarRatio = Math.Clamp(value, 0, 100) / 100.0; OnPropertyChanged(); }
+    }
+
+    public double PolygonRounding
+    {
+        get => ToolSettings.PolygonRounding;
+        set { ToolSettings.PolygonRounding = Math.Max(0, value); OnPropertyChanged(); }
+    }
+
+    public bool SnapToObjects
+    {
+        get => ToolSettings.SnapToObjects;
+        set { ToolSettings.SnapToObjects = value; OnPropertyChanged(); }
+    }
+
+    public int PencilSmoothing
+    {
+        get => ToolSettings.PencilSmoothing;
+        set { ToolSettings.PencilSmoothing = Math.Clamp(value, 0, 100); OnPropertyChanged(); }
+    }
+
+    public bool GradientOnStroke
+    {
+        get => ToolSettings.GradientOnStroke;
+        set { ToolSettings.GradientOnStroke = value; OnPropertyChanged(); }
+    }
+
+    // ---- Node tool buttons ----
+
+    private VectorNodeTool? NodeTool => ActiveVectorTool as VectorNodeTool;
+
+    private void WithNodeTool(Action<VectorNodeTool, SvgDocument> action)
+    {
+        if (NodeTool is { } tool && ActiveSvg is { } drawing)
+        {
+            action(tool, drawing);
+            UpdateOverlay();
+        }
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void NodesCorner() => WithNodeTool((t, d) => t.SetNodeType(d, CinnabarSharp.Vector.NodeType.Corner));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void NodesSmooth() => WithNodeTool((t, d) => t.SetNodeType(d, CinnabarSharp.Vector.NodeType.Smooth));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void NodesSymmetric() => WithNodeTool((t, d) => t.SetNodeType(d, CinnabarSharp.Vector.NodeType.Symmetric));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void SegmentsToLines() => WithNodeTool((t, d) => t.SetSegments(d, line: true));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void SegmentsToCurves() => WithNodeTool((t, d) => t.SetSegments(d, line: false));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void NodesJoin() => WithNodeTool((t, d) => t.JoinNodes(d));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void NodesBreak() => WithNodeTool((t, d) => t.BreakNodes(d));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ConvertToPath() => WithNodeTool((t, d) => t.ConvertToPath(d));
+}

@@ -92,7 +92,7 @@ public partial class MainWindow : Window, IViewportService
         });
         AddLetterShortcut(Key.X, () => vm.SwapColorsCommand.Execute(null));
         AddLetterShortcut(Key.D, () => vm.ResetColorsCommand.Execute(null));
-        foreach (var letter in vm.Tools.Select(t => t.Shortcut).Distinct())
+        foreach (var letter in vm.Tools.Concat(vm.VectorTools).Select(t => t.Shortcut).Distinct())
         {
             if (Enum.TryParse<Key>(letter, out var key))
                 AddLetterShortcut(key, () => vm.SelectToolByShortcut(letter));
