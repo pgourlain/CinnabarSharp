@@ -23,6 +23,8 @@ public partial class MainViewModel
 
     private void NotifyObjectCommands()
     {
+        OnPropertyChanged(nameof(HasImageObjectSelected));
+        OnPropertyChanged(nameof(CanUpdateDrawing));
         foreach (var command in new IRelayCommand[]
                  {
                      DeselectObjectsCommand, DeleteObjectsCommand, DuplicateObjectsCommand, GroupObjectsCommand, UngroupObjectsCommand,
@@ -30,6 +32,8 @@ public partial class MainViewModel
                      FlipObjectsHorizontalCommand, FlipObjectsVerticalCommand, RotateObjectsClockwiseCommand,
                      RotateObjectsCounterClockwiseCommand, AlignObjectsCommand, DistributeObjectsCommand, ObjectToPathCommand,
                      StrokeToPathCommand, ApplyPathOperationCommand, BreakApartPathsCommand, SimplifyPathsCommand, ReversePathsCommand,
+                     ImportPictureCommand, ImportLinkedPictureCommand, SetClipCommand, ReleaseClipCommand, EditBitmapCommand,
+                     UpdateDrawingCommand,
                  })
             command.NotifyCanExecuteChanged();
     }

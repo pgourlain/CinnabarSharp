@@ -1,6 +1,7 @@
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using CinnabarSharp.Core.Models;
+using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Core.Vector;
 using CinnabarSharp.Desktop.ViewModels;
@@ -197,5 +198,44 @@ public sealed class SvgObjectMenuUiTests : IDisposable
         Vm.FlipObjectsHorizontalCommand.Execute(null);
         Assert.Equal("Flip Horizontal", Svg.History.Items[^1].Text);
         Assert.Equal("Rotate 90° Clockwise", Svg.History.Items[^2].Text);
+    }
+}
+
+public sealed class SvgBitmapUiTests : IDisposable
+{
+    private readonly TestHarness _h = new();
+
+    public void Dispose() => _h.Dispose();
+
+    private MainViewModel Vm => _h.Vm;
+
+    private SvgDocument Svg => Assert.IsType<SvgDocument>(Vm.Documents.Select(d => d.Document).OfType<SvgDocument>().Single());
+
+    [AvaloniaFact]
+    public async Task Import_then_edit_bitmap_in_a_tab_and_send_the_pixels_back()
+    {
+        Vm.CreateImage(new NewImageOptions(new ImageSize(200, 150), ColorBgra.Transparent, new SvgDrawingOptions(200, 150, SvgUnit.Px)));
+        Dispatcher.UIThread.RunJobs();
+        _h.Dialogs.FilesToOpen.Enqueue([TestHarness.SampleImage]);
+        Assert.True(Vm.ImportPictureCommand.CanExecute(null));
+        await Vm.ImportPictureCommand.ExecuteAsync(null);
+        Dispatcher.UIThread.RunJobs();
+
+        var image = Assert.Single(Svg.Root.Descendants().OfType<SvgImage>());
+        Assert.Contains(image, Svg.Selection.Nodes);
+        Assert.True(Vm.HasImageObjectSelected);
+        _h.Capture("svg-80-imported-picture");
+
+        await Vm.EditBitmapCommand.ExecuteAsync(null);
+        Dispatcher.UIThread.RunJobs();
+        var raster = Assert.IsType<ImageDocument>(Vm.ActiveDocument!.Document);
+        Assert.NotNull(raster.BitmapEdit);
+        Assert.True(Vm.CanUpdateDrawing);
+
+        var href = image.Href;
+        raster.Actions.FillSelection(ColorBgra.FromBgra(10, 200, 30, 255));
+        Vm.UpdateDrawingCommand.Execute(null);
+        Assert.NotEqual(href, image.Href);
+        Assert.Equal("Edit Bitmap", Svg.History.Items[^1].Text);
     }
 }

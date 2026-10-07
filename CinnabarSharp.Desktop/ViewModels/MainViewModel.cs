@@ -470,6 +470,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 return true;
             });
             RecentFiles.Add(file.FullName);
+            PushBitmapToDrawing(doc);
             return true;
         }
         catch (Exception e) when (e is MagickException or IOException or UnauthorizedAccessException)

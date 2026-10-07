@@ -186,12 +186,14 @@ Tools implement a new `IVectorTool` interface in Core (same shape as `ITool` but
 
 ## Phase S9 — Bitmaps in SVG documents (ADR need 4, option B)
 
-- [ ] File › Import (on an SVG tab) places a raster image as `<image>`: embedded base64 PNG/JPEG by default, or linked (option, relative path, file must be in the SVG's folder or below). Size at 96 dpi, fitted into the page if larger.
-- [ ] `<image>` objects can be moved, scaled, rotated, clipped (Object › Clip › Set Clip with the shape above it; Release Clip), and have opacity, like other objects.
-- [ ] "Edit Bitmap" on an `<image>`: opens its pixels in a new raster `ImageDocument` tab; when that tab is saved (or with an explicit "Update in SVG" command), the SVG's `<image>` is updated (one history step in the SVG document). Closing without saving leaves the SVG unchanged.
-- [ ] Paste a bitmap from the clipboard into an SVG document inserts an embedded `<image>`.
+- [x] File › Import (on an SVG tab) places a raster image as `<image>`: embedded base64 PNG/JPEG by default, or linked (option, relative path, file must be in the SVG's folder or below). Size at 96 dpi, fitted into the page if larger.
+- [x] `<image>` objects can be moved, scaled, rotated, clipped (Object › Clip › Set Clip with the shape above it; Release Clip), and have opacity, like other objects.
+  > Note: Object › Clip holds Set Clip and Release Clip; File › Import Picture / Import Linked Picture / Update Drawing From Bitmap. Moving and scaling an `<image>` keeps it in natural form (x, y, width, height) unless rotated.
+- [x] "Edit Bitmap" on an `<image>`: opens its pixels in a new raster `ImageDocument` tab; when that tab is saved (or with an explicit "Update in SVG" command), the SVG's `<image>` is updated (one history step in the SVG document). Closing without saving leaves the SVG unchanged.
+- [x] Paste a bitmap from the clipboard into an SVG document inserts an embedded `<image>`.
 - [ ] Image › Trace Bitmap on a selected `<image>`: uses the vectorizer from ADR need 2 (Potrace port) if it exists in Core; otherwise leave this task unticked with a note.
-- [ ] Tests: import, embed/link round-trip, Edit Bitmap round-trip updates the base64 and is undoable, linked path restricted to the folder.
+  > Note: left unticked on purpose: Core has no vectorizer (no Potrace port) and the ADR need 2 tool does not exist yet, so there is nothing to call.
+- [x] Tests: import, embed/link round-trip, Edit Bitmap round-trip updates the base64 and is undoable, linked path restricted to the folder.
 
 **Validation**
 - [ ] On each OS: a photo with an SVG logo and text on top, built as an SVG document, saved, opened in a browser.
