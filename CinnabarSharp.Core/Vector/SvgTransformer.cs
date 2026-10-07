@@ -73,6 +73,15 @@ public static class SvgTransformer
                 }
                 return true;
             }
+            case SvgImage image when IsAxisScale(m):
+                image.X = m.A * image.X + m.E;
+                image.Y = m.D * image.Y + m.F;
+                if (!IsTranslation(m))
+                {
+                    image.Width *= m.A;
+                    image.Height *= m.D;
+                }
+                return true;
             case SvgCircle circle when IsAxisScale(m) && Math.Abs(m.A - m.D) < Epsilon * Math.Max(1, m.A):
                 circle.Cx = m.A * circle.Cx + m.E;
                 circle.Cy = m.D * circle.Cy + m.F;

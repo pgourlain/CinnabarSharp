@@ -121,7 +121,11 @@ public sealed partial class SvgActions
     /// Inserts a picture as an <c>&lt;image&gt;</c> with embedded data, at 96 dpi (<paramref name="pixelWidth"/> × <paramref name="pixelHeight"/>
     /// pixels, scaled down to fit the page), centered on the page.
     /// </summary>
-    public SvgImage AddImage(byte[] data, string mimeType, int pixelWidth, int pixelHeight, string name = "Add Image")
+    public SvgImage AddImage(byte[] data, string mimeType, int pixelWidth, int pixelHeight, string name = "Add Image") =>
+        AddImageReference($"data:{mimeType};base64,{Convert.ToBase64String(data)}", pixelWidth, pixelHeight, name);
+
+    /// <summary>Like <see cref="AddImage"/> for any <c>href</c>: embedded data, or the relative path of a linked file.</summary>
+    public SvgImage AddImageReference(string href, int pixelWidth, int pixelHeight, string name = "Add Image")
     {
         var (pageWidth, pageHeight) = Root.UserSize;
         var (pixelsWidth, pixelsHeight) = Root.PixelSize;
@@ -137,7 +141,7 @@ public sealed partial class SvgActions
         image.Width = Math.Round(width, 3);
         image.Height = Math.Round(height, 3);
         image.SetAttribute("preserveAspectRatio", "none");
-        image.Href = $"data:{mimeType};base64,{Convert.ToBase64String(data)}";
+        image.Href = href;
         return (SvgImage)AddNode(image, name: name);
     }
 

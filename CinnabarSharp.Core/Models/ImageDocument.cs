@@ -31,6 +31,9 @@ namespace CinnabarSharp.Core.Models
 
         public DocumentKind Kind => DocumentKind.Image;
 
+        /// <summary>Set when this picture is the pixels of an image of an SVG drawing (Edit Bitmap): saving sends them back.</summary>
+        public CinnabarSharp.Core.Vector.BitmapEditLink? BitmapEdit { get; set; }
+
         public ImageSize ImageSize { get; set; }
         public ImageDocumentLayers Layers { get; }
         public ImageDocumentWorkspace Workspace { get; }
