@@ -285,6 +285,15 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
 - [ ] Comic page with real photos on each OS: dragging a panel's photo feels responsive on a full A4 page; printed A4 at 300 dpi looks right.
 - [ ] Speech bubbles on a real photo on each OS: place 5 numbered bubbles quickly, restyle one live, undo/redo, hide the Bubbles layer, save as ORA and PNG.
 
+## Phase 15 — SVG editor
+
+The plan, tasks and per-OS validation checklist of the SVG editor are in [tasks-svg.md](tasks-svg.md) (decision: [ADR 0001](docs/adr/0001-svg-editing.md)). Summary:
+
+- [x] S0–S4: `CinnabarSharp.Vector` engine (parser/writer round trip, style cascade, rasterizer), `IDocument`, SVG documents in tabs, open/save/export.
+- [x] S5–S6: canvas, Objects and Properties panels, `SvgActions` with history, clipboard.
+- [x] S7: vector tools. S8: Object and Path menus, path booleans. S9: pictures in drawings. S10: MCP tools and scripting.
+- [ ] S11 and the validation checklists on real machines (see tasks-svg.md).
+
 ## Criteria for 1.0
 
 0.8.0 is the last beta of the design work. 1.0.0 means ready for people who are not the developer; it waits for:

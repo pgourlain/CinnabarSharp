@@ -153,4 +153,72 @@ public sealed class AccessibilityTests : IDisposable
         Assert.Contains("Paintbrush (B)", names);
         Assert.Contains("Crop (C)", names);
     }
+
+    // ---- SVG drawings: the vector toolbox, its options and the panels of an object ----
+
+    private void OpenDrawingWithObject()
+    {
+        _h.Vm.CreateImage(new NewImageOptions(new ImageSize(200, 150), ColorBgra.Transparent,
+            new SvgDrawingOptions(200, 150, CinnabarSharp.Core.Vector.SvgUnit.Px)));
+        var rect = new CinnabarSharp.Vector.SvgRect { Id = "r" };
+        rect.Width = 40;
+        rect.Height = 30;
+        var svg = (CinnabarSharp.Core.Vector.SvgDocument)_h.Vm.ActiveDocument!.Document;
+        svg.Actions.AddNode(rect);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    [AvaloniaFact]
+    public void Every_visible_input_for_a_drawing_has_a_name_and_can_be_reached_with_the_keyboard()
+    {
+        OpenDrawingWithObject();
+        var unnamed = new List<string>();
+        var unreachable = new List<string>();
+        foreach (var tool in _h.Vm.VectorTools)
+        {
+            _h.Vm.SelectedTool = tool;
+            Dispatcher.UIThread.RunJobs();
+            var controls = _h.Window.GetVisualDescendants().OfType<Control>().Where(c => c.IsEffectivelyVisible && c.TemplatedParent is null).ToList();
+            unnamed.AddRange(controls
+                .Where(c => c is Button or ToggleButton or ComboBox or NumericUpDown or Slider or CheckBox or ListBox)
+                .Where(c => Announced(c) is null)
+                .Select(c => $"{tool.Name}: {c.GetType().Name} {c.Name}"));
+            unreachable.AddRange(controls.OfType<InputElement>()
+                .Where(c => c is Button or ToggleButton or ComboBox or Slider or CheckBox)
+                .Where(c => c.IsEffectivelyEnabled && (!c.Focusable || !KeyboardNavigation.GetIsTabStop(c)))
+                .Select(c => $"{tool.Name}: {c.GetType().Name} {AutomationProperties.GetName(c)}"));
+        }
+
+        Assert.Empty(unnamed.Distinct());
+        Assert.Empty(unreachable.Distinct());
+    }
+
+    [AvaloniaFact]
+    public void Vector_tool_icons_are_announced_with_their_name_and_shortcut()
+    {
+        OpenDrawingWithObject();
+        Dispatcher.UIThread.RunJobs();
+        var names = _h.Window.GetVisualDescendants().OfType<Viewbox>()
+            .Select(AutomationProperties.GetName).OfType<string>().ToList();
+
+        Assert.Contains("Select (S)", names);
+        Assert.Contains("Node (N)", names);
+        Assert.Contains("Pen (B)", names);
+        Assert.All(_h.Vm.VectorTools, t => Assert.Contains(t.ToolTip, names));
+    }
+
+    [AvaloniaFact]
+    public void The_options_bar_of_the_vector_tools_stays_usable_in_a_window_of_a_200_percent_screen()
+    {
+        _h.Window.Width = 960;
+        _h.Window.Height = 540;
+        OpenDrawingWithObject();
+        foreach (var name in new[] { "Node", "Polygon / Star", "Text" })
+        {
+            _h.Vm.SelectedTool = _h.Vm.VectorTools.First(t => t.Name == name);
+            Dispatcher.UIThread.RunJobs();
+            _h.Capture("17-narrow-svg-" + name.Replace(' ', '-').Replace("/", ""));
+            Assert.NotNull(_h.Window.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault(v => v.Name == "OptionsScroller"));
+        }
+    }
 }

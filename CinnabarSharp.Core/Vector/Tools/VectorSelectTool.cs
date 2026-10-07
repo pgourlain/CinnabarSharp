@@ -26,7 +26,6 @@ public sealed class VectorSelectTool(ToolSettings settings) : IVectorKeyboardToo
     private VRect _box;                       // selection box at the start of a gesture, document space
     private int _handle;
     private bool _clickedSelected;
-    private bool _toggle;
     private bool _rotateMode;
     private VPoint? _center;
     private VRect _band;
@@ -57,7 +56,6 @@ public sealed class VectorSelectTool(ToolSettings settings) : IVectorKeyboardToo
         _start = p;
         _before = document.Selection.Nodes.ToList();
         _clickedSelected = false;
-        _toggle = false;
         _moved = false;
         _applied = Matrix2D.Identity;
         var reach = document.ScreenToUser(HandleReach);
@@ -86,7 +84,6 @@ public sealed class VectorSelectTool(ToolSettings settings) : IVectorKeyboardToo
         {
             if (pointer.Modifiers.HasFlag(ToolModifiers.Shift))
             {
-                _toggle = true;
                 document.Selection.Toggle(hit);
                 _mode = Mode.None;
                 return;

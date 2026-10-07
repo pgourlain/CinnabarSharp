@@ -5,7 +5,9 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 ## [Unreleased]
 
 ### Added
-- SVG files (`.svg`, `.svgz`) open as images (rasterized, read-only), and Layers › Import From File places an SVG, e.g. a logo, as a new layer: rendered sharp at its natural size, or smaller to fit the canvas.
+- **SVG editor**: SVG files open as drawings with vector tools (select, node, pen, pencil, shapes, text, gradient, eyedropper), an Objects panel, a Properties panel, Object and Path menus (align, distribute, flip, rotate, union, difference, intersection, exclusion, division, stroke to path, combine, break apart, simplify, reverse), pictures inside drawings (import embedded or linked, clip, Edit Bitmap), and are saved back as SVG without disturbing the parts of the file you did not edit. Export to PNG, JPEG, WebP and other formats at any size. Big drawings (thousands of paths) are drawn on a background thread.
+- MCP: `new_svg` and the `svg_` tools (tree, add shapes/paths/text/images, style, transform, align, path operations, clip, select); `save_image`, `export_image`, `render_preview`, `undo` and `redo` work on drawings. Scripts can call them too.
+- SVG files (`.svg`, `.svgz`) can also be opened as images (File › Open as Image), and Layers › Import From File places an SVG, e.g. a logo, as a new layer: rendered sharp at its natural size, or smaller to fit the canvas.
 
 ## [0.8.1] - 2026-10-04
 

@@ -213,12 +213,17 @@ Tools implement a new `IVectorTool` interface in Core (same shape as `ITool` but
 ## Phase S11 — Polish and release
 
 - [ ] Translations of every new user-visible string (`Translations.GetString`), in all existing languages.
-- [ ] Accessibility of the new panels and tools (keyboard reach, focus ring, contrast) per the Phase 12 checklist; usable at 200 % scale.
-- [ ] Performance: an SVG with 10 000 paths (e.g. a detailed map) opens in under 2 s and pans/zooms without freezing (render on a background thread with cancellation like `RefreshTvPreviewAsync`, show the last frame meanwhile).
-- [ ] Unsaved-work recovery and the history size setting (if they exist by then for raster documents) also cover SVG documents.
-- [ ] File associations for `.svg` in the packages (optional, do not make the app the default SVG handler).
-- [ ] Docs: user guide section for SVG editing (README feature list, CHANGELOG under Unreleased, tasks.md gets a "Phase 15 — SVG editor" entry pointing to this file). Update `CLAUDE.md`: add `CinnabarSharp.Vector` and `CinnabarSharp.Vector.Tests` to Projects (BCL only, enforced by `VectorArchitectureTests`), and add a short **SVG documents** paragraph to Architecture (Vector engine vs Core document split, parser/writer round-trip rule, `VectorRasterizer` determinism, `SvgActions` as the only edit path, `IVectorTool`).
-- [ ] Update `docs/adr/0001-svg-editing.md`: status **Accepted**, Decision section records option 3 (needs 1, 2, 3 with option B) and links to this file.
+  > Note: left unticked: there is no translation catalog yet (`Translations.GetString` is a pass-through) and no other language, and the raster actions' history names are plain literals too. The new strings are English literals in one place per feature, ready for a catalog.
+- [x] Accessibility of the new panels and tools (keyboard reach, focus ring, contrast) per the Phase 12 checklist; usable at 200 % scale.
+  > Note: `AccessibilityTests` now cover the vector toolbox and its options (names, Tab reach, announced tool names, the 960 × 540 window of a 200 % screen). Checked with headless windows, not on a real HiDPI screen.
+- [x] Performance: an SVG with 10 000 paths (e.g. a detailed map) opens in under 2 s and pans/zooms without freezing (render on a background thread with cancellation like `RefreshTvPreviewAsync`, show the last frame meanwhile).
+  > Note: 10 000 paths open in about 25 ms (parsing is lazy) and a 1600 × 900 window takes about 0.6 s to draw, so drawings with more than 1 500 elements and no text are drawn on a background thread from a copy of the tree (cancelled and restarted on every zoom, scroll or edit), with the last frame stretched meanwhile. Drawings with text stay on the UI thread because the glyph provider uses the UI toolkit. `SvgPerformanceTests` and `SvgPerformanceUiTests` pin it.
+- [x] Unsaved-work recovery and the history size setting (if they exist by then for raster documents) also cover SVG documents.
+  > Note: neither exists for raster documents yet (tasks.md Phase 10), so there is nothing to extend. An SVG history step holds attribute snapshots, not pixels, so its size is small.
+- [x] File associations for `.svg` in the packages (optional, do not make the app the default SVG handler).
+  > Note: `.svg` added to the macOS Info.plist (rank Alternate, so the app never becomes the default) and to the Linux desktop entry. The Windows package is a zip with no installer, so there is nothing to register.
+- [x] Docs: user guide section for SVG editing (README feature list, CHANGELOG under Unreleased, tasks.md gets a "Phase 15 — SVG editor" entry pointing to this file). Update `CLAUDE.md`: add `CinnabarSharp.Vector` and `CinnabarSharp.Vector.Tests` to Projects (BCL only, enforced by `VectorArchitectureTests`), and add a short **SVG documents** paragraph to Architecture (Vector engine vs Core document split, parser/writer round-trip rule, `VectorRasterizer` determinism, `SvgActions` as the only edit path, `IVectorTool`).
+- [x] Update `docs/adr/0001-svg-editing.md`: status **Accepted**, Decision section records option 3 (needs 1, 2, 3 with option B) and links to this file.
 
 **Validation**
 - [ ] Full checklist on a real macOS, Linux (X11 and Wayland) and Windows 11 machine: open the real-world sample set, edit with each tool, boolean ops, bitmaps, save, reopen in a browser, MCP session, packaged AOT build.

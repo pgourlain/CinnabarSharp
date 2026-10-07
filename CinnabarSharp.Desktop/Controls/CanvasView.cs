@@ -1,5 +1,8 @@
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -466,11 +469,16 @@ public class CanvasView : Control
     {
         _bitmap?.Dispose();
         _bitmap = null;
-        _drawingBitmap?.Dispose();
-        _drawingBitmap = null;
-
-        if (SvgDocument is not null)
+        if (SvgDocument is null)
         {
+            CancelBackgroundRender();
+            _drawingBitmap?.Dispose();
+            _drawingBitmap = null;
+            _drawingOwner = null;
+        }
+        else
+        {
+            // The last frame stays on screen while a big drawing is redrawn in the background.
             RenderVisibleDrawing();
             return;
         }
@@ -497,6 +505,7 @@ public class CanvasView : Control
     /// <summary>Pixels of the drawing for the part of the view that is (nearly) visible, and where they go (device pixels of the zoomed picture).</summary>
     private WriteableBitmap? _drawingBitmap;
     private VRectI _drawingRegion;
+    private VRectI _targetRegion;
     private double _drawingDeviceScale;
     private ScrollViewer? _scroller;
 
@@ -521,11 +530,11 @@ public class CanvasView : Control
 
     private void OnScrolled(object? sender, ScrollChangedEventArgs e)
     {
-        if (SvgDocument is null || _drawingBitmap is null)
+        if (SvgDocument is null || (_drawingBitmap is null && !IsRenderingInBackground))
             return;
-        // Scrolled past what was rendered: render the part now in view.
+        // Scrolled past what was rendered (or is being rendered): render the part now in view.
         var visible = VisibleDeviceRegion(SvgDocument);
-        if (visible.Intersect(_drawingRegion) != visible)
+        if (visible.Intersect(_targetRegion) != visible)
         {
             RenderVisibleDrawing();
             InvalidateVisual();
@@ -560,18 +569,140 @@ public class CanvasView : Control
 
     private void RenderVisibleDrawing()
     {
-        _drawingBitmap?.Dispose();
-        _drawingBitmap = null;
         if (SvgDocument is not { } drawing)
+        {
+            CancelBackgroundRender();
+            _drawingBitmap?.Dispose();
+            _drawingBitmap = null;
             return;
+        }
+        if (!ReferenceEquals(_drawingOwner, drawing))
+        {
+            // Another drawing: its predecessor's frame means nothing.
+            CancelBackgroundRender();
+            _drawingBitmap?.Dispose();
+            _drawingBitmap = null;
+            _drawingOwner = drawing;
+        }
         var region = VisibleDeviceRegion(drawing);
         if (region.IsEmpty)
+        {
+            CancelBackgroundRender();
+            _drawingBitmap?.Dispose();
+            _drawingBitmap = null;
             return;
+        }
         var deviceScale = drawing.Workspace.Scale * RenderScaling;
+        _targetRegion = region;
+        if (IsHeavy(drawing))
+        {
+            RenderInBackground(drawing, region, deviceScale);
+            return;
+        }
+        CancelBackgroundRender();
+        _drawingBitmap?.Dispose();
+        _drawingBitmap = null;
         var pixels = VectorRasterizer.Render(drawing.Root, region, deviceScale, drawing.RenderOptions);
         _drawingBitmap = ToBitmap(pixels, region.Width, region.Height);
         _drawingRegion = region;
         _drawingDeviceScale = deviceScale;
+    }
+
+    // ---- Big drawings: rendered on a background thread, from a copy of the tree, with the last frame shown meanwhile ----
+
+    /// <summary>Drawings with more elements than this are drawn in the background (a map with thousands of paths takes about half a second a frame).</summary>
+    public const int HeavyElementCount = 1500;
+
+    private SvgDocument? _drawingOwner;
+    private CancellationTokenSource? _renderCts;
+    private SvgRoot? _snapshot;
+    private SvgRoot? _snapshotOf;
+    private int _snapshotVersion = -1;
+    private SvgRoot? _heavyOf;
+    private int _heavyVersion = -1;
+    private bool _heavy;
+
+    /// <summary>True while a frame is being computed in the background: the picture shown is the one before.</summary>
+    public bool IsRenderingInBackground { get; private set; }
+
+    /// <summary>A drawing is heavy when it has many elements and no text (text needs the fonts, which are used on the UI thread only).</summary>
+    private bool IsHeavy(SvgDocument drawing)
+    {
+        var root = drawing.Root;
+        if (!ReferenceEquals(_heavyOf, root) || _heavyVersion != root.Version)
+        {
+            var count = 0;
+            var text = false;
+            foreach (var node in root.Descendants())
+            {
+                if (node is SvgElement)
+                    count++;
+                if (node is SvgTextBase)
+                    text = true;
+            }
+            _heavy = count > HeavyElementCount && !text;
+            _heavyOf = root;
+            _heavyVersion = root.Version;
+        }
+        return _heavy;
+    }
+
+    private void CancelBackgroundRender()
+    {
+        _renderCts?.Cancel();
+        _renderCts = null;
+        IsRenderingInBackground = false;
+    }
+
+    private async void RenderInBackground(SvgDocument drawing, VRectI region, double deviceScale)
+    {
+        _renderCts?.Cancel();
+        var cts = _renderCts = new CancellationTokenSource();
+        var root = drawing.Root;
+        var version = root.Version;
+        // The background thread reads a copy, so edits on this thread cannot disturb it.
+        if (!ReferenceEquals(_snapshotOf, root) || _snapshotVersion != version || _snapshot is null)
+        {
+            _snapshot = (SvgRoot)root.DeepClone();
+            _snapshotOf = root;
+            _snapshotVersion = version;
+        }
+        var snapshot = _snapshot;
+        var template = drawing.RenderOptions;
+        var options = new CinnabarSharp.Vector.RenderOptions
+        {
+            ImageDecoder = template.ImageDecoder,
+            BaseFolder = template.BaseFolder,
+            Cancellation = cts.Token,
+        };
+        IsRenderingInBackground = true;
+        byte[]? pixels;
+        try
+        {
+            pixels = await Task.Run(() => VectorRasterizer.Render(snapshot, region, deviceScale, options), cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        if (!ReferenceEquals(cts, _renderCts))
+            return;
+        IsRenderingInBackground = false;
+        _renderCts = null;
+        if (!ReferenceEquals(SvgDocument, drawing))
+            return;
+        if (root.Version != version)
+        {
+            // Edited meanwhile: the frame is out of date.
+            RenderVisibleDrawing();
+            InvalidateVisual();
+            return;
+        }
+        _drawingBitmap?.Dispose();
+        _drawingBitmap = ToBitmap(pixels, region.Width, region.Height);
+        _drawingRegion = region;
+        _drawingDeviceScale = deviceScale;
+        InvalidateVisual();
     }
 
     private void RenderDrawing(DrawingContext context, SvgDocument drawing)
@@ -581,8 +712,12 @@ public class CanvasView : Control
         if (_drawingBitmap is { } bitmap)
         {
             var scaling = RenderScaling;
-            var dest = new Rect(_drawingRegion.X / scaling, _drawingRegion.Y / scaling, _drawingRegion.Width / scaling, _drawingRegion.Height / scaling);
-            using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.None }))
+            // A frame from before a zoom change is stretched to the new zoom until the new one is ready.
+            var ratio = _drawingDeviceScale > 0 ? drawing.Workspace.Scale * scaling / _drawingDeviceScale : 1;
+            var dest = new Rect(_drawingRegion.X / scaling * ratio, _drawingRegion.Y / scaling * ratio,
+                _drawingRegion.Width / scaling * ratio, _drawingRegion.Height / scaling * ratio);
+            var mode = Math.Abs(ratio - 1) < 1e-9 ? BitmapInterpolationMode.None : BitmapInterpolationMode.LowQuality;
+            using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = mode }))
                 context.DrawImage(bitmap, new Rect(bitmap.Size), dest);
         }
         if (Overlay is { } overlay)

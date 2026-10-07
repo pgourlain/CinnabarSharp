@@ -1,7 +1,6 @@
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using CinnabarSharp.Core.Models;
-using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Tools;
 using CinnabarSharp.Core.Vector;
 using CinnabarSharp.Desktop.ViewModels;

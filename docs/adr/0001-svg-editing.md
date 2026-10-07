@@ -1,6 +1,6 @@
 # ADR 0001: Editing SVG files, alone or mixed with bitmaps
 
-- **Status:** Proposed (nothing decided, nothing implemented)
+- **Status:** Accepted (option 2; implemented, see [tasks-svg.md](../../tasks-svg.md))
 - **Date:** 2026-10-06
 - **Related:** GitHub issue #2 ("Svg support ?")
 
@@ -93,14 +93,18 @@ A is the closest to "SVG over a photo" while staying a Paint.NET-like editor, bu
 
 ## Decision
 
-Not taken. Recommended order, each step useful alone and none blocking the next:
+**Option 2:** needs 1, 2 and 3 with option B (document-per-kind), plus bitmaps inside SVG documents (need 4, option B): an SVG file opens as an SVG document with vector tools, object and path operations, and is saved back as SVG; a bitmap can be placed in the drawing as an `<image>` and edited in a raster tab (Edit Bitmap). Vector layers inside raster documents (option A) are not built.
+
+The implementation plan, phase by phase and with a validation checklist per OS, is [tasks-svg.md](../../tasks-svg.md). What was built: `CinnabarSharp.Vector` (BCL only: parser/writer that round-trips the file, style cascade, path geometry, a deterministic pure-C# rasterizer, path booleans), the `IDocument` abstraction with `SvgDocument` in Core, `SvgActions` as the only edit path, vector tools, the Objects and Properties panels, and the `svg_` MCP tools.
+
+Vectorizing a bitmap (need 2) and the re-rasterizable SVG layer for raster documents (option C) are still open; Trace Bitmap waits for a vectorizer.
+
+Original recommendation, kept for the record:
 
 1. Step 1: open SVG (need 1).
 2. Step 2: vectorize to SVG (need 2). Validates the pure-C# path and SVG writer that need 3 reuses.
 3. Step 3: re-rasterizable SVG layer (option C). Covers most "SVG plus photo" cases at low cost.
 4. Step 4, only if SVG editing is still wanted after using steps 1-3: document-per-kind with option B, as a dedicated phase in [tasks.md](../../tasks.md) with a per-OS validation checklist and an explicit MVP list.
-
-Option A is not recommended: it has the highest cost across the code base and the weakest result.
 
 ## Consequences
 
