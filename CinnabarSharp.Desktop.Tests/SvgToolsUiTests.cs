@@ -186,6 +186,19 @@ public sealed class SvgObjectMenuUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void The_properties_panel_shows_the_xml_of_the_selected_object()
+    {
+        Setup();
+        Svg.Selection.Set(Svg.Root.Descendants().OfType<SvgRect>().First());
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains("<rect", Vm.Properties.XmlText);
+        Assert.Contains("fill=\"#cc2200\"", Vm.Properties.XmlText);
+        Svg.Selection.Clear();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal("", Vm.Properties.XmlText);
+    }
+
+    [AvaloniaFact]
     public void Align_follows_the_chosen_reference_and_flip_and_rotate_work()
     {
         Setup();

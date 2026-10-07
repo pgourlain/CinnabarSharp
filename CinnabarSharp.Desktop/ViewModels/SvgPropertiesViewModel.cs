@@ -389,6 +389,18 @@ public partial class SvgPropertiesViewModel : ViewModelBase
     }
 
     /// <summary>Called when the drawing's selection or content changed: shows what the selected objects have.</summary>
+    /// <summary>The XML of the selected object, for debugging and power users (read-only, shortened for big groups).</summary>
+    public string XmlText
+    {
+        get
+        {
+            if (Selected.LastOrDefault() is not { } node)
+                return "";
+            var text = SvgWriter.ToXNode(node).ToString();
+            return text.Length > 4000 ? text[..4000] + "\n…" : text;
+        }
+    }
+
     public void Refresh()
     {
         _updating = true;
@@ -396,6 +408,7 @@ public partial class SvgPropertiesViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(HasSelection));
             OnPropertyChanged(nameof(Summary));
+            OnPropertyChanged(nameof(XmlText));
             if (Drawing is not { } drawing || Selected.LastOrDefault() is not { } node)
                 return;
             var style = StyleResolver.ComputeFor(node);

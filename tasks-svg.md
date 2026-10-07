@@ -64,6 +64,7 @@ The workspace, tabs, events and history are typed on `ImageDocument` today. Intr
 
 **Validation**
 - [ ] Full test suite green on the 3 OSes in CI; zero new build warnings; `dotnet publish` with AOT reports no new trim warnings (`packaging/package.sh` on the current OS).
+  > Note: left unticked: the suite is green locally (macOS), CI on the 3 OSes was not run from here. `dotnet publish -p:PublishAot=true` on macOS compiled the whole app with no trim or AOT warning, but the native link step failed on this machine (`ld: library 'ssl' not found`, Homebrew .NET without the OpenSSL link libraries), so the packaged binary was not run.
 - [ ] Manual smoke test of the raster app: open, paint, layers, effects, undo, save, tabs, welcome screen thumbnails.
 
 ## Phase S2 — SVG model, parser and writer (`CinnabarSharp.Vector`, then Core)
@@ -132,8 +133,9 @@ All tasks go in `CinnabarSharp.Vector` with tests in `CinnabarSharp.Vector.Tests
 - [x] Gradient editor in the properties panel: stops list, add/remove/move stop, color and opacity per stop; on-canvas gradient handles shown by the Gradient tool (Phase S7).
 - [x] Primary/secondary colors of the palette set fill/stroke of the selection (click = fill, shift-click = stroke, like Inkscape; the palette's existing behavior is unchanged on raster documents).
   > Note: the palette here is the Colors panel (primary and secondary swatches that open a picker), not a grid of swatches. On a drawing the primary color is the stroke and the secondary the fill (like the shape tools of Phase S7 use them); picking one applies it to the selected objects. Shift-click is not used. The on-canvas gradient handles belong to the Gradient tool (Phase S7).
-- [ ] Menus and tool bar switch on the document kind: raster-only items disabled (done in S1), vector items enabled only on SVG documents. Tool bar shows the vector tools on SVG tabs and the raster tools on image tabs; the selected tool of each kind is remembered.
-- [ ] Optional (last task of the phase): read-only XML view of the selected node (for debugging and power users).
+- [x] Menus and tool bar switch on the document kind: raster-only items disabled (done in S1), vector items enabled only on SVG documents. Tool bar shows the vector tools on SVG tabs and the raster tools on image tabs; the selected tool of each kind is remembered.
+- [x] Optional (last task of the phase): read-only XML view of the selected node (for debugging and power users).
+  > Note: an "XML" expander at the bottom of the Properties tab (shortened after 4000 characters).
 - [x] UI tests: the panels show the tree of `shapes.svg`; selecting in the panel draws selection handles; changing fill color in the properties panel changes the canvas pixels and undo restores them. Screenshots for each OS in CI.
 
 **Validation**

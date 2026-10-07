@@ -844,6 +844,11 @@
                                             <NumericUpDown Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="60,0,0,0" Value="{Binding Rotation}" Increment="5" FormatString="0.##" AutomationProperties.Name="Rotation" />
                                         </Grid>
                                     </StackPanel>
+                                    <Expander Header="XML" AutomationProperties.Name="XML of the object" IsEnabled="{Binding HasSelection}">
+                                        <TextBox Text="{Binding XmlText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                                                 FontFamily="Menlo,Consolas,monospace" FontSize="11" MaxHeight="220"
+                                                 AutomationProperties.Name="XML of the selected object" />
+                                    </Expander>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabItem>
