@@ -4,6 +4,8 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-07
+
 ### Added
 - Update check: the app asks once for permission, then looks for a newer release on GitHub after it starts (in the background, at most once a day) and shows a banner with Download, Skip this version and Later; Help › Check for Updates (Check for Updates… in the application menu on macOS) does it on demand. One request, nothing about you, nothing installed.
 - Status bar hints for the vector tools (the Select tool tells you to click the selection again for rotate handles); icons on the Objects panel buttons.
