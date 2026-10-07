@@ -37,7 +37,10 @@ public partial class MainViewModel
         }
     }
 
-    /// <summary>The grid options sit in the options bar for the tools that snap, and while the grid is shown.</summary>
+    /// <summary>The Grid check box is always there, so the grid can be turned back on from any document and tool.</summary>
+    public bool ShowGridToggle => HasContent;
+
+    /// <summary>Snap and the spacing sit in the options bar for the tools that snap, and while the grid is shown.</summary>
     public bool ShowGridOptions => HasContent && (ToolSettings.ShowGrid
         || SelectedTool is { Tool: IGridSnappingTool } or { VectorTool: IGridSnappingTool or VectorSelectTool });
 

@@ -102,8 +102,12 @@
         </Style>
         <Style Selector="TabControl#SvgTabs TabItem">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Padding" Value="8,4,8,8" />
             <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <!-- The selection bar sits right under the header text: leave a gap above it. -->
+        <Style Selector="TabControl#SvgTabs TabItem /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
         <Style Selector="ListBox.history ListBoxItem">
             <Setter Property="Padding" Value="8,4" />
@@ -482,15 +486,17 @@
                     <CheckBox Content="Sample merged image" IsChecked="{Binding SampleImage}"
                               ToolTip.Tip="Pick from all visible layers instead of the current layer" />
                 </StackPanel>
-                <Border Classes="toolbarSeparator" IsVisible="{Binding ShowGridOptions}" />
-                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowGridOptions}">
+                <Border Classes="toolbarSeparator" IsVisible="{Binding ShowGridToggle}" />
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowGridToggle}">
                     <CheckBox Content="Grid" IsChecked="{Binding ShowGrid}" AutomationProperties.Name="Show grid"
                               ToolTip.Tip="Show a grid over the picture (Ctrl+')" />
-                    <CheckBox Content="Snap" IsChecked="{Binding SnapToGrid}" AutomationProperties.Name="Snap to grid"
-                              ToolTip.Tip="Drawing tools place points on the grid (Ctrl+;)" />
-                    <NumericUpDown Value="{Binding GridSize}" AutomationProperties.Name="Grid size" Minimum="1" Maximum="1000" Increment="1"
-                                   FormatString="0.##" Width="72" ShowButtonSpinner="False" HorizontalContentAlignment="Right"
-                                   ToolTip.Tip="Distance between grid lines (pixels, or user units in a drawing)" />
+                    <StackPanel Orientation="Horizontal" IsVisible="{Binding ShowGridOptions}">
+                        <CheckBox Content="Snap" IsChecked="{Binding SnapToGrid}" AutomationProperties.Name="Snap to grid"
+                                  ToolTip.Tip="Drawing tools place points on the grid (Ctrl+;)" />
+                        <NumericUpDown Value="{Binding GridSize}" AutomationProperties.Name="Grid size" Minimum="1" Maximum="1000" Increment="1"
+                                       FormatString="0.##" Width="72" ShowButtonSpinner="False" HorizontalContentAlignment="Right"
+                                       ToolTip.Tip="Distance between grid lines (pixels, or user units in a drawing)" />
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
             </Panel>
@@ -791,18 +797,57 @@
                                             <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
                                             <Setter Property="Padding" Value="4,2" />
                                         </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.rowToggle">
+                                            <Setter Property="Width" Value="22" />
+                                            <Setter Property="Height" Value="22" />
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="MinWidth" Value="0" />
+                                            <Setter Property="MinHeight" Value="0" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                        </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.rowToggle /template/ ContentPresenter#PART_ContentPresenter">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                                        </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.rowToggle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                            <Setter Property="Background" Value="#22808080" />
+                                        </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.rowToggle:checked /template/ ContentPresenter#PART_ContentPresenter">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                                        </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.rowToggle.dimOff:not(:checked)">
+                                            <Setter Property="Opacity" Value="0.35" />
+                                        </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.rowToggle.dimOff:checked:not(:pointerover)">
+                                            <Setter Property="Opacity" Value="1" />
+                                        </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.lockToggle:not(:checked):not(:pointerover)">
+                                            <Setter Property="Opacity" Value="0.25" />
+                                        </Style>
+                                        <Style Selector="ListBox.objects ToggleButton.expander:checked c|StrokeIcon">
+                                            <Setter Property="RenderTransform" Value="rotate(90deg)" />
+                                        </Style>
                                     </ListBox.Styles>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:ObjectViewModel">
                                             <DockPanel Margin="{Binding Indent}" DoubleTapped="OnObjectDoubleTapped">
-                                                <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsVisible}" MinWidth="0" Padding="0"
-                                                          AutomationProperties.Name="{Binding Name, StringFormat=Show {0}}" ToolTip.Tip="Visible" />
-                                                <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsLocked}" MinWidth="0" Padding="0"
-                                                          AutomationProperties.Name="{Binding Name, StringFormat=Lock {0}}" ToolTip.Tip="Locked" Content="L" FontSize="9" />
-                                                <ToggleButton DockPanel.Dock="Left" IsChecked="{Binding IsExpanded}" Width="16" Height="16" Padding="0"
-                                                              Background="Transparent" BorderThickness="0" IsVisible="{Binding HasChildren}"
-                                                              AutomationProperties.Name="{Binding Name, StringFormat=Expand {0}}" Content="▸" FontSize="10" />
-                                                <Panel DockPanel.Dock="Left" Width="16" IsVisible="{Binding !HasChildren}" />
+                                                <ToggleButton DockPanel.Dock="Right" Classes="rowToggle dimOff" IsChecked="{Binding IsVisible}"
+                                                              AutomationProperties.Name="{Binding Name, StringFormat=Show {0}}" ToolTip.Tip="Visible">
+                                                    <c:StrokeIcon Data="M2,12 C5,6 19,6 22,12 C19,18 5,18 2,12 Z M12,9 A3,3 0 1 0 12,15 A3,3 0 1 0 12,9" Size="16" />
+                                                </ToggleButton>
+                                                <ToggleButton DockPanel.Dock="Right" Classes="rowToggle lockToggle" IsChecked="{Binding IsLocked}"
+                                                              AutomationProperties.Name="{Binding Name, StringFormat=Lock {0}}" ToolTip.Tip="Locked">
+                                                    <c:StrokeIcon Data="M6,11 L18,11 L18,20 L6,20 Z M8,11 L8,8 A4,4 0 0 1 16,8 L16,11" Size="16" />
+                                                </ToggleButton>
+                                                <ToggleButton DockPanel.Dock="Left" Classes="rowToggle expander" IsChecked="{Binding IsExpanded}"
+                                                              IsVisible="{Binding HasChildren}" Width="16" Height="22" Margin="0,0,4,0"
+                                                              AutomationProperties.Name="{Binding Name, StringFormat=Expand {0}}">
+                                                    <c:StrokeIcon Data="M9,6 L15,12 L9,18" Size="14" RenderTransformOrigin="50%,50%" />
+                                                </ToggleButton>
+                                                <Panel DockPanel.Dock="Left" Width="20" IsVisible="{Binding !HasChildren}" />
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" IsVisible="{Binding !IsEditing}" />
                                                     <TextBox Text="{Binding EditText}" IsVisible="{Binding IsEditing}" MinHeight="0" Padding="4,2"

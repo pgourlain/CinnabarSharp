@@ -778,8 +778,8 @@ public class CanvasView : Control
     }
 
     // Like draw.io: thin light grey lines, a darker one every fifth line, on a white page.
-    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromRgb(224, 224, 224)), 1);
-    private static readonly IPen MajorGridPen = new Pen(new SolidColorBrush(Color.FromRgb(192, 192, 192)), 1);
+    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromRgb(246, 246, 246)), 1);
+    private static readonly IPen MajorGridPen = new Pen(new SolidColorBrush(Color.FromRgb(208, 208, 208)), 1);
     private const int MajorEvery = 5;
 
     /// <summary>Thin lines every grid step, a stronger one every fifth; when the lines would be closer than 6 screen pixels every few steps are drawn.</summary>

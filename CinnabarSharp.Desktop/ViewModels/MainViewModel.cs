@@ -2197,6 +2197,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasImage));
         OnPropertyChanged(nameof(HasSvg));
         OnPropertyChanged(nameof(HasContent));
+        OnPropertyChanged(nameof(ShowGridToggle));
+        OnPropertyChanged(nameof(ShowGridOptions));
         OnPropertyChanged(nameof(IsNotSvg));
         OnPropertyChanged(nameof(HasAnySelection));
         RasterizeCommand.NotifyCanExecuteChanged();
