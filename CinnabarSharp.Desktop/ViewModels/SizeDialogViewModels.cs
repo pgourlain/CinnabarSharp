@@ -107,6 +107,9 @@ public partial class ResizeImageViewModel(ImageSize current) : SizeDialogViewMod
     [ObservableProperty]
     public partial ResamplingMode Resampling { get; set; } = ResamplingMode.BestQuality;
 
+    /// <summary>False for a vector drawing, which is scaled exactly and has nothing to resample.</summary>
+    public bool ShowResampling { get; init; } = true;
+
     public ResizeImageOptions? ToOptions() => NewSize is { } size ? new ResizeImageOptions(size, Resampling) : null;
 }
 

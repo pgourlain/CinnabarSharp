@@ -58,6 +58,32 @@ public sealed class SvgToolsUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task A_drawing_can_be_resized_and_its_canvas_resized_from_the_image_menu_and_undone()
+    {
+        NewDrawing();                                           // 200 × 150
+        Assert.True(Vm.ResizeImageCommand.CanExecute(null));
+        Assert.True(Vm.CanvasSizeCommand.CanExecute(null));
+
+        _h.Dialogs.ResizeAnswers.Enqueue(new ResizeImageOptions(new ImageSize(400, 300), ResamplingMode.BestQuality));
+        await Vm.ResizeImageCommand.ExecuteAsync(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new ImageSize(400, 300), Svg.ImageSize);
+        Assert.Equal("400 × 300", Vm.ImageSizeText);
+
+        _h.Dialogs.CanvasSizeAnswers.Enqueue(new CanvasSizeOptions(new ImageSize(500, 300), Anchor.W));
+        await Vm.CanvasSizeCommand.ExecuteAsync(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new ImageSize(500, 300), Svg.ImageSize);
+        _h.Capture("svg-96-canvas-resized");
+
+        Vm.UndoCommand.Execute(null);
+        Assert.Equal(new ImageSize(400, 300), Svg.ImageSize);
+        Vm.UndoCommand.Execute(null);
+        Assert.Equal(new ImageSize(200, 150), Svg.ImageSize);
+        Assert.Equal("200 × 150", Vm.ImageSizeText);
+    }
+
+    [AvaloniaFact]
     public void The_status_bar_explains_the_tool_and_the_select_tool_follows_its_state()
     {
         NewDrawing();

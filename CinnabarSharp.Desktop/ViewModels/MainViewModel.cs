@@ -2071,18 +2071,32 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // ---- Image ----
 
-    [RelayCommand(CanExecute = nameof(HasImage))]
+    [RelayCommand(CanExecute = nameof(HasContent))]
     private async Task ResizeImage()
     {
+        if (Dialogs is not null && ActiveSvg is { } drawing)
+        {
+            // A drawing is scaled with its page: the objects keep their place and proportions on the page.
+            if (await Dialogs.ShowResizeImageAsync(drawing.ImageSize, resampling: false) is { } size)
+                drawing.Actions.ResizePage(size.Size, keepContentAt: null);
+            return;
+        }
         if (Dialogs is null || ActiveImageTab is not { } d)
             return;
         if (await Dialogs.ShowResizeImageAsync(d.Image.ImageSize) is { } options)
             d.Image.Actions.ResizeImage(options.Size, options.Resampling);
     }
 
-    [RelayCommand(CanExecute = nameof(HasImage))]
+    [RelayCommand(CanExecute = nameof(HasContent))]
     private async Task CanvasSize()
     {
+        if (Dialogs is not null && ActiveSvg is { } drawing)
+        {
+            // The page grows or shrinks around the anchor; the objects keep their size and place on it.
+            if (await Dialogs.ShowCanvasSizeAsync(drawing.ImageSize) is { } size)
+                drawing.Actions.ResizePage(size.Size, size.Anchor);
+            return;
+        }
         if (Dialogs is null || ActiveImageTab is not { } d)
             return;
         if (await Dialogs.ShowCanvasSizeAsync(d.Image.ImageSize) is { } options)

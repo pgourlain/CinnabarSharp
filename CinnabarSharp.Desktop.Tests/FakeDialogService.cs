@@ -148,7 +148,7 @@ public class FakeDialogService : IDialogService
     public Queue<ResizeImageOptions?> ResizeAnswers { get; } = new();
     public Queue<CanvasSizeOptions?> CanvasSizeAnswers { get; } = new();
 
-    public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
+    public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current, bool resampling = true) =>
         Task.FromResult(ResizeAnswers.TryDequeue(out var a) ? a : null);
 
     public Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current) =>

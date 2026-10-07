@@ -181,6 +181,14 @@ public sealed class SvgDocument : IDocument
     internal void NotifySelectionChanged() =>
         _events.PushEvent(new DocumentEventItem(this, DocumentEventEnum.VectorSelectionChanged));
 
-    internal void NotifyNodeChanged(SvgNode node, VRect? dirtyBounds) =>
+    internal void NotifyNodeChanged(SvgNode node, VRect? dirtyBounds)
+    {
+        // The page itself changed (its size or viewBox): the view and the whole picture follow.
+        if (ReferenceEquals(node, _root))
+        {
+            Workspace.UpdateViewSize();
+            Workspace.Invalidate();
+        }
         _events.PushEvent(new VectorNodeEventItem(this, DocumentEventEnum.VectorNodeChanged, node, dirtyBounds));
+    }
 }

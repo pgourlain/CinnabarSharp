@@ -119,6 +119,19 @@ public class SvgToolsTests
     }
 
     [Fact]
+    public async Task A_drawing_can_be_resized_and_its_canvas_changed()
+    {
+        await using var server = await McpTestServer.StartAsync();
+        await server.Call("new_svg", new { width = 100, height = 50 });
+        var resized = await server.Call("resize_image", new { width = 200 });
+        Assert.Equal((200, 100), (resized.Int("width"), resized.Int("height")));
+        var canvas = await server.Call("resize_canvas", new { width = 300, height = 100, anchor = "NW" });
+        Assert.Equal((300, 100), (canvas.Int("width"), canvas.Int("height")));
+        await server.Call("undo", new { steps = 2 });
+        Assert.Equal(100, (await server.Call("list_documents"))[0].Int("width"));
+    }
+
+    [Fact]
     public async Task Refuses_misuse_with_clear_messages()
     {
         await using var server = await McpTestServer.StartAsync();

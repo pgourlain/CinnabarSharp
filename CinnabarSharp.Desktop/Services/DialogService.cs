@@ -122,8 +122,8 @@ public class DialogService(Window owner) : IDialogService
     public Task<CinnabarSharp.Core.Vector.SvgExportOptions?> ShowSvgExportAsync(SvgExportViewModel options) =>
         new SvgExportWindow { DataContext = options }.ShowDialog<CinnabarSharp.Core.Vector.SvgExportOptions?>(owner);
 
-    public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current) =>
-        new ResizeImageWindow { DataContext = new ResizeImageViewModel(current) }.ShowDialog<ResizeImageOptions?>(owner);
+    public Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current, bool resampling = true) =>
+        new ResizeImageWindow { DataContext = new ResizeImageViewModel(current) { ShowResampling = resampling } }.ShowDialog<ResizeImageOptions?>(owner);
 
     public Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current) =>
         new CanvasSizeWindow { DataContext = new CanvasSizeViewModel(current) }.ShowDialog<CanvasSizeOptions?>(owner);

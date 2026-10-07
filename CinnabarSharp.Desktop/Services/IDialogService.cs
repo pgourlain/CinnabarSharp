@@ -63,7 +63,7 @@ public interface IDialogService
     /// <summary>Scale or size and background for turning a drawing into a picture; null when cancelled.</summary>
     Task<CinnabarSharp.Core.Vector.SvgExportOptions?> ShowSvgExportAsync(SvgExportViewModel options);
 
-    Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current);
+    Task<ResizeImageOptions?> ShowResizeImageAsync(ImageSize current, bool resampling = true);
     Task<CanvasSizeOptions?> ShowCanvasSizeAsync(ImageSize current);
 
     /// <summary>Paste Beside: side and alignment of the pasted image, or null if canceled.</summary>

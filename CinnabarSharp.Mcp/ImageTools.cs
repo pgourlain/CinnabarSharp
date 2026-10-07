@@ -455,16 +455,16 @@ public sealed class ImageTools(McpContext context)
     // ---------------------------------------------------------------- Image
 
     [McpServerTool(Name = "resize_image"), Description(
-        "Resizes the image (all layers). Give width and/or height (the other keeps the aspect ratio), or percent.")]
+        "Resizes the image (all layers), or an SVG drawing with its content. Give width and/or height (the other keeps the aspect ratio), or percent.")]
     public Task<DocumentInfo> ResizeImage(
         [Description("New width in pixels.")] int? width = null,
         [Description("New height in pixels.")] int? height = null,
         [Description("Scale in percent, instead of width/height.")] double? percent = null,
         [Description("BestQuality (Lanczos, default), Bicubic, Bilinear or NearestNeighbor.")] string? resampling = null,
         [Description(DocumentHelp)] string? document = null) =>
-        Edit(document, doc =>
+        EditAny(document, any =>
         {
-            var (w0, h0) = (doc.ImageSize.Width, doc.ImageSize.Height);
+            var (w0, h0) = (any.ImageSize.Width, any.ImageSize.Height);
             var (w, h) = (width, height, percent) switch
             {
                 (null, null, { } p) => ((int)Math.Round(w0 * p / 100), (int)Math.Round(h0 * p / 100)),
@@ -474,20 +474,26 @@ public sealed class ImageTools(McpContext context)
                 _ => throw new McpException("Give width and/or height, or percent."),
             };
             CheckSize(w, h);
-            doc.Actions.ResizeImage(new ImageSize(w, h), Parse.Enum(resampling, ResamplingMode.BestQuality, "resampling"));
+            if (any is SvgDocument drawing)
+                drawing.Actions.ResizePage(new ImageSize(w, h), keepContentAt: null);
+            else
+                context.RequireImage(any).Actions.ResizeImage(new ImageSize(w, h), Parse.Enum(resampling, ResamplingMode.BestQuality, "resampling"));
         });
 
     [McpServerTool(Name = "resize_canvas"), Description(
-        "Changes the canvas size without scaling the pixels; new area of the bottom layer gets the background color.")]
+        "Changes the canvas size without scaling the pixels (or the objects of an SVG drawing); new area of the bottom layer gets the background color, a drawing's new area stays empty.")]
     public Task<DocumentInfo> ResizeCanvas(int width, int height,
         [Description("Where the image stays: Center (default), NW, N, NE, E, SE, S, SW, W.")] string? anchor = null,
         [Description("Color of the new area of the bottom layer (default white).")] string? background = null,
         [Description(DocumentHelp)] string? document = null) =>
-        Edit(document, doc =>
+        EditAny(document, any =>
         {
             CheckSize(width, height);
-            doc.Actions.ResizeCanvas(new ImageSize(width, height), Parse.Enum(anchor, Anchor.Center, "anchor"),
-                Parse.Color(background, ColorBgra.White));
+            if (any is SvgDocument drawing)
+                drawing.Actions.ResizePage(new ImageSize(width, height), Parse.Enum(anchor, Anchor.Center, "anchor"));
+            else
+                context.RequireImage(any).Actions.ResizeCanvas(new ImageSize(width, height), Parse.Enum(anchor, Anchor.Center, "anchor"),
+                    Parse.Color(background, ColorBgra.White));
         });
 
     [McpServerTool(Name = "place_beside"), Description(

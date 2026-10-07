@@ -8,6 +8,7 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 - File › Export As… (Ctrl/⌘+Alt+S): writes a flat picture (PNG, JPEG, WebP…) of an image, or a rendered picture of a drawing, without changing the document's file, name or unsaved state; it remembers the last format.
 
 ### Changed
+- SVG drawings can be resized from Image › Resize (the page and its content scale together) and Image › Canvas Size (the page grows or shrinks around an anchor, the objects keep their size), both undoable; `resize_image` and `resize_canvas` work on drawings too.
 - Save never flattens an image that has layers: when its file is a flat format (PNG, JPEG…), Save asks where to put a layered copy and suggests OpenRaster (.ora); after that, Save rewrites the .ora. Choosing a flat format in Save As still warns before flattening, and now points to Export As.
 
 ### Fixed
