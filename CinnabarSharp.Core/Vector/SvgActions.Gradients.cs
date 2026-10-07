@@ -69,6 +69,73 @@ public sealed partial class SvgActions
     }
 
     /// <summary>
+    /// Gives each element its own new gradient in user space: linear from <paramref name="startDocument"/> to
+    /// <paramref name="endDocument"/>, or radial around the start with the distance to the end as radius (points in the document's user
+    /// space, converted to each element's own coordinates). Stops default to the element's color fading out.
+    /// </summary>
+    public SvgGradient? ApplyGradient(IEnumerable<SvgElement>? nodes, SvgGradientKind kind, bool stroke, VPoint startDocument, VPoint endDocument,
+        IReadOnlyList<GradientStop>? stops = null)
+    {
+        var targets = TopLevel(nodes);
+        if (targets.Count == 0)
+            return null;
+        var tx = Begin(stroke ? "Gradient Stroke" : "Gradient Fill");
+        var defs = EnsureDefs(tx);
+        SvgGradient? last = null;
+        foreach (var node in targets)
+        {
+            var gradient = BuildGradient(node, kind, stroke, startDocument, endDocument, stops);
+            gradient.Id = Root.NewId(kind == SvgGradientKind.Linear ? "linearGradient" : "radialGradient");
+            tx.Insert(defs, defs.Children.Count, gradient);
+            var url = SvgPaint.FromUrl(gradient.Id).ToText();
+            tx.Edit([node], () => node.Style.Set(stroke ? "stroke" : "fill", url));
+            last = gradient;
+        }
+        tx.Commit();
+        return last;
+    }
+
+    /// <summary>A gradient element (not in the document) for the element, with its geometry in the element's coordinates.</summary>
+    internal static SvgGradient BuildGradient(SvgElement node, SvgGradientKind kind, bool stroke, VPoint startDocument, VPoint endDocument,
+        IReadOnlyList<GradientStop>? stops)
+    {
+        var computed = StyleResolver.ComputeFor(node);
+        var paint = stroke ? computed.Stroke : computed.Fill;
+        var start = paint.Kind switch
+        {
+            PaintKind.Color => paint.Color,
+            PaintKind.CurrentColor => computed.Color,
+            _ => VColor.Black,
+        };
+        var list = stops ?? [new GradientStop(0, start), new GradientStop(1, start.WithAlpha(0))];
+        var world = SvgBounds.ToDocument(node);
+        var inverse = world.Invert() ?? Matrix2D.Identity;
+        var a = inverse.Transform(startDocument);
+        var b = inverse.Transform(endDocument);
+        SvgGradient gradient;
+        if (kind == SvgGradientKind.Linear)
+        {
+            gradient = new SvgLinearGradient();
+            gradient.SetAttribute("gradientUnits", "userSpaceOnUse");
+            gradient.SetAttribute("x1", NumberFormat.Format(a.X, 4));
+            gradient.SetAttribute("y1", NumberFormat.Format(a.Y, 4));
+            gradient.SetAttribute("x2", NumberFormat.Format(b.X, 4));
+            gradient.SetAttribute("y2", NumberFormat.Format(b.Y, 4));
+        }
+        else
+        {
+            gradient = new SvgRadialGradient();
+            gradient.SetAttribute("gradientUnits", "userSpaceOnUse");
+            gradient.SetAttribute("cx", NumberFormat.Format(a.X, 4));
+            gradient.SetAttribute("cy", NumberFormat.Format(a.Y, 4));
+            gradient.SetAttribute("r", NumberFormat.Format(Math.Max(a.DistanceTo(b), 0.001), 4));
+        }
+        foreach (var stopElement in list.Select(NewStop))
+            gradient.AddChild(stopElement);
+        return gradient;
+    }
+
+    /// <summary>
     /// Replaces the stops of a gradient. When only offsets and colors change, the existing stop elements are edited (one entry that
     /// follows a drag); when stops are added or removed, they are inserted and removed.
     /// </summary>
