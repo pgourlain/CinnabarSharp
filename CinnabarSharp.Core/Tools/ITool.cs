@@ -273,6 +273,9 @@ public sealed record ToolOverlay
     /// <summary>Highlighted areas, e.g. selected text.</summary>
     public IReadOnlyList<RectangleD> Highlights { get; init; } = [];
 
+    /// <summary>Handles that are selected: drawn filled with the accent color and a little larger than the others.</summary>
+    public IReadOnlyList<PointD> SelectedHandles { get; init; } = [];
+
     /// <summary>Everything outside this rectangle is shaded (what a crop will cut away).</summary>
     public RectangleD? Shade { get; init; }
 

@@ -197,6 +197,21 @@ public partial class MainViewModel
 
     private VectorNodeTool? NodeTool => ActiveVectorTool as VectorNodeTool;
 
+    /// <summary>The node buttons need nodes picked first; they stay grayed until there are some.</summary>
+    public bool HasSelectedNodes => NodeTool is { SelectedNodes.Count: > 0 };
+
+    public bool CanConvertSelectionToPath => ActiveSvg is { } drawing && NodeTool is { } tool && tool.CanConvertToPath(drawing);
+
+    private void RefreshNodeCommands()
+    {
+        foreach (var command in new CommunityToolkit.Mvvm.Input.IRelayCommand[]
+                 {
+                     NodesCornerCommand, NodesSmoothCommand, NodesSymmetricCommand, SegmentsToLinesCommand, SegmentsToCurvesCommand,
+                     NodesJoinCommand, NodesBreakCommand, ConvertToPathCommand,
+                 })
+            command.NotifyCanExecuteChanged();
+    }
+
     private void WithNodeTool(Action<VectorNodeTool, SvgDocument> action)
     {
         if (NodeTool is { } tool && ActiveSvg is { } drawing)
@@ -206,27 +221,27 @@ public partial class MainViewModel
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(HasSelectedNodes))]
     private void NodesCorner() => WithNodeTool((t, d) => t.SetNodeType(d, CinnabarSharp.Vector.NodeType.Corner));
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(HasSelectedNodes))]
     private void NodesSmooth() => WithNodeTool((t, d) => t.SetNodeType(d, CinnabarSharp.Vector.NodeType.Smooth));
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(HasSelectedNodes))]
     private void NodesSymmetric() => WithNodeTool((t, d) => t.SetNodeType(d, CinnabarSharp.Vector.NodeType.Symmetric));
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(HasSelectedNodes))]
     private void SegmentsToLines() => WithNodeTool((t, d) => t.SetSegments(d, line: true));
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(HasSelectedNodes))]
     private void SegmentsToCurves() => WithNodeTool((t, d) => t.SetSegments(d, line: false));
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(HasSelectedNodes))]
     private void NodesJoin() => WithNodeTool((t, d) => t.JoinNodes(d));
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(HasSelectedNodes))]
     private void NodesBreak() => WithNodeTool((t, d) => t.BreakNodes(d));
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [CommunityToolkit.Mvvm.Input.RelayCommand(CanExecute = nameof(CanConvertSelectionToPath))]
     private void ConvertToPath() => WithNodeTool((t, d) => t.ConvertToPath(d));
 }

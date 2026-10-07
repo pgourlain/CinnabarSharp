@@ -672,12 +672,12 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
         {
             var band = to.TransformBounds(_band);
             var nodeHandles = NodeHandles(I);
-            return new ToolOverlay { Frame = new RectangleD(band.X, band.Y, band.Width, band.Height), Handles = nodeHandles.Handles, Highlights = nodeHandles.Highlights, Lines = nodeHandles.Lines, SquareHandles = true };
+            return new ToolOverlay { Frame = new RectangleD(band.X, band.Y, band.Width, band.Height), Handles = nodeHandles.Handles, SelectedHandles = nodeHandles.Selected, Lines = nodeHandles.Lines, SquareHandles = true };
         }
         if (_path is not null && _editable is not null)
         {
             var overlay = NodeHandles(I);
-            return new ToolOverlay { Handles = overlay.Handles, Lines = overlay.Lines, Highlights = overlay.Highlights, SquareHandles = true };
+            return new ToolOverlay { Handles = overlay.Handles, Lines = overlay.Lines, SelectedHandles = overlay.Selected, SquareHandles = true };
         }
         if (document.Selection.Primary is SvgShape outlined)
         {
@@ -695,11 +695,11 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
         return null;
     }
 
-    private (List<PointD> Handles, List<(PointD, PointD)> Lines, List<RectangleD> Highlights) NodeHandles(Func<VPoint, PointD> toImage)
+    private (List<PointD> Handles, List<(PointD, PointD)> Lines, List<PointD> Selected) NodeHandles(Func<VPoint, PointD> toImage)
     {
         var handles = new List<PointD>();
         var lines = new List<(PointD, PointD)>();
-        var highlights = new List<RectangleD>();
+        var selected = new List<PointD>();
         for (var f = 0; f < _editable!.Figures.Count; f++)
         {
             var figure = _editable.Figures[f];
@@ -707,10 +707,13 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
             {
                 var node = figure.Nodes[i];
                 var p = toImage(ToDocument(node.Point));
-                handles.Add(p);
-                if (_selected.Contains(new NodeRef(f, i)))
+                if (!_selected.Contains(new NodeRef(f, i)))
                 {
-                    highlights.Add(new RectangleD(p.X - 5, p.Y - 5, 10, 10));
+                    handles.Add(p);
+                    continue;
+                }
+                {
+                    selected.Add(p);
                     foreach (var h in new[] { node.In, node.Out })
                         if (h is { } handle)
                         {
@@ -721,7 +724,7 @@ public sealed class VectorNodeTool(ToolSettings settings) : IVectorKeyboardTool,
                 }
             }
         }
-        return (handles, lines, highlights);
+        return (handles, lines, selected);
     }
 
     public ToolCursor CursorAt(SvgDocument document, PointD userPoint)

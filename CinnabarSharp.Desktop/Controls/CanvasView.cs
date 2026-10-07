@@ -60,6 +60,8 @@ public class CanvasView : Control
     public static readonly StyledProperty<double> BrushSizeProperty =
         AvaloniaProperty.Register<CanvasView, double>(nameof(BrushSize));
 
+    private static readonly IBrush SelectedHandleBrush = new SolidColorBrush(Color.FromRgb(0, 102, 255));
+    private static readonly IPen SelectedHandlePen = new Pen(Brushes.White, 2);
     private static readonly IBrush HighlightBrush = new SolidColorBrush(Color.FromArgb(80, 51, 153, 255));
     private static readonly Pen OverlayLight = new(Brushes.White, 3);
     private static readonly Pen OverlayDark = new(Brushes.Black, 1);
@@ -296,6 +298,9 @@ public class CanvasView : Control
                 else
                     context.DrawEllipse(Brushes.White, OverlayDark, P(handle), 4, 4);
             }
+            // Selected handles (the chosen nodes): bigger, filled with the accent color, so they stand out from the others.
+            foreach (var handle in overlay.SelectedHandles)
+                context.DrawRectangle(SelectedHandleBrush, SelectedHandlePen, new Rect(P(handle) - new Point(5, 5), new Size(10, 10)));
             if (overlay.RotateHandle is { } rotateHandle)
                 DrawRotateIcon(context, P(rotateHandle));
         }

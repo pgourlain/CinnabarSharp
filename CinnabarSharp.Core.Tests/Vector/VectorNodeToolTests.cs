@@ -32,8 +32,8 @@ public sealed class VectorNodeToolTests : VectorToolTestBase
         Click(tool, doc, 20, 100);
         overlay = tool.GetOverlay(doc)!;
         Assert.Single(tool.SelectedNodes);
-        Assert.Equal(4, overlay.Handles.Count);                         // three nodes and the handle of the selected one
-        Assert.Single(overlay.Highlights);
+        Assert.Equal(3, overlay.Handles.Count);                         // two other nodes and the handle of the selected one
+        Assert.Single(overlay.SelectedHandles);                         // the selected node is drawn apart, filled
         Assert.Single(overlay.Lines);                                    // the first node has one handle
     }
 

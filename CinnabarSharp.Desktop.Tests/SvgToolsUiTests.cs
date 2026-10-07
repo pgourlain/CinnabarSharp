@@ -136,6 +136,37 @@ public sealed class SvgToolsUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void The_node_buttons_wait_for_selected_nodes_and_the_selected_ones_are_drawn_apart()
+    {
+        NewDrawing();
+        var path = new SvgPath { Id = "p" };
+        path.SetPath(new CinnabarSharp.Vector.VectorPath().MoveTo(30, 100).LineTo(100, 30).LineTo(170, 100), 3);
+        path.SetAttribute("fill", "none");
+        path.SetAttribute("stroke", "#000000");
+        path.SetAttribute("stroke-width", "4");
+        Svg.Actions.AddNode(path);
+        Pick("Node");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(Vm.HasSelectedNodes);
+        Assert.False(Vm.NodesSmoothCommand.CanExecute(null));
+        Assert.False(Vm.ConvertToPathCommand.CanExecute(null));          // it is a path already
+        Assert.Empty(Vm.Overlay!.SelectedHandles);
+        Assert.Equal(3, Vm.Overlay.Handles.Count);
+
+        Vm.ToolPointerDown(P(100, 30));
+        Vm.ToolPointerUp(P(100, 30));
+        Assert.True(Vm.HasSelectedNodes);
+        Assert.True(Vm.NodesSmoothCommand.CanExecute(null));
+        Assert.Single(Vm.Overlay!.SelectedHandles);
+        Assert.Equal(2, Vm.Overlay.Handles.Count);
+        _h.Capture("svg-96-selected-node");
+
+        Vm.NodesSmoothCommand.Execute(null);
+        Assert.Equal("Edit Path", Svg.History.Items[^1].Text);
+    }
+
+    [AvaloniaFact]
     public void The_status_bar_explains_the_tool_and_the_select_tool_follows_its_state()
     {
         NewDrawing();

@@ -1223,6 +1223,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(StatusToolName));
         UpdateGrid();
+        RefreshNodeCommands();
         if (ActiveSvg is { } drawing)
         {
             Overlay = VectorToolOverlay(drawing);
