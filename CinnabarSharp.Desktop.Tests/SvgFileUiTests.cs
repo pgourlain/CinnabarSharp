@@ -142,7 +142,8 @@ public sealed class SvgFileUiTests : IDisposable
         Assert.True(Vm.ZoomInCommand.CanExecute(null));
         Assert.True(Vm.RasterizeCommand.CanExecute(null));
         Assert.False(Vm.AddNewLayerCommand.CanExecute(null));
-        Assert.False(Vm.ResizeImageCommand.CanExecute(null));
+        Assert.True(Vm.ResizeImageCommand.CanExecute(null));      // a drawing has a page to resize
+        Assert.True(Vm.CanvasSizeCommand.CanExecute(null));
         Assert.True(Vm.CopyCommand.CanExecute(null));            // copy, cut, paste, select all and delete work on objects
         Assert.True(Vm.SelectAllCommand.CanExecute(null));
         Assert.False(Vm.SepiaCommand.CanExecute(null));
