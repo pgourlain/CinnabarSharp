@@ -26,6 +26,7 @@ public static class AppServices
         services.AddSingleton<CinnabarSharp.Vector.IGlyphOutlineProvider, AvaloniaGlyphOutlineProvider>();
         services.AddSingleton<AgentConnection>();
         services.AddSingleton(_ => new UpdateChecker());
+        services.AddSingleton(sp => new RecoveryStore(RecoveryStore.DefaultFolder, sp.GetRequiredService<IFormatManager>()));
         services.AddSingleton<MainViewModel>();
         configure?.Invoke(services);
         var provider = services.BuildServiceProvider();

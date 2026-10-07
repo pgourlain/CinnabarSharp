@@ -299,7 +299,7 @@ The plan, tasks and per-OS validation checklist of the SVG editor are in [tasks-
 0.8.0 is the last beta of the design work. 1.0.0 means ready for people who are not the developer; it waits for:
 - [ ] The validation checklists of the phases passed on a real macOS, Linux (X11 and Wayland) and Windows 11 machine.
 - [ ] Packages that install without a security warning: Developer ID signing and notarization on macOS, code signing on Windows, an installer with file associations on Windows, and an AppImage or Flatpak on Linux (Phase 10).
-- [ ] Unsaved work recovery after a crash (Phase 10) and a history size setting.
+- [ ] Unsaved work recovery after a crash (done, see CHANGELOG) and a history size setting.
 - [ ] Accessibility: keyboard navigation everywhere, contrast ratios, a usable UI at 150–200 % (Phase 12).
 - [ ] A usability pass with a few real users, with the top friction points fixed (Phase 12).
 - [ ] Opening a large file no longer blocks the window (performance-tasks.md, P5).

@@ -46,7 +46,12 @@ public partial class App : Application
             // Before RestoreSettings: it turns attached mode back on if the user left it on.
             vm.Agents = Services.GetRequiredService<AgentConnection>();
             vm.Updates = Services.GetRequiredService<CinnabarSharp.Core.Services.UpdateChecker>();
-            desktop.Exit += (_, _) => vm.Agents.Dispose();
+            vm.Recovery = Services.GetRequiredService<CinnabarSharp.Core.Services.RecoveryStore>();
+            desktop.Exit += (_, _) =>
+            {
+                vm.EndRecoverySession();
+                vm.Agents.Dispose();
+            };
             var window = new MainWindow { DataContext = vm };
             StartupTrace.Mark("MainWindow created");
             window.RestoreSettings(settings);
@@ -74,7 +79,7 @@ public partial class App : Application
                         desktop.Shutdown();
                     // Once the window is up, in the background: ask once, then look for a newer release.
                     else if (Environment.GetEnvironmentVariable("CINNABARSHARP_NO_UPDATE_CHECK") is not { Length: > 0 })
-                        _ = vm.StartUpdateCheckAsync();
+                        _ = vm.AfterLaunchAsync();
                 }, DispatcherPriority.Background);
                 foreach (var file in files)
                     await vm.OpenFileAsync(file);
