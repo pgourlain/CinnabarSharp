@@ -4,6 +4,16 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-10-07
+
+### Changed
+- macOS: the app icon stays red in the dark icon style of macOS 26 (Icon Composer icon, `Assets.car`).
+- Objects panel: the expand arrow, the lock and the visibility toggle are line icons instead of red boxes and a letter, the expand arrow no longer touches the name, and the selection bar of the Objects/Properties tabs leaves a gap under the tab text.
+- The grid lines are lighter, as in draw.io (#F6F6F6, and #D0D0D0 every fifth line).
+
+### Fixed
+- The Grid check box stays in the options bar on every document and tool: unchecking it no longer hides it, so the grid can be turned back on.
+
 ## [0.9.3] - 2026-10-07
 
 ### Changed
