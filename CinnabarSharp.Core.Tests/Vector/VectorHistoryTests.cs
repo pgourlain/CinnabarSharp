@@ -34,6 +34,7 @@ public sealed class VectorHistoryTests : BaseTests
             <path id="p1" d="M150 10 L190 10 L170 50 Z" fill="url(#g1)"/>
             <text id="t1" x="10" y="190" font-size="12">Hello</text>
             <rect id="r2" x="100" y="100" width="40" height="40" fill="url(#g1)" transform="rotate(10 120 120)"/>
+            <path id="p2" d="M60 150h20v20h-20z M90 150h20v20h-20z" fill="#123456"/>
           </g>
         </svg>
         """;
@@ -88,6 +89,22 @@ public sealed class VectorHistoryTests : BaseTests
         { "Cut", d => d.Actions.Cut([El(d, "r1"), El(d, "t1")]) },
         { "Paste Image", d => d.Actions.PasteImage(new ClipboardImage(new byte[4 * 4 * 4], 4, 4)) },
         { "Set Attribute", d => d.Actions.SetAttribute(El(d, "r1"), "data-x", "1") },
+        { "Rotate 90", d => d.Actions.Rotate90([El(d, "r1"), El(d, "c1")], clockwise: true) },
+        { "Align", d => d.Actions.Align([El(d, "r1"), El(d, "c1"), El(d, "p1")], AlignEdge.Left, AlignRelativeTo.Page) },
+        { "Align to first", d => d.Actions.Align([El(d, "r1"), El(d, "c1")], AlignEdge.CenterVertical, AlignRelativeTo.FirstSelected) },
+        { "Distribute", d => d.Actions.Distribute([El(d, "r1"), El(d, "c1"), El(d, "r2")], DistributeMode.CenterHorizontal) },
+        { "Distribute gaps", d => d.Actions.Distribute([El(d, "r1"), El(d, "r2"), El(d, "p1")], DistributeMode.GapVertical) },
+        { "Union", d => d.Actions.ApplyPathOperation(PathOperation.Union, [El(d, "r1"), El(d, "c1")]) },
+        { "Union across groups", d => d.Actions.ApplyPathOperation(PathOperation.Union, [El(d, "r1"), El(d, "gr"), El(d, "ge")]) },
+        { "Difference", d => d.Actions.ApplyPathOperation(PathOperation.Difference, [El(d, "r1"), El(d, "c1")]) },
+        { "Intersection", d => d.Actions.ApplyPathOperation(PathOperation.Intersection, [El(d, "c1"), El(d, "r2"), El(d, "p1")]) },
+        { "Exclusion", d => d.Actions.ApplyPathOperation(PathOperation.Exclusion, [El(d, "p1"), El(d, "r2")]) },
+        { "Division", d => d.Actions.ApplyPathOperation(PathOperation.Division, [El(d, "r2"), El(d, "p1"), El(d, "c1")]) },
+        { "Combine", d => d.Actions.ApplyPathOperation(PathOperation.Combine, [El(d, "r1"), El(d, "c1")]) },
+        { "Break Apart", d => d.Actions.BreakApart([El(d, "p2")]) },
+        { "Simplify", d => d.Actions.Simplify([El(d, "p1")], 3) },
+        { "Reverse", d => d.Actions.Reverse([El(d, "p1")]) },
+        { "Stroke to Path", d => d.Actions.StrokeToPath([El(d, "r1")]) },
     };
 
     [Theory]
