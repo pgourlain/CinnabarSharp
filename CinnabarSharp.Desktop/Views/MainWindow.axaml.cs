@@ -454,6 +454,7 @@ public partial class MainWindow : Window, IViewportService
             MenuSpec.Separator,
             new("_Save", vm.SaveCommand, G(Key.S)),
             new("Save _As…", vm.SaveAsCommand, G(Key.S, KeyModifiers.Shift)),
+            new("E_xport As…", vm.ExportAsCommand, G(Key.S, KeyModifiers.Alt)),
             MenuSpec.Separator,
             new("Import _Picture…", vm.ImportPictureCommand),
             new("Import _Linked Picture…", vm.ImportLinkedPictureCommand),

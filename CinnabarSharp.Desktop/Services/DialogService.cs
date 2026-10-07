@@ -36,12 +36,12 @@ public class DialogService(Window owner) : IDialogService
     }
 
     public async Task<string?> PickFileToSaveAsync(string suggestedName, ImageFormat suggestedFormat,
-        IReadOnlyList<ImageFormat> formats)
+        IReadOnlyList<ImageFormat> formats, string title = "Save As")
     {
         var suggestedType = ToFileType(suggestedFormat);
         var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Save As",
+            Title = title,
             SuggestedFileName = Path.ChangeExtension(suggestedName, suggestedFormat.SupportedExtensions[0]),
             DefaultExtension = suggestedFormat.SupportedExtensions[0],
             FileTypeChoices = [suggestedType, .. formats.Where(f => f != suggestedFormat).Select(ToFileType)],

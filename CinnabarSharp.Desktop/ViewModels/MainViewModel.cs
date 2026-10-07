@@ -415,6 +415,57 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(HasDocument))]
     private Task SaveAs() => ActiveDocument is { } d ? SaveDocumentAsync(d, saveAs: true) : Task.CompletedTask;
 
+    /// <summary>The format last picked in Export As…, suggested next time.</summary>
+    private ImageFormat? _lastExportFormat;
+
+    /// <summary>
+    /// File › Export As…: writes a picture of the image (flattened) or of the drawing (rendered) to a file of a flat format,
+    /// without changing the document's file, name or unsaved-changes state.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasContent))]
+    private async Task ExportAs()
+    {
+        if (Dialogs is null || ActiveDocument is not { } d)
+            return;
+        var formats = _formats.SaveFormats.Where(f => !f.SupportsLayers).ToList();
+        var suggested = _lastExportFormat ?? _formats.GetFormatByExtension("png")!;
+        var path = await Dialogs.PickFileToSaveAsync(d.Document.DisplayName, suggested, formats, "Export As");
+        if (path is null)
+            return;
+        if (_formats.GetFormatByExtension(Path.GetExtension(path)) is not { SupportsSaving: true, SupportsLayers: false })
+            path += "." + suggested.SupportedExtensions[0];
+        var file = new FileInfo(path);
+        var format = _formats.GetFormatByExtension(file.Extension)!;
+        try
+        {
+            if (d.Document is SvgDocument drawing)
+            {
+                if (!await ExportDrawingAsync(drawing, file, format) && !drawing.IsDirty)
+                    return;
+            }
+            else if (d.Document is ImageDocument doc)
+            {
+                if (format is JpegFormat jpeg)
+                {
+                    if (await Dialogs.AskJpegQualityAsync(JpegQuality) is not { } quality)
+                        return;
+                    JpegQuality = quality;
+                    jpeg.Quality = quality;
+                }
+                await RunBusyAsync($"Exporting {file.Name}", async _ =>
+                {
+                    await Task.Run(() => format.Export(doc, file));
+                    return true;
+                });
+            }
+            _lastExportFormat = format;
+        }
+        catch (Exception e) when (e is MagickException or IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            await Dialogs.ShowErrorAsync($"Could not export \"{file.Name}\"", Describe(e));
+        }
+    }
+
     /// <summary>Returns false if the user cancelled or the save failed.</summary>
     public async Task<bool> SaveDocumentAsync(DocumentViewModel d, bool saveAs)
     {
@@ -422,18 +473,24 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             return await SaveDrawingAsync(drawing, saveAs);
         if (d.Document is not ImageDocument doc)
             return false;
+        var layered = doc.Layers.Count() > 1;
         var file = saveAs ? null : doc.File;
         var format = file is null ? null : _formats.GetFormatByExtension(file.Extension);
         if (format is { SupportsSaving: false })
             format = null;
+        // Save never flattens by itself: an image with layers whose file is a flat format asks where to put a layered
+        // copy (an .ora). File › Export As… writes a flat picture and leaves the image and its file alone.
+        if (layered && format is { SupportsLayers: false })
+            (file, format) = (null, null);
 
         if (file is null || format is null)
         {
             if (Dialogs is null)
                 return false;
-            var suggestedFormat = (doc.FileType is { } t ? _formats.GetFormatByExtension(t) : null) is { SupportsSaving: true } current
-                ? current
-                : _formats.GetFormatByExtension("png")!;
+            var current = (doc.FileType is { } t ? _formats.GetFormatByExtension(t) : null) is { SupportsSaving: true } known ? known : null;
+            var suggestedFormat = layered && current is not { SupportsLayers: true }
+                ? _formats.GetFormatByExtension("ora")!
+                : current ?? _formats.GetFormatByExtension("png")!;
             var path = await Dialogs.PickFileToSaveAsync(doc.DisplayName, suggestedFormat, _formats.SaveFormats);
             if (path is null)
                 return false;
@@ -445,7 +502,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         if (doc.Layers.Count() > 1 && !format.SupportsLayers && Dialogs is not null
             && !await Dialogs.ConfirmAsync("Flatten image?",
-                $"{format.DisplayName} files can't store layers, so the saved file will contain the visible layers merged into one. Your layers are kept in CinnabarSharp.",
+                $"{format.DisplayName} files can't store layers, so the saved file will contain the visible layers merged into one. Your layers are kept in CinnabarSharp. To keep them in a file, save as OpenRaster (.ora); File › Export As… writes a flat copy without changing this image's file.",
                 "Flatten and Save"))
             return false;
 
@@ -2084,7 +2141,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         foreach (var command in new IRelayCommand[]
                  {
                      ZoomInCommand, ZoomOutCommand, ActualSizeCommand, BestFitCommand,
-                     SaveCommand, SaveAsCommand, CloseCommand,
+                     SaveCommand, SaveAsCommand, ExportAsCommand, CloseCommand,
                      SelectAllCommand, InvertSelectionCommand, EraseSelectionCommand, FillSelectionCommand,
                      CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand, PasteBesideCommand,
                      AutoLevelCommand, BlackAndWhiteCommand, BrightnessContrastCommand, HueSaturationCommand,

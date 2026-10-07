@@ -91,23 +91,82 @@ public sealed class FileWorkflowTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task Save_existing_file_does_not_ask_for_path()
+    public async Task Save_existing_flat_file_does_not_ask_for_path()
     {
         var path = _h.TempPath("copy.png");
         File.Copy(TestHarness.SampleImage, path);
         await Vm.OpenFileAsync(path);
-        Vm.AddNewLayerCommand.Execute(null);
-        Vm.Layers[0].IsVisible = false;
-        _h.Dialogs.ConfirmAnswers.Enqueue(true);
+        Vm.ActiveDocument!.Image.Actions.FillSelection(ColorBgra.FromBgra(1, 2, 3, 255));
         var before = File.GetLastWriteTimeUtc(path);
         await Task.Delay(20);
 
         await Vm.SaveCommand.ExecuteAsync(null);
 
         Assert.Null(_h.Dialogs.LastSuggestedSaveName);
-        Assert.Equal(["Flatten image?"], _h.Dialogs.Confirmations);
+        Assert.Empty(_h.Dialogs.Confirmations);
         Assert.True(File.GetLastWriteTimeUtc(path) > before);
         Assert.False(Vm.ActiveDocument!.Image.IsDirty);
+    }
+
+    [AvaloniaFact]
+    public async Task Save_of_an_image_with_layers_never_flattens_it_and_suggests_openraster()
+    {
+        var path = _h.TempPath("copy.png");
+        File.Copy(TestHarness.SampleImage, path);
+        await Vm.OpenFileAsync(path);
+        var flat = File.ReadAllBytes(path);
+        Vm.AddNewLayerCommand.Execute(null);
+        var ora = _h.TempPath("copy.ora");
+        _h.Dialogs.SavePaths.Enqueue(ora);
+
+        await Vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal("OpenRaster", _h.Dialogs.LastSuggestedSaveFormat!.DisplayName);
+        Assert.Empty(_h.Dialogs.Confirmations);                  // nothing is flattened
+        Assert.Equal(flat, File.ReadAllBytes(path));             // the PNG is untouched
+        Assert.Equal("copy.ora", Vm.ActiveDocument!.Image.File!.Name);
+        Assert.False(Vm.ActiveDocument.Image.IsDirty);
+
+        // The next Save writes the same .ora without asking.
+        _h.Dialogs.SavePaths.Clear();
+        Vm.ActiveDocument.Image.Actions.FillSelection(ColorBgra.FromBgra(9, 9, 9, 255));
+        await Vm.SaveCommand.ExecuteAsync(null);
+        Assert.Equal(1, _h.Dialogs.Confirmations.Count + 1);
+        Assert.False(Vm.ActiveDocument.Image.IsDirty);
+
+        // Reopened, the layers are still there.
+        Vm.CloseCommand.Execute(null);
+        await Vm.OpenFileAsync(ora);
+        Assert.Equal(2, Vm.ActiveDocument!.Image.Layers.Count());
+    }
+
+    [AvaloniaFact]
+    public async Task Export_as_writes_a_flat_copy_and_leaves_the_image_alone()
+    {
+        Vm.CreateImage(new NewImageOptions(new ImageSize(30, 20), ColorBgra.White));
+        Vm.AddNewLayerCommand.Execute(null);
+        var doc = Vm.ActiveDocument!.Image;
+        var png = _h.TempPath("flat.png");
+        _h.Dialogs.SavePaths.Enqueue(png);
+
+        await Vm.ExportAsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Export As", _h.Dialogs.LastSaveTitle);
+        Assert.True(new FileInfo(png).Length > 0);
+        Assert.Null(doc.File);                                   // still unsaved: no file, still dirty
+        Assert.True(doc.IsDirty);
+        Assert.Equal(2, doc.Layers.Count());
+        Assert.Empty(_h.Dialogs.Confirmations);
+
+        // The next export suggests the same format.
+        _h.Dialogs.SavePaths.Enqueue(_h.TempPath("again"));
+        await Vm.ExportAsCommand.ExecuteAsync(null);
+        Assert.Equal("PNG", _h.Dialogs.LastSuggestedSaveFormat!.DisplayName);
+        Assert.True(File.Exists(_h.TempPath("again.png")));
+
+        // Cancelling writes nothing.
+        await Vm.ExportAsCommand.ExecuteAsync(null);
+        Assert.Equal(2, Directory.GetFiles(_h.TempDir.FullName, "*.png").Length);
     }
 
     [AvaloniaFact]

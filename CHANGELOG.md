@@ -4,6 +4,15 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- File › Export As… (Ctrl/⌘+Alt+S): writes a flat picture (PNG, JPEG, WebP…) of an image, or a rendered picture of a drawing, without changing the document's file, name or unsaved state; it remembers the last format.
+
+### Changed
+- Save never flattens an image that has layers: when its file is a flat format (PNG, JPEG…), Save asks where to put a layered copy and suggests OpenRaster (.ora); after that, Save rewrites the .ora. Choosing a flat format in Save As still warns before flattening, and now points to Export As.
+
+### Fixed
+- The welcome screen's thumbnail loader could stay blocked if a window closed while it was reading a file.
+
 ## [0.9.1] - 2026-10-07
 
 ### Added

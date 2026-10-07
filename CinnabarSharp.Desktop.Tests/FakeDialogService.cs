@@ -17,6 +17,7 @@ public class FakeDialogService : IDialogService
     public List<string> SaveChangesAsked { get; } = [];
     public List<string> Confirmations { get; } = [];
     public string? LastSuggestedSaveName { get; private set; }
+    public string? LastSaveTitle { get; private set; }
     public ImageFormat? LastSuggestedSaveFormat { get; private set; }
 
     public Task<NewImageOptions?> ShowNewImageAsync(ImageSize suggested) =>
@@ -39,8 +40,9 @@ public class FakeDialogService : IDialogService
         Task.FromResult(FilesToOpen.TryDequeue(out var files) ? files : (IReadOnlyList<string>)[]);
 
     public Task<string?> PickFileToSaveAsync(string suggestedName, ImageFormat suggestedFormat,
-        IReadOnlyList<ImageFormat> formats)
+        IReadOnlyList<ImageFormat> formats, string title = "Save As")
     {
+        LastSaveTitle = title;
         LastSuggestedSaveName = suggestedName;
         LastSuggestedSaveFormat = suggestedFormat;
         return Task.FromResult(SavePaths.TryDequeue(out var path) ? path : null);

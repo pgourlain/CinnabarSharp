@@ -32,10 +32,11 @@ public static class RecentThumbnails
             var key = (path, File.GetLastWriteTimeUtc(path));
             if (Cache.TryGetValue(key, out var cached))
                 return cached;
-            await OneAtATime.WaitAsync();
+            await OneAtATime.WaitAsync().ConfigureAwait(false);
             try
             {
-                var pixels = await Task.Run(() => Read(path));
+                // Off the UI thread end to end: the gate is released even when the caller's window is already gone.
+                var pixels = await Task.Run(() => Read(path)).ConfigureAwait(false);
                 var bitmap = pixels is { } p ? BitmapFactory.FromBgra(p.Bgra, p.Width, p.Height) : null;
                 Cache[key] = bitmap;
                 return bitmap;

@@ -22,7 +22,7 @@ public interface IDialogService
     Task<IReadOnlyList<string>> PickFilesToOpenAsync(IReadOnlyList<ImageFormat> formats);
 
     /// <summary>Returns the chosen local path, or null when cancelled.</summary>
-    Task<string?> PickFileToSaveAsync(string suggestedName, ImageFormat suggestedFormat, IReadOnlyList<ImageFormat> formats);
+    Task<string?> PickFileToSaveAsync(string suggestedName, ImageFormat suggestedFormat, IReadOnlyList<ImageFormat> formats, string title = "Save As");
 
     Task<SaveChangesChoice> AskSaveChangesAsync(string documentName);
 
