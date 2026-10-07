@@ -1141,6 +1141,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void UpdateOverlay()
     {
+        OnPropertyChanged(nameof(StatusToolName));
         if (ActiveSvg is { } drawing)
         {
             Overlay = VectorToolOverlay(drawing);
@@ -1635,7 +1636,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool IsNotComicMode => !IsComicMode;
 
     /// <summary>Status bar: the selected tool, or the comic page while it gets the mouse instead.</summary>
-    public string StatusToolName => IsComicMode ? "Comic page" : SelectedTool?.Name ?? "";
+    public string StatusToolName => IsComicMode ? "Comic page"
+        : ActiveSvg is { } drawing && VectorHint(drawing) is { Length: > 0 } hint ? $"{SelectedTool?.Name} — {hint}"
+        : SelectedTool?.Name ?? "";
 
     private ImageDocument? _comicDocument;
 

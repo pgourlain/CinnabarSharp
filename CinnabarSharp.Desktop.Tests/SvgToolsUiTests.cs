@@ -58,6 +58,23 @@ public sealed class SvgToolsUiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void The_status_bar_explains_the_tool_and_the_select_tool_follows_its_state()
+    {
+        NewDrawing();
+        Pick("Select");
+        Assert.Contains("click an object", Vm.StatusToolName);
+        Pick("Rectangle");
+        Drag(40, 30, 140, 100);
+        Pick("Select");
+        Assert.Contains("click the selection again for rotate handles", Vm.StatusToolName);
+        Vm.ToolPointerDown(P(90, 65));       // a click on the selection turns on the rotate handles
+        Vm.ToolPointerUp(P(90, 65));
+        Assert.Contains("drag a corner to rotate", Vm.StatusToolName);
+        Pick("Pen");
+        Assert.StartsWith("Pen — ", Vm.StatusToolName);
+    }
+
+    [AvaloniaFact]
     public void Drawing_a_rectangle_adds_one_object_that_is_painted_and_undoable()
     {
         NewDrawing();

@@ -50,6 +50,24 @@ public partial class MainViewModel
         OnPropertyChanged(nameof(ToolboxSelection));
     }
 
+    /// <summary>What the selected vector tool does, for the status bar; the Select tool's hint follows its state.</summary>
+    private string? VectorHint(SvgDocument drawing) => ActiveVectorTool switch
+    {
+        VectorSelectTool { RotateMode: true } => "drag a corner to rotate, the center dot to move the pivot · click again for resize handles",
+        VectorSelectTool when drawing.Selection.IsEmpty => "click an object, drag a box to select several, Shift+click to add · Alt+click selects below",
+        VectorSelectTool => "drag to move · click the selection again for rotate handles · arrows nudge (Shift = 10) · Delete removes",
+        VectorNodeTool => "click a node or drag a box to select nodes · drag nodes and handles · double-click a segment to add a node · Delete removes",
+        VectorPenTool => "click for corner nodes, drag for smooth ones · click the first node to close · Enter finishes, Esc cancels, Backspace removes the last node",
+        VectorPencilTool => "draw freehand: the line is smoothed into curves (see Smoothing)",
+        VectorRectangleTool or VectorEllipseTool => "drag to draw · Shift = square or circle · Alt = from the center",
+        VectorLineTool => "drag to draw · Shift = 15° steps · Alt = from the center",
+        VectorPolygonTool => "drag from the center · Shift = 15° steps · corners and star depth in the options",
+        VectorTextTool => "click to place text and type · click a text to edit it · Esc finishes",
+        VectorGradientTool => "select an object, then drag across it to make a gradient",
+        VectorEyedropperTool => "click an object to take its colors · Shift = the pixel color",
+        _ => null,
+    };
+
     private IVectorTool? ActiveVectorTool => SelectedTool?.VectorTool;
 
     private void WithVectorTool(SvgDocument drawing, ToolPointer pointer, Action<IVectorTool, SvgDocument, ToolPointer> handler)
