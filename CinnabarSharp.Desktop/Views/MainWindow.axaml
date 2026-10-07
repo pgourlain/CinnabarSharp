@@ -709,12 +709,12 @@
                             <DockPanel Margin="0,8,0,0">
                                 <WrapPanel DockPanel.Dock="Bottom" Classes="layerButtons" Orientation="Horizontal"
                                            ItemSpacing="4" LineSpacing="4" Margin="0,8,0,0">
-                                    <Button Command="{Binding DuplicateObjectsCommand}" ToolTip.Tip="Duplicate (Ctrl+D)" AutomationProperties.Name="Duplicate objects" Content="Dup" />
-                                    <Button Command="{Binding DeleteObjectsCommand}" ToolTip.Tip="Delete" AutomationProperties.Name="Delete objects" Content="Del" />
-                                    <Button Command="{Binding GroupObjectsCommand}" ToolTip.Tip="Group (Ctrl+G)" AutomationProperties.Name="Group objects" Content="Group" />
-                                    <Button Command="{Binding UngroupObjectsCommand}" ToolTip.Tip="Ungroup (Ctrl+Shift+G)" AutomationProperties.Name="Ungroup objects" Content="Ungroup" />
-                                    <Button Command="{Binding RaiseObjectsCommand}" ToolTip.Tip="Raise" AutomationProperties.Name="Raise objects" Content="Up" />
-                                    <Button Command="{Binding LowerObjectsCommand}" ToolTip.Tip="Lower" AutomationProperties.Name="Lower objects" Content="Down" />
+                                    <Button Command="{Binding DuplicateObjectsCommand}" ToolTip.Tip="Duplicate (Ctrl+D)" AutomationProperties.Name="Duplicate objects"><c:StrokeIcon Data="M8,8 L19,8 L19,19 L8,19 Z M5,15 L5,5 L15,5" Size="16" /></Button>
+                                    <Button Command="{Binding DeleteObjectsCommand}" ToolTip.Tip="Delete" AutomationProperties.Name="Delete objects"><c:StrokeIcon Data="M5,7 L19,7 M9,7 L9,4 L15,4 L15,7 M7,7 L8,20 L16,20 L17,7 M10,11 L10,16 M14,11 L14,16" Size="16" /></Button>
+                                    <Button Command="{Binding GroupObjectsCommand}" ToolTip.Tip="Group (Ctrl+G)" AutomationProperties.Name="Group objects"><c:StrokeIcon Data="M3,3 L21,3 L21,21 L3,21 Z M7,7 L12,7 L12,12 L7,12 Z M12,12 L17,12 L17,17 L12,17 Z" Size="16" /></Button>
+                                    <Button Command="{Binding UngroupObjectsCommand}" ToolTip.Tip="Ungroup (Ctrl+Shift+G)" AutomationProperties.Name="Ungroup objects"><c:StrokeIcon Data="M4,4 L11,4 L11,11 L4,11 Z M13,13 L20,13 L20,20 L13,20 Z" Size="16" /></Button>
+                                    <Button Command="{Binding RaiseObjectsCommand}" ToolTip.Tip="Raise" AutomationProperties.Name="Raise objects"><c:StrokeIcon Data="M12,19 L12,7 M6,12 L12,6 L18,12 M6,3 L18,3" Size="16" /></Button>
+                                    <Button Command="{Binding LowerObjectsCommand}" ToolTip.Tip="Lower" AutomationProperties.Name="Lower objects"><c:StrokeIcon Data="M12,5 L12,17 M6,12 L12,18 L18,12 M6,21 L18,21" Size="16" /></Button>
                                 </WrapPanel>
                                 <ListBox x:Name="ObjectsList" Classes="objects" AutomationProperties.Name="Objects" ItemsSource="{Binding Objects}"
                                          SelectionMode="Multiple,Toggle" DragDrop.AllowDrop="True">
