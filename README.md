@@ -2,7 +2,7 @@
 
 A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/), written in C# with .NET 10 and [Avalonia](https://avaloniaui.net/). It runs on Windows, macOS and Linux with the same rendering on all three.
 
-> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments, effects, photo tools and the MCP server for AI agents work; the UI review is in progress. See the [roadmap](tasks.md).
+> **Status: early development.** Documents, layers, file formats, undo/redo, selections, clipboard, painting and text tools, the Image menu, adjustments, effects, photo tools, the SVG editor and the MCP server for AI agents work; the UI review is in progress. See the [roadmap](tasks.md).
 
 ![CinnabarSharp main window](docs/screenshot.png)
 
@@ -24,7 +24,7 @@ A cross-platform image editor inspired by [Paint.NET](https://www.getpaint.net/)
 - **Image menu**: resize image (resampling choice), canvas size with anchor, rotate, flip, crop to selection.
 - **Zoom and pan** like Paint.NET: zoom presets, best fit, Ctrl/⌘ + wheel and trackpad pinch around the mouse, pan with Space + drag, middle mouse or the Pan tool.
 - **AI agents (MCP)**: Claude Code, Claude Desktop and other MCP clients can open, edit and save images and SVG drawings (`svg_` tools), headless (`CinnabarSharp --mcp`) or in the running app while you watch (`--mcp --attach`). File access is limited to allowed folders, and every edit can be undone. See [docs/mcp.md](docs/mcp.md).
-- **Automation**: `CinnabarSharp --run script.txt --input ~/Photos/*.heic` runs a text script of image operations (the MCP tools: open, effects, resize, save…) on one or many files without a window. See [docs/automation.md](docs/automation.md).
+- **Automation**: `CinnabarSharp --run script.txt --input ~/Photos/*.heic` runs a text script of image operations (the MCP tools: open, effects, resize, SVG drawing, save…) on one or many files without a window. See [docs/automation.md](docs/automation.md).
 - **Native feel on each OS**: macOS menu bar and ⌘ shortcuts, in-window menu and Ctrl shortcuts on Windows and Linux, native file dialogs, drag and drop, recent files.
 
 ## Download
