@@ -4,6 +4,14 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-10-08
+
+### Added
+- Anonymous usage statistics, ready but not sent yet: builds made with a statistics endpoint ask once whether to send counts of how often each tool, menu command, effect and file format is used, with the app version, system and language, under a random id. Never pictures, file names, paths or text. Off unless you agree; Help › Send Anonymous Usage Statistics (application menu on macOS) turns it on or off. Current builds have no endpoint, so they never ask. Details in docs/telemetry.md.
+
+### Fixed
+- Copy on a large photo (12 megapixels) no longer freezes the window for seconds on macOS and Linux: the picture is encoded for other applications in the background, at the fastest PNG compression, instead of on the UI thread whenever the clipboard was read (macOS's clipboard history reads it at once). Pasting what was copied in CinnabarSharp (Paste, Paste Into New Layer, Paste Into New Image) reuses the copied pixels instead of decoding the clipboard.
+
 ## [0.9.5] - 2026-10-07
 
 ### Added
