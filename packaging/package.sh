@@ -4,6 +4,7 @@
 # P6). If the AOT build fails, falls back to ReadyToRun with a warning; CINNABARSHARP_PUBLISH=r2r forces ReadyToRun.
 # AOT needs the platform's native toolchain: Xcode command line tools, clang + zlib on Linux, MSVC on Windows.
 # Usage: packaging/package.sh <rid> <version> [output-dir]
+# CINNABARSHARP_TELEMETRY_URL=https://... builds in the usage statistics endpoint (docs/telemetry.md); empty: none.
 #   rid: win-x64 | linux-x64 | osx-arm64 | osx-x64
 set -euo pipefail
 
@@ -20,6 +21,7 @@ publish_with() {
   dotnet publish "$root/CinnabarSharp.Desktop/CinnabarSharp.Desktop.csproj" \
     -c Release -r "$rid" --self-contained true \
     -p:Version="$version" -p:DebugType=none \
+    -p:TelemetryEndpoint="${CINNABARSHARP_TELEMETRY_URL:-}" \
     "$@" -o "$publish"
 }
 if [ "${CINNABARSHARP_PUBLISH:-aot}" = "aot" ] && publish_with -p:PublishAot=true; then

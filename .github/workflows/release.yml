@@ -47,8 +47,11 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
 
+      # Usage statistics endpoint (docs/telemetry.md): the repository variable TELEMETRY_ENDPOINT; unset, the app sends nothing.
       - name: Package
         shell: bash
+        env:
+          CINNABARSHARP_TELEMETRY_URL: ${{ vars.TELEMETRY_ENDPOINT }}
         run: packaging/package.sh ${{ matrix.rid }} ${{ steps.version.outputs.value }} artifacts
 
       # Every MCP tool, every effect and every file format, run on the packaged app: no release with a broken build.

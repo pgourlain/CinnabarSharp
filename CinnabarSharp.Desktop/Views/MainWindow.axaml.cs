@@ -773,7 +773,18 @@ public partial class MainWindow : Window, IViewportService
             ]),
         ];
         if (!isMac)
-            menus = [.. menus, new("_Help", Children: [new("Check for _Updates…", vm.CheckForUpdatesCommand), new("Open _Log Folder", vm.OpenLogFolderCommand), MenuSpec.Separator, new("_About CinnabarSharp", vm.AboutCommand)])];
+            menus = [.. menus, new("_Help", Children:
+            [
+                new("Check for _Updates…", vm.CheckForUpdatesCommand),
+                .. vm.HasTelemetry
+                    ? [new MenuSpec("Send Anonymous Usage _Statistics", vm.ToggleUsageStatisticsCommand,
+                        Checked: (vm, nameof(MainViewModel.SendUsageStatistics), () => vm.SendUsageStatistics))]
+                    : Array.Empty<MenuSpec>(),
+                new("Open _Log Folder", vm.OpenLogFolderCommand),
+                MenuSpec.Separator,
+                new("_About CinnabarSharp", vm.AboutCommand),
+            ])];
+        menus = Tracked(menus, vm, "");
 
         // Built once: the macOS native menu can't be replaced while the window is shown, only mutated.
         if (isMac)
@@ -792,6 +803,47 @@ public partial class MainWindow : Window, IViewportService
         RefreshRecentMenu(vm);
 
         EmptyHint.Text = $"File › New ({G(Key.N).ToString("p", null)}) or drop an image here";
+    }
+
+    /// <summary>
+    /// Counts each use of a menu command (usage statistics, docs/telemetry.md) as "menu:File/Save As". Items labelled with
+    /// user data (recent files) are not built here; literal items count only when they are an effect.
+    /// </summary>
+    private static MenuSpec[] Tracked(MenuSpec[] specs, MainViewModel vm, string path) =>
+        specs.Select(spec =>
+        {
+            if (spec == MenuSpec.Separator)
+                return spec;
+            var label = spec.CommandParameter is Effect effect ? effect.Name
+                : spec.Literal ? null
+                : spec.Header.Replace("_", "").Replace("…", "").Trim();
+            if (label is null)
+                return spec;
+            var itemPath = path.Length == 0 ? label : $"{path}/{label}";
+            return spec with
+            {
+                Command = spec.Command is { } command && command != vm.NotYetImplemented
+                    ? new TrackedCommand(command, CinnabarSharp.Core.Services.TelemetryClient.Name("menu", itemPath), vm)
+                    : spec.Command,
+                Children = spec.Children is { } children ? Tracked(children, vm, itemPath) : null,
+            };
+        }).ToArray();
+
+    private sealed class TrackedCommand(ICommand inner, string name, MainViewModel vm) : ICommand
+    {
+        public event EventHandler? CanExecuteChanged
+        {
+            add => inner.CanExecuteChanged += value;
+            remove => inner.CanExecuteChanged -= value;
+        }
+
+        public bool CanExecute(object? parameter) => inner.CanExecute(parameter);
+
+        public void Execute(object? parameter)
+        {
+            vm.TrackUsage(name);
+            inner.Execute(parameter);
+        }
     }
 
     private void RefreshRecentMenu(MainViewModel vm)

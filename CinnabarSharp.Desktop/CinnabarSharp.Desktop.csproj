@@ -16,6 +16,12 @@
     <Copyright>Copyright © 2026 Pierrick Gourlain. MIT License. Portions from Pinta (MIT).</Copyright>
   </PropertyGroup>
 
+  <!-- Where usage statistics go (docs/telemetry.md): dotnet publish -p:TelemetryEndpoint=https://...
+       Without it the app never asks and never sends. -->
+  <ItemGroup Condition="'$(TelemetryEndpoint)' != ''">
+    <AssemblyMetadata Include="TelemetryEndpoint" Value="$(TelemetryEndpoint)" />
+  </ItemGroup>
+
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>

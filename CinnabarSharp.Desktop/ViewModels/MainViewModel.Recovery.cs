@@ -149,11 +149,12 @@ public partial class MainViewModel
         doc.IsDirty = true;
     }
 
-    /// <summary>What the app does once the window is up: restore lost work, then look for an update.</summary>
+    /// <summary>What the app does once the window is up: restore lost work, look for an update, then usage statistics.</summary>
     public async Task AfterLaunchAsync()
     {
         StartRecoverySession();
         await OfferRecoveryAsync();
         await StartUpdateCheckAsync();
+        await StartTelemetryAsync();
     }
 }

@@ -397,7 +397,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 : await RunBusyAsync($"Opening {file.Name}", _ => _formats.OpenAsync(file));
             RecentFiles.Add(path);
             if (!alreadyOpen)
+            {
+                TrackUsage(TelemetryClient.Name("open", doc.FileType ?? "unknown"));
                 FitIfLargerThanViewport(doc);
+            }
             return true;
         }
         catch (Exception e) when (e is NotSupportedException or MagickException or IOException or UnauthorizedAccessException)
@@ -527,6 +530,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 return true;
             });
             RecentFiles.Add(file.FullName);
+            TrackUsage(TelemetryClient.Name("save", format.SupportedExtensions[0]));
             PushBitmapToDrawing(doc);
             return true;
         }
@@ -575,6 +579,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 return true;
             });
             RecentFiles.Add(file.FullName);
+            TrackUsage(TelemetryClient.Name("save", format.SupportedExtensions[0]));
             return true;
         }
         catch (Exception e) when (e is MagickException or IOException or UnauthorizedAccessException or NotSupportedException)
@@ -1030,6 +1035,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _checkForUpdates = settings.CheckForUpdates;
         _skippedUpdate = settings.SkippedUpdate;
         _lastUpdateCheck = settings.LastUpdateCheckUtc;
+        _sendUsageStatistics = settings.SendUsageStatistics;
+        _telemetryInstallId = settings.SendUsageStatistics == true ? settings.TelemetryInstallId : null;
         _restoringSettings = true;
         try
         {
@@ -1085,6 +1092,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         CheckForUpdates = _checkForUpdates,
         SkippedUpdate = _skippedUpdate,
         LastUpdateCheckUtc = _lastUpdateCheck,
+        SendUsageStatistics = _sendUsageStatistics,
+        TelemetryInstallId = _telemetryInstallId,
         ComicPage = ComicDefaults,
     };
 
@@ -1276,6 +1285,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         FinishEditing(oldValue?.Tool, ActiveDocument?.ImageOrNull);
         FinishVectorEditing(oldValue?.VectorTool, ActiveDocument?.SvgOrNull);
+        if (newValue is not null && oldValue is not null)
+            TrackUsage(TelemetryClient.Name(newValue.VectorTool is not null ? "vector_tool" : "tool", newValue.Name));
     }
 
     partial void OnActiveDocumentChanging(DocumentViewModel? oldValue, DocumentViewModel? newValue)
@@ -1602,6 +1613,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var session = new EffectSession(d.Image, effect, ToolSettings.PrimaryColor, ToolSettings.SecondaryColor);
         if (effect.Parameters.Count == 0 && !effect.HasCustomDialog)
         {
+            TrackUsage(TelemetryClient.Name("effect", effect.Name));
             await ApplyAsync(session, effect.Defaults);
             return;
         }
@@ -1631,6 +1643,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             });
         else
             dialog.Cancel();
+        if (dialog.Committed)
+            TrackUsage(TelemetryClient.Name("effect", effect.Name));
         if (dialog.Committed && effect is not ColorAdjustment)
             RememberEffect(effect, dialog.Values);
     }

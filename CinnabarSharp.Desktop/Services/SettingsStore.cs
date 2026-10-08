@@ -71,6 +71,13 @@ public record AppSettings
     public string? SkippedUpdate { get; init; }
 
     public DateTime? LastUpdateCheckUtc { get; init; }
+
+    /// <summary>Whether the user agreed to send anonymous usage statistics; null until asked (docs/telemetry.md).</summary>
+    public bool? SendUsageStatistics { get; init; }
+
+    /// <summary>Random id sent with the statistics; created when the user agrees, dropped when they turn them off.</summary>
+    public string? TelemetryInstallId { get; init; }
+
     public ComicSettings ComicPage { get; init; } = new();
 }
 
