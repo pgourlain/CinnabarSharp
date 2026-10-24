@@ -54,6 +54,12 @@ jobs:
           CINNABARSHARP_TELEMETRY_URL: ${{ vars.TELEMETRY_ENDPOINT }}
         run: packaging/package.sh ${{ matrix.rid }} ${{ steps.version.outputs.value }} artifacts
 
+      - name: Check macOS architectures
+        if: runner.os == 'macOS'
+        run: |
+          arch=x86_64; [ "${{ matrix.rid }}" = osx-arm64 ] && arch=arm64
+          packaging/check-macho-archs.sh artifacts/CinnabarSharp-${{ steps.version.outputs.value }}-${{ matrix.rid }}/CinnabarSharp.app "$arch"
+
       # Every MCP tool, every effect and every file format, run on the packaged app: no release with a broken build.
       - name: Smoke test the packaged app
         shell: bash

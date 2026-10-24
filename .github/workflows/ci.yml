@@ -45,3 +45,22 @@ jobs:
         with:
           name: screenshots-${{ matrix.os }}
           path: CinnabarSharp.Desktop.Tests/bin/Release/net10.0/screenshots
+
+  # The macOS package must hold only arm64 code (no "Intel-based app" warning).
+  macos-arm64-package:
+    runs-on: macos-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      DOTNET_NOLOGO: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Package osx-arm64
+        run: packaging/package.sh osx-arm64 0.0.0-ci artifacts
+
+      - name: Check Mach-O architectures
+        run: packaging/check-macho-archs.sh artifacts/CinnabarSharp-0.0.0-ci-osx-arm64/CinnabarSharp.app arm64

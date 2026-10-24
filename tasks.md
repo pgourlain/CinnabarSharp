@@ -206,8 +206,10 @@ CI builds and runs all tests on the three OSes, including headless UI tests (`Ci
   - [ ] Windows: MSIX or Inno Setup installer, file associations, code signing.
   - [ ] macOS: universal (arm64+x64) `.app`, Developer ID signing + notarization, `.dmg`.
   - [ ] Linux: AppImage and/or Flatpak, MIME associations.
+- [x] macOS packages are single-architecture (no "Intel-based app" warning, Rosetta ends after macOS 27): `package.sh` thins the universal NuGet dylibs (`lipo -thin`) and fails if the target slice is missing, then signs ad hoc and verifies; `Info.plist` has `LSArchitecturePriority`; `packaging/check-macho-archs.sh` runs in `package.sh`, the release workflow and the `macos-arm64-package` CI job.
 
 **Validation**
+- [x] macOS packages contain only Mach-O files of their target architecture (check-macho-archs.sh in CI). Checked locally for osx-arm64; Finder Get Info "Application (Apple silicon)" not looked at.
 - [ ] Download the release packages on fresh machines of each OS; the app starts, opens and saves images.
 - [ ] Clean install on fresh VM of each OS; double-click a `.png` opens CinnabarSharp.
 - [ ] Uninstall removes app; settings survive upgrade.

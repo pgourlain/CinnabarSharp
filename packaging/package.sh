@@ -49,11 +49,29 @@ case "$rid" in
     # Icon Composer icon (macOS 26: stays red in the dark icon style); older systems use the .icns.
     cp "$root/packaging/macos/Assets.car" "$app/Contents/Resources/"
     # macOS bundle versions are numeric (x.y.z): drop a pre-release suffix such as "-rc".
-    sed "s/@VERSION@/${version%%-*}/g" "$root/packaging/macos/Info.plist" > "$app/Contents/Info.plist"
+    case "$rid" in osx-arm64) arch=arm64 ;; *) arch=x86_64 ;; esac
+    sed -e "s/@VERSION@/${version%%-*}/g" -e "s/@ARCH@/$arch/g" "$root/packaging/macos/Info.plist" > "$app/Contents/Info.plist"
+    # NuGet ships libAvaloniaNative, libSkiaSharp and libHarfBuzzSharp as universal binaries: keep only the target slice,
+    # otherwise macOS flags the app as Intel-based (Rosetta ends after macOS 27). Must precede signing (lipo drops signatures).
+    if command -v lipo >/dev/null; then
+      while IFS= read -r -d '' f; do
+        file -b "$f" | grep -q 'Mach-O' || continue
+        archs="$(lipo -archs "$f")"
+        case " $archs " in
+          *" $arch "*) ;;
+          *) echo "::error::$f has no $arch slice (has: $archs)" >&2; exit 1 ;;
+        esac
+        if [ "$archs" != "$arch" ]; then
+          lipo -thin "$arch" "$f" -output "$f.thin" && mv "$f.thin" "$f"
+        fi
+      done < <(find "$app/Contents" -type f -print0)
+    fi
     # Apple Silicon refuses to run unsigned code; an ad-hoc signature is enough for local use.
     if command -v codesign >/dev/null; then
       codesign --force --deep --sign - "$app"
+      codesign --verify --deep --strict "$app"
     fi
+    if command -v lipo >/dev/null; then "$root/packaging/check-macho-archs.sh" "$app" "$arch"; fi
     (cd "$root/$out/$name" && ditto -c -k --keepParent CinnabarSharp.app "$root/$out/$name.zip")
     # Disk image: the app, a shortcut to Applications and the first-launch instructions (the app is not notarized).
     if command -v hdiutil >/dev/null; then
