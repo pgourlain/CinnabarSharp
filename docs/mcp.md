@@ -78,6 +78,7 @@ Add the server to `claude_desktop_config.json` (Settings › Developer › Edit 
 | Image | `resize_image`, `resize_canvas`, `place_beside` (another open image stitched to the left, right, top or bottom, in a new layer, aligned start/middle/end), `crop` (rectangle, aspect ratio such as `16:9`, or the selection), `rotate_image`, `flip_image` |
 | TV | `prepare_for_tv` (2K/4K/8K; crop to fill, fit with plain or blurred borders, or stretch), `prepare_folder_for_tv` |
 | Annotations | `add_speech_bubble` (comic bubble with text pointing at a spot: square, rounded, oval or thought; colors, font size, fixed width, numbered badge; on a "Bubbles" layer by default). Attached mode only: it needs the app's fonts. |
+| Line extraction | `extract_walls` (the thick dark strokes of the current layer, e.g. the walls of a floor plan, as a new "Walls" layer or as a new SVG drawing of straight filled outlines over a faded, locked "Plan" layer; thickness, threshold, gap bridging, light lines, `thin_lines` mode, simplification, snap angle, real-world scale), `trace_layer_to_svg` (the opaque pixels of the current layer, e.g. a Walls layer fixed by hand, traced into an SVG drawing) |
 | Comics | `compose_comic_page` (open images into a comic page: layout, A4/square/16:9, gutter, borders, white or black page; each image framed on its selection or its center, or stretched whole to its panel with `stretch`). The Cartoon effect is available through `apply_effect`. |
 
 Resources: `cinnabar://documents`, `cinnabar://effects` (every effect with its parameter ranges, defaults and choices), and `cinnabar://documents/{id}/history`.
@@ -145,3 +146,7 @@ For each file, the agent calls `open_image` → `apply_effect {"effect": "Sepia"
 > Make every photo in ~/Pictures/Frame ready for The Frame, with blurred borders for portraits.
 
 The agent calls `prepare_folder_for_tv {"folder": "~/Pictures/Frame", "fit": "FitWithBorders", "background": "Blurred"}` once.
+
+> Extract the walls of this floor plan as a drawing I can edit.
+
+The agent calls `open_image` → `extract_walls {"output": "svg", "pixelsPerMeter": 80}` (the new drawing becomes the active document) → `svg_tree` / `render_preview` to check it → `save_image {"path": "plan.svg"}`. To fix the mask by hand first, `extract_walls` with the default `layer` output adds a "Walls" layer; after fixing it, `trace_layer_to_svg` traces it.

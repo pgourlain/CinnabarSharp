@@ -296,6 +296,35 @@ The plan, tasks and per-OS validation checklist of the SVG editor are in [tasks-
 - [x] S7: vector tools. S8: Object and Path menus, path booleans. S9: pictures in drawings. S10: MCP tools and scripting.
 - [ ] S11 and the validation checklists on real machines (see tasks-svg.md).
 
+## Phase 16 — Line extraction (walls from a floor plan)
+
+Extract the lines of a picture, the first use being the walls of a scanned or photographed floor plan. Two outputs share one first step, a raster mask of the walls: a new layer (L1–L2) and an SVG drawing traced from that mask (L3–L4). The layer comes first: it is checked by eye over the plan, fixed with the brush and eraser, then traced. A wall is a **thick** stroke, so a morphological opening of about one wall thickness removes the thin strokes (dimensions, text, furniture, thin hatching) and keeps the walls. Walls are traced as **filled outlines**, not center lines (skeletons need junction rebuilding and break on noise).
+
+**L1 — Wall mask (Core, pure C#)**
+- [x] `LineExtraction` (`CinnabarSharp.Core/Photo`): grayscale (transparent = paper) → threshold (Otsu by default, middle of the tied plateau, or manual) → opening with a square of `MinThickness` px → optional closing to bridge breaks (`BridgeGap`) → removal of components smaller than `MinArea` px. Output: a 0/255 mask the size of the image, clipped to the selection after the analysis (a wall cut by the selection keeps its thickness). Integer only, deterministic, cancellable. "Thin lines" mode keeps the strokes the opening removes (dimensions, furniture). Light-on-dark option.
+- [x] `SuggestThickness` for the Auto button: granulometry on a copy reduced to 800 px; the usual wall thickness (the one holding the most ink) × 0.4, so partition walls stay and furniture/dimensions/text go.
+- [ ] Deskew inside the extraction: not done; run Photo › Straighten first (Phase 11), which keeps the extraction a pure mask operation.
+- [x] Tests: synthetic plans (walls, 1-px dimension line, text marks, a break, specks, light lines, selection), suggestion, determinism with a pinned SHA-256, cancellation, preview in strips = one block.
+
+**L2 — Layer output (UI + MCP)**
+- [x] Photo › Extract Walls…: the effect dialog (`ExtractWallsEffect`, generated from its parameters; live preview of the plan faded with the lines in red; Auto; Computing row). OK adds a "Walls" layer above the current one with the mask in the primary color on transparent: one history step (`DocumentActions.AddLayerFromPixels`, in `HistoryTests.Actions`); Cancel leaves the layer as it was. The effect is not in `EffectCatalog` (its Render is only the overlay).
+- [x] MCP `extract_walls` (layer output, same parameters), row and example in `docs/mcp.md`, calls in `packaging/smoke-test.txt`.
+
+**L3 — Tracing (CinnabarSharp.Vector, BCL only)**
+- [x] `MaskTracer`: boolean mask → closed outlines with holes (boundary following on pixel corners, right-turn rule at shared corners), Douglas–Peucker with a tolerance in px, then straightening: sides within `SnapDegrees` of 0°/90° (45° optional) are made exact and the corners recomputed as intersections. One `VectorPath` per connected wall group (outline + holes, `fill-rule="evenodd"`); `Scale` converts pixels to drawing units; specks below `MinArea` dropped.
+- [x] Tests: rectangle, L, room (outline + hole), separate walls, ragged edges, specks, scale, determinism, and a round trip through `VectorRasterizer` matching the mask within 2 pixels.
+
+**L4 — SVG output (UI + MCP)**
+- [x] Extract Walls output "New SVG drawing": the drawing has the image's size, a "Plan" layer (the flattened picture as `<image>`, locked, 30 % opacity; optional) under a "Walls" layer with the traced paths (`WallsDrawing`); it opens as a new tab. The Plan layer is not hidden at export: hide it in the Objects panel.
+- [x] Layers › Trace Layer to SVG: traces the current layer's alpha with default settings (no dialog; scale and simplification are MCP parameters of `trace_layer_to_svg`).
+- [x] Scale: "Pixels per meter" in the dialog and in MCP; the drawing is then in millimetres (viewBox in mm) so it measures true. A two-click measuring tool on the canvas is not done.
+- [x] MCP `extract_walls` with `output: "svg"`, and `trace_layer_to_svg`; docs and smoke test updated.
+
+**Validation**
+- [ ] Five real plans (clean CAD export, scanned A4, phone photo at an angle, hand drawing, plan with hatched walls): at the suggested settings the Walls layer keeps every wall and drops text and dimensions; record what fails.
+- [ ] The traced SVG of the clean plan has straight orthogonal walls, opens in Inkscape and a browser identically, and a wall can be moved and resized with the node tool.
+- [ ] Extraction of an A3 plan at 300 dpi stays under a few seconds with live preview on each OS.
+
 ## Criteria for 1.0
 
 0.8.0 is the last beta of the design work. 1.0.0 means ready for people who are not the developer; it waits for:

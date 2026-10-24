@@ -2246,7 +2246,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                      CopyCommand, CopyMergedCommand, CutCommand, PasteIntoNewLayerCommand, PasteBesideCommand,
                      AutoLevelCommand, BlackAndWhiteCommand, BrightnessContrastCommand, HueSaturationCommand,
                      InvertColorsCommand, LevelsCommand, CurvesCommand, PosterizeCommand, SepiaCommand,
-                     RepeatEffectCommand, ApplyEffectCommand,
+                     RepeatEffectCommand, ApplyEffectCommand, ExtractWallsCommand, TraceLayerToSvgCommand,
                      ResizeImageCommand, CanvasSizeCommand, FlipImageHorizontalCommand, FlipImageVerticalCommand, PrepareForTvCommand,
                      RotateClockwiseCommand, RotateCounterClockwiseCommand, Rotate180Command,
                  })

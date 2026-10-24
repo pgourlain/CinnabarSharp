@@ -255,6 +255,25 @@ public class DocumentActions(ImageDocument document)
             new FloatingStep(at, item, document.Selection!, layer.Surface));
     }
 
+    /// <summary>
+    /// Adds a layer named <paramref name="name"/> above the current one with these pixels (image-sized, straight-alpha
+    /// BGRA), selects it, and records one step (extracted lines, a traced picture…).
+    /// </summary>
+    public UserLayer AddLayerFromPixels(string name, byte[] bgra, string? historyText = null)
+    {
+        if (bgra.Length != Width * Height * 4)
+            throw new ArgumentException("The pixels must be the size of the image.", nameof(bgra));
+        var layer = Layers.CreateLayer(name);
+        layer.Surface.Dispose();
+        layer.Surface = Utility.FromBgra(bgra, Width, Height);
+        var index = Layers.CurrentUserLayerIndex + 1;
+        Layers.Insert(layer, index);
+        Layers.SetCurrentUserLayer(layer);
+        document.Workspace.Invalidate();
+        History.PushNewItem(new AddLayerHistoryItem(historyText ?? "Add New Layer", Layers, layer, index));
+        return layer;
+    }
+
     /// <summary>Pastes into a new layer above the current one at (x, y) and selects the pasted area.</summary>
     public UserLayer PasteIntoNewLayer(ClipboardImage image, PointI at)
     {

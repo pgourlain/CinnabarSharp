@@ -738,6 +738,8 @@ public partial class MainWindow : Window, IViewportService
                 new("Move Layer _Up", vm.MoveLayerUpCommand),
                 new("Move Layer Do_wn", vm.MoveLayerDownCommand),
                 MenuSpec.Separator,
+                new("Trace Layer to _SVG", vm.TraceLayerToSvgCommand),
+                MenuSpec.Separator,
                 new("Layer _Properties…", vm.LayerPropertiesCommand, new KeyGesture(Key.F4)),
             ]),
             new("_Adjustments", Children:
@@ -770,6 +772,7 @@ public partial class MainWindow : Window, IViewportService
                 .. EffectCatalog.PhotoTools.Select(e => new MenuSpec(
                     e.Parameters.Count > 0 ? e.Name + "…" : e.Name, vm.ApplyEffectCommand, CommandParameter: e, Literal: true,
                     Gesture: e is AutoEnhanceEffect ? G(Key.E, KeyModifiers.Alt) : null)),
+                new("Extract _Walls…", vm.ExtractWallsCommand),
                 MenuSpec.Separator,
                 new("Prepare for _TV…", vm.PrepareForTvCommand),
                 new("Prepare _Folder for TV…", vm.PrepareFolderForTvCommand),

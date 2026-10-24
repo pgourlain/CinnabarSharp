@@ -98,6 +98,7 @@ public sealed class HistoryTests : BaseTests, IDisposable
         { "Paste Beside", a => a.PasteBeside(new ClipboardImage([9, 9, 9, 255, 9, 9, 9, 255], 1, 2), PasteSide.Left, EdgeAlignment.End, ColorBgra.Black) },
         { "Resize Image", a => a.ResizeImage(new ImageSize(8, 6), ResamplingMode.NearestNeighbor) },
         { "Comic Page", a => a.ReplaceLayerPixels("Comic Page", Enumerable.Repeat((byte)77, 4 * 3 * 4).ToArray()) },
+        { "Extract Walls", a => a.AddLayerFromPixels("Walls", Enumerable.Repeat((byte)77, 4 * 3 * 4).ToArray(), "Extract Walls") },
     };
 
     [Fact]

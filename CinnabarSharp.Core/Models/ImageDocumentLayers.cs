@@ -268,6 +268,7 @@ namespace CinnabarSharp.Core.Models
             }
             var image = Utility.OpenImage(file);
             image.AutoOrient();
+            Services.MagickImageFormat.MakeColor(image);
             return image;
         }
 

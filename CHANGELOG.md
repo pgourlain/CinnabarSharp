@@ -4,6 +4,14 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- Photo › Extract Walls…: finds the walls of a floor plan (thick dark strokes) and drops dimensions, text, furniture and door arcs. A live preview shows the plan faded with the walls in red; Auto suggests the thickness for the picture. The result is a new "Walls" layer, or a new SVG drawing where the walls are straight, filled outlines (a locked, faded "Plan" layer underneath keeps the picture; an optional pixels-per-meter scale gives the drawing real millimetres). A "Thin lines" mode keeps the opposite strokes.
+- Layers › Trace Layer to SVG: traces the opaque pixels of the current layer (e.g. a Walls layer fixed with the brush) into an SVG drawing.
+- MCP tools `extract_walls` and `trace_layer_to_svg`.
+
+### Fixed
+- Grayscale pictures (gray JPEG or PNG) now open as color layers. Before, any colored pixel written into them turned gray: the Extract Walls preview showed no red, and color effects and brushes on such a picture lost their color.
+
 ## [0.9.7] - 2026-10-24
 
 ### Added

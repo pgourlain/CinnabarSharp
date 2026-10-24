@@ -452,6 +452,81 @@ public sealed class ImageTools(McpContext context)
                 : new SuggestedValues(fx.Name, null, suggested);
         });
 
+    [McpServerTool(Name = "extract_walls"), Description(
+        "Extracts the lines of the current layer, e.g. the walls of a floor plan: thick dark strokes are kept, thin ones " +
+        "(dimensions, text, hatching) are dropped. output \"layer\" adds a \"Walls\" layer above the current one (one undo step); " +
+        "output \"svg\" opens a new SVG drawing (made the active document) with the walls traced as straight filled outlines in a " +
+        "\"Walls\" layer, under a locked, faded \"Plan\" layer with the picture. Works inside the selection if there is one. " +
+        "Leave minThickness out for a value suited to the picture.")]
+    public Task<DocumentInfo> ExtractWalls(
+        [Description("\"walls\" (default: thick lines) or \"thin_lines\" (the opposite: dimensions, text, furniture).")] string? keep = null,
+        [Description("Strokes are light on a dark background (default false: dark on light).")] bool? lightLines = null,
+        [Description("Brightness level 1-255 below which a pixel is a line; 0 or omitted: automatic.")] int? threshold = null,
+        [Description("Minimum thickness in pixels of a kept stroke; omitted: suggested for this picture.")] int? minThickness = null,
+        [Description("Breaks in a wall up to this many pixels are closed (default 0).")] int? bridgeGap = null,
+        [Description("Pieces smaller than this many pixels are dropped (default 20).")] int? minArea = null,
+        [Description("\"layer\" (default) or \"svg\".")] string? output = null,
+        [Description("svg only: outline simplification in pixels (default 1.5).")] double? simplify = null,
+        [Description("svg only: sides within this many degrees of horizontal or vertical are made exact (default 6, 0 = off).")] double? snapAngle = null,
+        [Description("svg only: pixels per meter of the plan; the drawing is then in millimetres and measures true. Default: none (pixels).")] double? pixelsPerMeter = null,
+        [Description("svg only: keep the picture as a locked reference layer (default true).")] bool? includePlan = null,
+        [Description("Color of the walls, \"#RRGGBB\" (default black).")] string? color = null,
+        [Description(DocumentHelp)] string? document = null) =>
+        context.Run(() =>
+        {
+            var doc = context.Document(document);
+            var settings = WallSettings(doc, keep, lightLines, threshold, minThickness, bridgeGap, minArea, output, simplify, snapAngle,
+                pixelsPerMeter, includePlan);
+            var data = WallExtraction.Compute(doc, settings);
+            var result = WallExtraction.Apply(doc, context.Workspace, data, settings, Parse.Color(color, ColorBgra.Black));
+            return Describe.Document(context, (IDocument?)result.Drawing ?? doc);
+        });
+
+    [McpServerTool(Name = "trace_layer_to_svg"), Description(
+        "Traces the opaque pixels of the current layer (e.g. a \"Walls\" layer from extract_walls, fixed by hand) into a new SVG " +
+        "drawing, made the active document: straight filled outlines in a \"Walls\" layer, under a locked, faded \"Plan\" layer " +
+        "with the picture. Works inside the selection if there is one.")]
+    public Task<DocumentInfo> TraceLayerToSvg(
+        [Description("Outline simplification in pixels (default 1.5).")] double? simplify = null,
+        [Description("Sides within this many degrees of horizontal or vertical are made exact (default 6, 0 = off).")] double? snapAngle = null,
+        [Description("Pixels per meter of the plan; the drawing is then in millimetres and measures true. Default: none (pixels).")] double? pixelsPerMeter = null,
+        [Description("Keep the picture as a locked reference layer (default true).")] bool? includePlan = null,
+        [Description("Color of the outlines, \"#RRGGBB\" (default black).")] string? color = null,
+        [Description(DocumentHelp)] string? document = null) =>
+        context.Run(() =>
+        {
+            var doc = context.Document(document);
+            var settings = WallSettings(doc, null, null, null, null, null, null, "svg", simplify, snapAngle, pixelsPerMeter, includePlan);
+            var data = WallExtraction.Compute(doc, settings, fromLayerAlpha: true);
+            var result = WallExtraction.Apply(doc, context.Workspace, data, settings, Parse.Color(color, ColorBgra.Black));
+            return Describe.Document(context, result.Drawing!);
+        });
+
+    private static WallExtractionSettings WallSettings(ImageDocument doc, string? keep, bool? lightLines, int? threshold, int? minThickness,
+        int? bridgeGap, int? minArea, string? output, double? simplify, double? snapAngle, double? pixelsPerMeter, bool? includePlan)
+    {
+        var defaults = WallExtractionSettings.Default;
+        var lines = defaults.Lines with
+        {
+            Mode = Parse.Enum(keep, LineMode.Walls, "keep"),
+            LightLines = lightLines ?? false,
+            Threshold = Math.Clamp(threshold ?? 0, 0, 255),
+            BridgeGap = Math.Clamp(bridgeGap ?? 0, 0, 50),
+            MinArea = Math.Clamp(minArea ?? defaults.Lines.MinArea, 0, 100000),
+        };
+        lines = lines with
+        {
+            MinThickness = Math.Clamp(minThickness ?? LineExtraction.SuggestThickness(
+                doc.Layers.CurrentUserLayer.Surface.ToBgra(), doc.ImageSize.Width, doc.ImageSize.Height, lines), 1, 255),
+        };
+        if (pixelsPerMeter is < 0 or > 1_000_000)
+            throw new McpException("pixelsPerMeter must be between 0 and 1000000.");
+        return new WallExtractionSettings(lines,
+            new TraceOptions(Tolerance: Math.Clamp(simplify ?? defaults.Trace.Tolerance, 0, 50),
+                SnapDegrees: Math.Clamp(snapAngle ?? defaults.Trace.SnapDegrees, 0, 20)),
+            Parse.Enum(output, WallsOutput.Layer, "output"), pixelsPerMeter ?? 0, includePlan ?? true);
+    }
+
     // ---------------------------------------------------------------- Image
 
     [McpServerTool(Name = "resize_image"), Description(

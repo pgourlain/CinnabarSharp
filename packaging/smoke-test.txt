@@ -54,6 +54,27 @@ undo steps=2
 redo steps=2
 undo
 
+# ---- Line extraction: the walls of a drawn plan as a layer, as an SVG drawing, and a fixed layer traced back
+new_image width=300 height=200 background=white
+select_rectangle x=20 y=20 width=260 height=10
+fill_selection color=#000000
+select_rectangle x=20 y=170 width=260 height=10
+fill_selection color=#000000
+select_rectangle x=20 y=20 width=10 height=160
+fill_selection color=#000000
+select_rectangle x=270 y=20 width=10 height=160
+fill_selection color=#000000
+select_rectangle x=60 y=100 width=120 height=1
+fill_selection color=#000000
+deselect
+extract_walls color=#0000FF
+trace_layer_to_svg simplify=1 snapAngle=5
+close_image discardChanges=true
+extract_walls keep=thin_lines minThickness=4
+extract_walls output=svg pixelsPerMeter=100 includePlan=false
+close_image discardChanges=true
+close_image discardChanges=true
+
 # ---- Effects, each applied to the PNG sample and undone
 close_image discardChanges=true
 open_image path=$samples/sample1.png

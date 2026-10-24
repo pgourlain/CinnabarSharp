@@ -85,7 +85,20 @@ public class MagickImageFormat : ImageFormat
         // Photos often carry a Display P3 or CMYK profile; the canvas and compositing assume sRGB.
         if (img.GetColorProfile() is not null)
             img.TransformColorSpace(ColorProfiles.SRGB);
+        MakeColor(img);
         return img;
+    }
+
+    /// <summary>
+    /// A grayscale file (gray JPEG or PNG) opens as a gray image that cannot hold color: effects, brushes and tools that write
+    /// a colored pixel would turn it gray. Layers are always color images, so convert it (same look).
+    /// </summary>
+    internal static void MakeColor(IMagickImage<byte> img)
+    {
+        if (img.ColorSpace is not (ColorSpace.Gray or ColorSpace.LinearGray))
+            return;
+        img.ColorSpace = ColorSpace.sRGB;
+        img.ColorType = ColorType.TrueColorAlpha;
     }
 
     public override void Import(ImageFile file, object? decoded)
