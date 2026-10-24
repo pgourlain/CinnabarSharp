@@ -62,7 +62,9 @@ public partial class MainWindow : Window, IViewportService
         };
 
         CanvasScroller.AddHandler(PointerWheelChangedEvent, OnCanvasWheel, RoutingStrategies.Tunnel);
-        CanvasScroller.AddHandler(PointerTouchPadGestureMagnifyEvent, OnCanvasMagnify);
+        // On the window as well: an inactive window may not hit-test the pinch to the scroller (the wheel pan is), so the
+        // event reaches only the window; OnCanvasMagnify then checks the pointer is over the canvas area.
+        AddHandler(PointerTouchPadGestureMagnifyEvent, OnCanvasMagnify, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
         CanvasScroller.AddHandler(PointerPressedEvent, OnCanvasPointerPressed, RoutingStrategies.Tunnel);
         CanvasScroller.AddHandler(PointerMovedEvent, OnCanvasPointerMoved, RoutingStrategies.Tunnel);
         CanvasScroller.AddHandler(PointerReleasedEvent, OnCanvasPointerReleased, RoutingStrategies.Tunnel);
@@ -313,10 +315,13 @@ public partial class MainWindow : Window, IViewportService
 
     private void OnCanvasMagnify(object? sender, PointerDeltaEventArgs e)
     {
-        if (Vm?.ActiveDocument?.Document is not { } doc)
+        if (e.Handled || Vm?.ActiveDocument?.Document is not { } doc)
+            return;
+        var anchor = e.GetPosition(CanvasScroller);
+        if (!new Rect(CanvasScroller.Bounds.Size).Contains(anchor))
             return;
         e.Handled = true;
-        ZoomTo(doc.Workspace.Scale * (1 + e.Delta.X), e.GetPosition(CanvasScroller));
+        ZoomTo(doc.Workspace.Scale * (1 + e.Delta.X), anchor);
     }
 
     // ---- Keys for tools (Text tool typing, Enter/Escape to finish a curve) ----

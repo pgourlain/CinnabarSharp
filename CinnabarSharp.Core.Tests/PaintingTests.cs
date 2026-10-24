@@ -176,6 +176,32 @@ public sealed class PaintToolsTests : BaseTests
     }
 
     [Fact]
+    public void Shape_stays_editable_resize_by_handle_and_move_by_inside_in_one_history_step()
+    {
+        var doc = NewDoc(40, 40);
+        _settings.BrushWidth = 2;
+        _settings.ShapeStyle = ShapeStyle.Fill;
+        var tool = new ShapesTool(_settings);
+        Drag(tool, doc, ToolButton.Left, (5, 5), (15, 15));
+        Assert.True(tool.IsEditing(doc));
+
+        // Bottom-right handle (15,15) to (25,25).
+        Drag(tool, doc, ToolButton.Left, (15, 15), (25, 25));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(doc, 22, 22));
+
+        // Move by the inside: shifts by (+10, 0) from the center (15,15); the old left part is cleared.
+        Drag(tool, doc, ToolButton.Left, (15, 15), (25, 15));
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(doc, 7, 10));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(doc, 32, 22));
+
+        Assert.Single(doc.Workspace.History.Items.Skip(1));
+
+        // A click outside finishes it; a new drag then draws a second shape.
+        Drag(tool, doc, ToolButton.Left, (2, 35), (4, 37));
+        Assert.Equal(2, doc.Workspace.History.Items.Skip(1).Count());
+    }
+
+    [Fact]
     public void Shapes_outline_and_fill_use_primary_and_secondary()
     {
         var doc = NewDoc(20, 20);

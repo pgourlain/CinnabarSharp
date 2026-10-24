@@ -34,7 +34,7 @@ public record ToolViewModel(string Name, string Label, string Shortcut, ITool? T
     public bool IsBubble => Tool is SpeechBubbleTool;
 
     /// <summary>Tools that paint get a crosshair cursor.</summary>
-    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or LineTool or PaintBucketTool or ColorPickerTool or CropTool or SpeechBubbleTool
+    public bool IsPaintingTool => Tool is PaintbrushTool or DragShapeTool or ShapesTool or LineTool or PaintBucketTool or ColorPickerTool or CropTool or SpeechBubbleTool
         || VectorTool is ShapeDrawTool or VectorPenTool or VectorPencilTool or VectorGradientTool or VectorEyedropperTool or VectorScissorsTool;
 
     // Options bar of the vector tools.

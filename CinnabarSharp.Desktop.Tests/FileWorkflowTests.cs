@@ -170,6 +170,25 @@ public sealed class FileWorkflowTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task Export_layer_writes_only_the_current_layer()
+    {
+        Vm.CreateImage(new NewImageOptions(new ImageSize(30, 20), ColorBgra.White));
+        Vm.AddNewLayerCommand.Execute(null);
+        var doc = Vm.ActiveDocument!.Image;
+        var png = _h.TempPath("layer.png");
+        _h.Dialogs.SavePaths.Enqueue(png);
+
+        await Vm.ExportLayerCommand.ExecuteAsync(null);
+
+        Assert.Equal("Export Layer As", _h.Dialogs.LastSaveTitle);
+        using var image = new ImageMagick.MagickImage(png);
+        Assert.Equal(30u, image.Width);
+        Assert.Equal(0, image.GetPixels().GetPixel(1, 1).ToColor()!.A);   // the new layer is transparent, not the white background
+        Assert.Equal(2, doc.Layers.Count());
+        Assert.True(doc.IsDirty);
+    }
+
+    [AvaloniaFact]
     public async Task Heic_photo_opens_and_save_asks_for_a_png()
     {
         var heic = Path.Combine(AppContext.BaseDirectory, "Data", "sample1.heic");

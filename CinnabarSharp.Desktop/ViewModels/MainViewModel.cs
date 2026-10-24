@@ -469,6 +469,47 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>Layers panel: writes the selected layer alone to a flat-format file, so the layered file stays as it is.</summary>
+    [RelayCommand(CanExecute = nameof(CanExportLayer))]
+    private async Task ExportLayer()
+    {
+        if (Dialogs is null || ActiveDocument?.Document is not ImageDocument doc)
+            return;
+        var formats = _formats.SaveFormats.Where(f => !f.SupportsLayers).ToList();
+        var suggested = _lastExportFormat ?? _formats.GetFormatByExtension("png")!;
+        var name = doc.Layers.CurrentUserLayer.Name;
+        var path = await Dialogs.PickFileToSaveAsync(string.IsNullOrWhiteSpace(name) ? doc.DisplayName : name, suggested,
+            formats, "Export Layer As");
+        if (path is null)
+            return;
+        if (_formats.GetFormatByExtension(Path.GetExtension(path)) is not { SupportsSaving: true, SupportsLayers: false })
+            path += "." + suggested.SupportedExtensions[0];
+        var file = new FileInfo(path);
+        var format = _formats.GetFormatByExtension(file.Extension)!;
+        try
+        {
+            if (format is JpegFormat jpeg)
+            {
+                if (await Dialogs.AskJpegQualityAsync(JpegQuality) is not { } quality)
+                    return;
+                JpegQuality = quality;
+                jpeg.Quality = quality;
+            }
+            await RunBusyAsync($"Exporting {file.Name}", async _ =>
+            {
+                await _formats.ExportLayerAsync(doc, file, format);
+                return true;
+            });
+            _lastExportFormat = format;
+        }
+        catch (Exception e) when (e is MagickException or IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            await Dialogs.ShowErrorAsync($"Could not export \"{file.Name}\"", Describe(e));
+        }
+    }
+
+    public bool CanExportLayer => CurrentLayers?.CurrentUserLayerIndex >= 0 && ActiveDocument?.Document is ImageDocument;
+
     /// <summary>Returns false if the user cancelled or the save failed.</summary>
     public async Task<bool> SaveDocumentAsync(DocumentViewModel d, bool saveAs)
     {
@@ -2406,7 +2447,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         foreach (var command in new IRelayCommand[]
                  {
                      AddNewLayerCommand, DeleteLayerCommand, DuplicateLayerCommand, MergeLayerDownCommand,
-                     MoveLayerUpCommand, MoveLayerDownCommand, FlipLayerHorizontalCommand, FlipLayerVerticalCommand,
+                     ExportLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand, FlipLayerHorizontalCommand, FlipLayerVerticalCommand,
                      FlattenCommand, ImportFromFileCommand, LayerPropertiesCommand,
                  })
             command.NotifyCanExecuteChanged();

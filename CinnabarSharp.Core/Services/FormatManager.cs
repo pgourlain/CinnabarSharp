@@ -1,3 +1,4 @@
+using CinnabarSharp.Core.Extensions;
 using CinnabarSharp.Core.Models;
 using CinnabarSharp.Core.Vector;
 
@@ -37,6 +38,9 @@ public interface IFormatManager
 
     /// <summary>Writes an SVG drawing as a picture (PNG, JPEG, WebP, BMP, TIFF, ORA). The drawing keeps its file and its unsaved-changes state.</summary>
     void Export(SvgDocument document, ImageFile file, SvgExportOptions options, ImageFormat? format = null);
+
+    /// <summary>Writes the pixels of the document's current layer alone to a flat-format file; the document is untouched.</summary>
+    Task ExportLayerAsync(ImageDocument document, ImageFile file, ImageFormat? format = null, CancellationToken cancellation = default);
 
     Task ExportAsync(SvgDocument document, ImageFile file, SvgExportOptions options, ImageFormat? format = null, CancellationToken cancellation = default);
 
@@ -188,6 +192,17 @@ public class FormatManager : IFormatManager
             var (pixels, width, height) = options.Render(document, cancellation);
             resolved.ExportPixels(pixels, width, height, file);
         }, cancellation);
+        file.Refresh();
+    }
+
+    public async Task ExportLayerAsync(ImageDocument document, ImageFile file, ImageFormat? format = null,
+        CancellationToken cancellation = default)
+    {
+        var resolved = ResolveExportFormat(file, format);
+        var layer = document.Layers.CurrentUserLayer.Surface;
+        var width = (int)layer.Width;
+        var height = (int)layer.Height;
+        await Task.Run(() => resolved.ExportPixels(layer.ToBgra(), width, height, file), cancellation);
         file.Refresh();
     }
 

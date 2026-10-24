@@ -382,26 +382,183 @@ public sealed class LineTool(ToolSettings settings) : IKeyboardTool, IOverlayToo
     private static PointD Lerp(PointD a, PointD b, double t) => new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
 }
 
-/// <summary>Rectangle or ellipse; outline, fill, or outline in primary + fill in secondary.</summary>
-public sealed class ShapesTool(ToolSettings settings) : DragShapeTool(settings)
+/// <summary>
+/// Rectangle or ellipse; outline, fill, or outline in primary + fill in secondary. Drag to draw. The shape stays
+/// editable until finished (Enter, click away, another tool): drag a handle to resize it, or its inside to move it.
+/// </summary>
+public sealed class ShapesTool(ToolSettings settings) : IKeyboardTool, IOverlayTool, IGridSnappingTool
 {
-    public override string Name => "Shapes";
+    private const int Creating = -3;
+    private const int Moving = -2;
+    private const int None = -1;
+    private const double GrabRadius = 8;
 
-    protected override void Draw(PaintSession session, PointD start, PointD end, ToolButton button)
+    private PaintSession? _session;
+    private PointD _a, _b;
+    private int _dragging = None;
+    private PointD _grab;
+    private (PointD A, PointD B) _moveStart;
+    private ToolButton _button;
+
+    public string Name => "Shapes";
+
+    public bool IsEditing(ImageDocument document) => _session is { IsLive: true } s && s.Document == document;
+
+    public void OnPointerDown(ImageDocument document, ToolPointer pointer)
     {
+        if (IsEditing(document))
+        {
+            if (HandleAt(document, pointer.Position) is >= 0 and var handle)
+            {
+                (_a, _b) = Normalized();
+                _dragging = handle;
+                return;
+            }
+            if (Contains(pointer.Position))
+            {
+                _dragging = Moving;
+                _grab = pointer.Position;
+                _moveStart = (_a, _b);
+                return;
+            }
+        }
+        _session = new PaintSession(document, Name);
+        _button = pointer.Button;
+        _a = _b = pointer.Position;
+        _dragging = Creating;
+    }
+
+    public void OnPointerMove(ImageDocument document, ToolPointer pointer)
+    {
+        if (_session is null || _dragging == None)
+            return;
+        var p = pointer.Position;
+        switch (_dragging)
+        {
+            case Creating:
+                _b = p;
+                break;
+            case Moving:
+                var (dx, dy) = (p.X - _grab.X, p.Y - _grab.Y);
+                _a = new PointD(_moveStart.A.X + dx, _moveStart.A.Y + dy);
+                _b = new PointD(_moveStart.B.X + dx, _moveStart.B.Y + dy);
+                break;
+            default:
+                if (_dragging is 0 or 6 or 7)
+                    _a = _a with { X = p.X };
+                if (_dragging is 2 or 3 or 4)
+                    _b = _b with { X = p.X };
+                if (_dragging is 0 or 1 or 2)
+                    _a = _a with { Y = p.Y };
+                if (_dragging is 4 or 5 or 6)
+                    _b = _b with { Y = p.Y };
+                break;
+        }
+        Draw();
+    }
+
+    public void OnPointerUp(ImageDocument document, ToolPointer pointer)
+    {
+        if (_session is null || _dragging == None)
+            return;
+        if (_dragging != Creating || pointer.Position != _a)
+            OnPointerMove(document, pointer);
+        if (_dragging == Creating && _a == _b)
+            _session = null; // A click without dragging just finishes the previous shape.
+        else
+            _session.Commit();
+        _dragging = None;
+    }
+
+    public void Finish(ImageDocument document)
+    {
+        if (_session?.Document == document)
+            _session = null;
+    }
+
+    public void Refresh(ImageDocument document)
+    {
+        if (!IsEditing(document) || _dragging != None)
+            return;
+        Draw();
+        _session!.Commit();
+    }
+
+    public bool OnKeyDown(ImageDocument document, ToolKey key, ToolModifiers modifiers)
+    {
+        if (!IsEditing(document) || key is not (ToolKey.Enter or ToolKey.Escape))
+            return false;
+        Finish(document);
+        return true;
+    }
+
+    public ToolOverlay? GetOverlay(ImageDocument document) => IsEditing(document) && _a != _b
+        ? new ToolOverlay { Handles = Handles(), SquareHandles = true }
+        : null;
+
+    public ToolCursor CursorAt(ImageDocument document, PointD point)
+    {
+        if (!IsEditing(document))
+            return ToolCursor.Default;
+        return HandleAt(document, point) switch
+        {
+            0 or 4 => ToolCursor.ResizeDiagonal,
+            2 or 6 => ToolCursor.ResizeAntiDiagonal,
+            1 or 5 => ToolCursor.ResizeVertical,
+            3 or 7 => ToolCursor.ResizeHorizontal,
+            _ => Contains(point) ? ToolCursor.Move : ToolCursor.Default,
+        };
+    }
+
+    private (PointD A, PointD B) Normalized() =>
+        (new PointD(Math.Min(_a.X, _b.X), Math.Min(_a.Y, _b.Y)), new PointD(Math.Max(_a.X, _b.X), Math.Max(_a.Y, _b.Y)));
+
+    private bool Contains(PointD p)
+    {
+        var (a, b) = Normalized();
+        return p.X >= a.X && p.X <= b.X && p.Y >= a.Y && p.Y <= b.Y;
+    }
+
+    /// <summary>Top-left, top, top-right, right, bottom-right, bottom, bottom-left, left.</summary>
+    private IReadOnlyList<PointD> Handles()
+    {
+        var (a, b) = Normalized();
+        var (cx, cy) = ((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+        return [new(a.X, a.Y), new(cx, a.Y), new(b.X, a.Y), new(b.X, cy), new(b.X, b.Y), new(cx, b.Y), new(a.X, b.Y), new(a.X, cy)];
+    }
+
+    private int HandleAt(ImageDocument document, PointD point)
+    {
+        var handles = Handles();
+        var radius = GrabRadius / Math.Max(document.Workspace.Scale, 0.01);
+        var (best, bestDistance) = (None, double.MaxValue);
+        for (var i = 0; i < handles.Count; i++)
+        {
+            var (dx, dy) = (Math.Abs(handles[i].X - point.X), Math.Abs(handles[i].Y - point.Y));
+            if (dx <= radius && dy <= radius && dx + dy < bestDistance)
+                (best, bestDistance) = (i, dx + dy);
+        }
+        return best;
+    }
+
+    private void Draw()
+    {
+        var session = _session!;
+        session.Reset();
+        var (start, end) = (_a, _b);
         var (w, h) = (session.Width, session.Height);
-        var outlineColor = Settings.ColorFor(button);
-        var fillColor = Settings.ShapeStyle == ShapeStyle.OutlineAndFill
-            ? Settings.ColorFor(button == ToolButton.Right ? ToolButton.Left : ToolButton.Right)
+        var outlineColor = settings.ColorFor(_button);
+        var fillColor = settings.ShapeStyle == ShapeStyle.OutlineAndFill
+            ? settings.ColorFor(_button == ToolButton.Right ? ToolButton.Left : ToolButton.Right)
             : outlineColor;
-        var aa = Settings.Antialiasing;
-        var width = Math.Max(1, Settings.BrushWidth);
-        var kind = Settings.ShapeKind;
-        var radius = Settings.CornerRadius;
+        var aa = settings.Antialiasing;
+        var width = Math.Max(1, settings.BrushWidth);
+        var kind = settings.ShapeKind;
+        var radius = settings.CornerRadius;
 
         CoverageMask? fill = null, outline = null;
         var region = RectangleI.Zero;
-        if (Settings.ShapeStyle != ShapeStyle.Outline)
+        if (settings.ShapeStyle != ShapeStyle.Outline)
         {
             fill = new CoverageMask(w, h);
             region = CoverageMask.Union(region, kind switch
@@ -411,7 +568,7 @@ public sealed class ShapesTool(ToolSettings settings) : DragShapeTool(settings)
                 _ => fill.FillRectangle(start, end, aa),
             });
         }
-        if (Settings.ShapeStyle != ShapeStyle.Fill)
+        if (settings.ShapeStyle != ShapeStyle.Fill)
         {
             outline = new CoverageMask(w, h);
             region = CoverageMask.Union(region, kind switch

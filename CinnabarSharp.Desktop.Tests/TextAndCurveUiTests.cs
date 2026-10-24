@@ -282,6 +282,6 @@ public sealed class TextAndCurveUiTests : IDisposable
         var frame = _h.Capture("67-rounded-rectangle");
         Assert.True(Vm.ShowCornerRadiusOptions);
         Assert.Equal((255, 255, 255), TestHarness.PixelAt(frame, _h.CanvasToWindow(52, 52)));
-        Assert.Equal((0, 128, 0), TestHarness.PixelAt(frame, _h.CanvasToWindow(150, 52)));
+        Assert.Equal((0, 128, 0), TestHarness.PixelAt(frame, _h.CanvasToWindow(100, 52))); // not 150: the shape's top-middle handle is drawn there
     }
 }
