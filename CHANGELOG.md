@@ -4,6 +4,18 @@ All notable changes to CinnabarSharp. The format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.9.7] - 2026-10-24
+
+### Added
+- Layers panel: a disk button saves the selected layer alone as a JPEG, PNG or other flat picture, so the layered file stays as it is (no merge needed).
+- Shapes tool (rectangle, ellipse, rounded rectangle): the shape stays editable like Line/Curve and Text. Drag a handle to resize it, drag its inside to move it, Enter or a click outside finishes it, and changing colors or width restyles it.
+
+### Changed
+- macOS packages contain a single architecture (no "Intel-based app" warning).
+
+### Fixed
+- macOS: pinch-to-zoom on the trackpad also works while the window is not the active one, like panning.
+
 ## [0.9.6] - 2026-10-08
 
 ### Added
